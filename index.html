@@ -181,10 +181,72 @@
     padding:8px 16px;border-radius:6px;cursor:pointer;
   }
   footer{text-align:center;padding:24px;color:#6a5f44;font-size:13px;}
+
+  /* ===== КНОПКА ОЗВУЧКИ ===== */
+  .speak{
+    display:inline-flex;align-items:center;gap:6px;margin:6px 0 2px;cursor:pointer;
+    background:rgba(31,93,91,.18);border:1px solid var(--teal);color:var(--brass-light);
+    font-family:'Oswald';font-size:13px;letter-spacing:.06em;
+    padding:6px 12px;border-radius:30px;transition:.2s;
+  }
+  .speak:hover{background:rgba(31,93,91,.35);}
+  .speak.playing{background:var(--teal);color:var(--paper);}
+  .speak .ic{font-size:15px;}
+
+  /* ===== АНИМАЦИЯ ВЫПОЛНЕНИЯ ===== */
+  #burst{
+    position:fixed;inset:0;z-index:60;pointer-events:none;
+    display:flex;align-items:center;justify-content:center;opacity:0;
+  }
+  #burst.go{animation:burstFade 1.3s ease forwards;}
+  @keyframes burstFade{0%{opacity:1;}70%{opacity:1;}100%{opacity:0;}}
+  #burst .bgear{
+    width:120px;height:120px;animation:burstSpin 1.3s ease;
+    filter:drop-shadow(0 0 24px rgba(201,150,46,.7));
+  }
+  @keyframes burstSpin{0%{transform:scale(.2) rotate(0);}60%{transform:scale(1.1) rotate(220deg);}100%{transform:scale(1) rotate(360deg);}}
+  .spark{position:absolute;width:10px;height:10px;border-radius:50%;background:var(--brass-light);}
+  #burst.go .spark{animation:sparkFly 1s ease forwards;}
+  @keyframes sparkFly{
+    0%{opacity:1;transform:translate(0,0) scale(1);}
+    100%{opacity:0;transform:translate(var(--dx),var(--dy)) scale(.2);}
+  }
+  #burst .label{
+    position:absolute;bottom:34%;font-family:'Marck Script',cursive;
+    font-size:38px;color:var(--brass);text-shadow:0 2px 18px rgba(0,0,0,.6);
+  }
+
+  /* ===== ВИКТОРИНА ===== */
+  #quiz{margin:40px 0;}
+  .quiz-card{
+    background:linear-gradient(165deg,#1f2a29,#161d1c);
+    border:1px solid var(--teal);border-radius:10px;padding:20px 18px;margin:14px 0;
+  }
+  .quiz-card .q{font-family:'Cormorant Garamond',serif;font-size:21px;color:var(--brass-light);font-weight:700;margin-bottom:12px;}
+  .quiz-card .opt{
+    display:block;width:100%;text-align:left;margin:7px 0;cursor:pointer;
+    background:#12100b;border:1px solid var(--line);color:var(--paper);
+    font-family:'Oswald';font-size:15px;padding:11px 14px;border-radius:8px;transition:.2s;
+  }
+  .quiz-card .opt:hover{border-color:var(--brass);}
+  .quiz-card .opt.correct{background:var(--teal);border-color:var(--teal);color:#fff;}
+  .quiz-card .opt.wrong{background:#5a2418;border-color:var(--rust);color:#ffd9c9;}
+  .quiz-card .fb{margin-top:8px;font-family:'Cormorant Garamond',serif;font-style:italic;font-size:16px;min-height:20px;color:var(--paper-dark);}
+  .quiz-score{
+    text-align:center;font-size:15px;letter-spacing:.1em;text-transform:uppercase;
+    color:var(--brass-light);margin-top:10px;
+  }
 </style>
 </head>
 <body>
 <div class="grain"></div>
+<div id="burst">
+  <svg class="bgear" viewBox="0 0 100 100">
+    <path fill="#c9962e" d="M50 8l6 12 13-4 1 14 13 5-8 11 8 11-13 5-1 14-13-4-6 12-6-12-13 4-1-14-13-5 8-11-8-11 13-5 1-14 13 4z"/>
+    <circle cx="50" cy="50" r="16" fill="#13110c"/><circle cx="50" cy="50" r="8" fill="#c9962e"/>
+  </svg>
+  <div class="label" id="burstLabel">Деталь собрана!</div>
+</div>
 
 <div class="progress-bar">
   <div class="wrap">
@@ -303,6 +365,40 @@
     <button class="claim" data-part="energiya" data-station="8">Свет найден — подтвердить «Энергия»</button>
   </article>
 
+  <!-- ============ ВИКТОРИНА ============ -->
+  <div class="stage">Бонус · <span>Викторина знатока</span></div>
+  <section id="quiz">
+    <div class="quiz-card" data-answer="1">
+      <div class="q">1. Кто построил знаменитую ажурную башню-сетку?</div>
+      <button class="opt">Инженер Шухов</button>
+      <button class="opt">Изобретатель Попов</button>
+      <button class="opt">Механик Яковлев</button>
+      <div class="fb"></div>
+    </div>
+    <div class="quiz-card" data-answer="2">
+      <div class="q">2. Что изобрёл Александр Попов?</div>
+      <button class="opt">Первый автомобиль</button>
+      <button class="opt">Радио — связь без проводов</button>
+      <button class="opt">Электрическую лампочку</button>
+      <div class="fb"></div>
+    </div>
+    <div class="quiz-card" data-answer="1">
+      <div class="q">3. Что нового пустили в городе к выставке 1896 года?</div>
+      <button class="opt">Первый в России электрический трамвай</button>
+      <button class="opt">Метро под Волгой</button>
+      <button class="opt">Аэропорт</button>
+      <div class="fb"></div>
+    </div>
+    <div class="quiz-card" data-answer="3">
+      <div class="q">4. Сколько дней работала Всероссийская выставка?</div>
+      <button class="opt">Всего 10 дней</button>
+      <button class="opt">Целых 3 года</button>
+      <button class="opt">125 дней</button>
+      <div class="fb"></div>
+    </div>
+    <div class="quiz-score" id="quizScore">Отвечено верно: 0 из 4</div>
+  </section>
+
   <!-- ============ ФИНАЛ ============ -->
   <section id="finale" class="locked">
     <p class="locktext">⚙ Машина времени ещё не собрана.<br>Найдите все 8 станций — прошлое и настоящее каждой детали, — чтобы запустить её.</p>
@@ -370,14 +466,88 @@
       var s = btn.getAttribute('data-station');
       if(done[s]) return;            // уже засчитано — не трогаем
       done[s] = true; save(); render();
+      playBurst();                    // анимация выполнения
       var total = Object.keys(done).filter(function(k){return done[k];}).length;
       if(total===8){
         setTimeout(function(){
           document.getElementById('finale').scrollIntoView({behavior:'smooth'});
-        }, 350);
+        }, 1300);
       }
     });
   });
+
+  // ===== АНИМАЦИЯ ВСПЫШКИ =====
+  function playBurst(){
+    var b = document.getElementById('burst');
+    // искры
+    b.querySelectorAll('.spark').forEach(function(s){ s.remove(); });
+    for(var i=0;i<12;i++){
+      var sp=document.createElement('div'); sp.className='spark';
+      var ang=(Math.PI*2/12)*i, dist=120+Math.random()*60;
+      sp.style.setProperty('--dx',(Math.cos(ang)*dist)+'px');
+      sp.style.setProperty('--dy',(Math.sin(ang)*dist)+'px');
+      b.appendChild(sp);
+    }
+    var n = Object.keys(done).filter(function(k){return done[k];}).length;
+    document.getElementById('burstLabel').textContent = (n===8) ? 'Машина запущена!' : 'Засчитано! +1';
+    b.classList.remove('go'); void b.offsetWidth; b.classList.add('go');
+  }
+
+  // ===== ОЗВУЧКА (синтез речи телефона) =====
+  var synth = window.speechSynthesis;
+  function speak(text, btn){
+    if(!synth){ return; }
+    synth.cancel();
+    var u = new SpeechSynthesisUtterance(text);
+    u.lang='ru-RU'; u.rate=0.95; u.pitch=1;
+    btn.classList.add('playing');
+    u.onend = function(){ btn.classList.remove('playing'); };
+    synth.speak(u);
+  }
+  // добавляем кнопку «послушать» в каждую станцию
+  document.querySelectorAll('.station').forEach(function(st){
+    var prof = st.querySelector('.prof');
+    var task = st.querySelector('.task');
+    var txt = (prof?prof.textContent:'') + '. ' + (task?task.textContent:'');
+    var b = document.createElement('button');
+    b.className='speak'; b.innerHTML='<span class="ic">🔊</span> Послушать вопрос';
+    b.addEventListener('click', function(){
+      if(b.classList.contains('playing')){ synth.cancel(); b.classList.remove('playing'); return; }
+      document.querySelectorAll('.speak.playing').forEach(function(x){x.classList.remove('playing');});
+      speak(txt, b);
+    });
+    // вставляем кнопку после подсказки, перед claim
+    var claim = st.querySelector('.claim');
+    st.insertBefore(b, claim);
+  });
+
+  // ===== ВИКТОРИНА =====
+  var quizState = {};
+  document.querySelectorAll('.quiz-card').forEach(function(card, ci){
+    var ans = parseInt(card.getAttribute('data-answer'),10); // 1-based
+    var opts = card.querySelectorAll('.opt');
+    var fb = card.querySelector('.fb');
+    opts.forEach(function(opt, oi){
+      opt.addEventListener('click', function(){
+        if(quizState[ci]==='ok') return; // уже верно — не меняем
+        opts.forEach(function(o){o.classList.remove('wrong');});
+        if(oi === ans-1){
+          opt.classList.add('correct');
+          fb.textContent='Верно! Так и есть.';
+          quizState[ci]='ok';
+        }else{
+          opt.classList.add('wrong');
+          fb.textContent='Не угадал — попробуй ещё раз.';
+          quizState[ci]='try';
+        }
+        updateQuiz();
+      });
+    });
+  });
+  function updateQuiz(){
+    var ok=0; Object.keys(quizState).forEach(function(k){ if(quizState[k]==='ok') ok++; });
+    document.getElementById('quizScore').textContent='Отвечено верно: '+ok+' из 4';
+  }
 
   document.getElementById('reset').addEventListener('click', function(){
     try{ localStorage.removeItem(KEY); }catch(e){}
