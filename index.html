@@ -379,6 +379,19 @@
   });
 
   render();
+
+  // надёжный переход к точке по QR-ссылке (#tochka-N) после полной загрузки
+  function goToHash(){
+    if(location.hash){
+      var el = document.querySelector(location.hash);
+      if(el){ el.scrollIntoView(); }
+    }
+  }
+  window.addEventListener('load', function(){
+    setTimeout(goToHash, 250);
+    setTimeout(goToHash, 700);
+  });
+  window.addEventListener('hashchange', goToHash);
 </script>
 </body>
 </html>
