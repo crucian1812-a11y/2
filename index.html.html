@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Машина времени · Квест по Нижнему Новгороду</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Marck+Script&family=Oswald:wght@400;600;700&family=Cormorant+Garamond:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --brass:#c9962e;
+    --brass-light:#e8c468;
+    --ink:#1c1812;
+    --paper:#f3e8cf;
+    --paper-dark:#e4d4ad;
+    --rust:#9c4a1a;
+    --teal:#1f5d5b;
+    --deep:#13110c;
+    --line:#7a6a44;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html{scroll-behavior:smooth;}
+  body{
+    font-family:'Oswald',sans-serif;
+    background:
+      radial-gradient(circle at 20% 10%, rgba(201,150,46,.12), transparent 40%),
+      radial-gradient(circle at 80% 90%, rgba(31,93,91,.15), transparent 45%),
+      var(--deep);
+    color:var(--paper);
+    line-height:1.5;
+    overflow-x:hidden;
+  }
+  .grain{
+    position:fixed;inset:0;pointer-events:none;z-index:1;opacity:.05;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+  .wrap{max-width:680px;margin:0 auto;padding:0 18px;position:relative;z-index:2;}
+
+  /* ===== HERO ===== */
+  header.hero{
+    text-align:center;padding:54px 18px 30px;position:relative;
+  }
+  .hero .eyebrow{
+    font-size:14px;letter-spacing:.45em;text-transform:uppercase;
+    color:var(--brass-light);font-weight:600;
+  }
+  .hero h1{
+    font-family:'Marck Script',cursive;
+    font-size:clamp(46px,13vw,86px);
+    color:var(--brass);font-weight:400;line-height:.95;
+    margin:6px 0 4px;text-shadow:0 2px 18px rgba(201,150,46,.35);
+  }
+  .hero .sub{
+    font-family:'Cormorant Garamond',serif;font-size:20px;font-style:italic;
+    color:var(--paper-dark);
+  }
+  .gear{
+    display:inline-block;width:64px;height:64px;margin-bottom:8px;
+    animation:spin 14s linear infinite;
+  }
+  @keyframes spin{to{transform:rotate(360deg);}}
+
+  /* ===== PROGRESS ===== */
+  .progress-bar{
+    position:sticky;top:0;z-index:20;
+    background:linear-gradient(180deg,var(--deep),rgba(19,17,12,.92));
+    border-bottom:1px solid var(--line);
+    padding:10px 0;backdrop-filter:blur(4px);
+  }
+  .parts{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;}
+  .part-chip{
+    display:flex;align-items:center;gap:6px;
+    font-size:12px;letter-spacing:.08em;text-transform:uppercase;
+    padding:5px 10px;border:1px solid var(--line);border-radius:30px;
+    color:#8a7c58;transition:.4s;
+  }
+  .part-chip .dot{width:9px;height:9px;border-radius:50%;background:#4a4330;transition:.4s;}
+  .part-chip.got{color:var(--brass-light);border-color:var(--brass);box-shadow:0 0 12px rgba(201,150,46,.3);}
+  .part-chip.got .dot{background:var(--brass);box-shadow:0 0 8px var(--brass);}
+
+  /* ===== INTRO ===== */
+  .scroll{
+    background:linear-gradient(180deg,var(--paper),var(--paper-dark));
+    color:var(--ink);border-radius:6px;padding:26px 24px;margin:26px 0;
+    border:1px solid #b89a5a;
+    box-shadow:0 10px 40px rgba(0,0,0,.5), inset 0 0 60px rgba(156,74,26,.07);
+    position:relative;
+  }
+  .scroll::before,.scroll::after{
+    content:"";position:absolute;left:0;right:0;height:14px;
+    background:repeating-linear-gradient(90deg,transparent 0 8px,rgba(122,106,68,.25) 8px 10px);
+  }
+  .scroll::before{top:0;} .scroll::after{bottom:0;}
+  .scroll h2{font-family:'Cormorant Garamond',serif;font-size:30px;color:var(--rust);margin-bottom:10px;font-weight:700;}
+  .scroll p{font-family:'Cormorant Garamond',serif;font-size:19px;margin-bottom:10px;}
+
+  /* ===== STAGE LABEL ===== */
+  .stage{
+    text-align:center;margin:46px 0 6px;
+    font-size:15px;letter-spacing:.35em;text-transform:uppercase;color:var(--teal);font-weight:600;
+  }
+  .stage span{color:var(--brass-light);}
+
+  /* ===== STATION CARD ===== */
+  .station{
+    background:linear-gradient(165deg,#221d14,#191510);
+    border:1px solid var(--line);border-radius:10px;
+    padding:24px 22px;margin:18px 0;
+    scroll-margin-top:70px;
+    box-shadow:0 6px 30px rgba(0,0,0,.4);
+    position:relative;overflow:hidden;
+  }
+  .station::before{
+    content:"";position:absolute;top:-40px;right:-40px;width:120px;height:120px;
+    border:2px dashed rgba(201,150,46,.18);border-radius:50%;
+  }
+  .station .num{
+    font-family:'Marck Script',cursive;font-size:40px;color:var(--brass);line-height:1;
+  }
+  .station .tag{
+    display:inline-block;font-size:11px;letter-spacing:.15em;text-transform:uppercase;
+    color:var(--teal);border:1px solid var(--teal);border-radius:20px;padding:3px 10px;margin-bottom:8px;
+  }
+  .station h3{font-family:'Cormorant Garamond',serif;font-size:26px;color:var(--brass-light);margin:4px 0 10px;font-weight:700;}
+  .station .prof{
+    font-family:'Cormorant Garamond',serif;font-style:italic;font-size:18px;
+    color:var(--paper-dark);border-left:3px solid var(--rust);padding-left:12px;margin:12px 0;
+  }
+  .station .task{font-size:16px;margin:10px 0;color:var(--paper);}
+  .station .task b{color:var(--brass-light);}
+  .hint{
+    margin-top:12px;font-size:14px;color:#9b8e6a;
+  }
+  .hint summary{cursor:pointer;color:var(--teal);font-weight:600;letter-spacing:.05em;}
+  .hint summary::-webkit-details-marker{color:var(--brass);}
+
+  .claim{
+    margin-top:16px;width:100%;border:none;cursor:pointer;
+    background:linear-gradient(180deg,var(--brass-light),var(--brass));
+    color:var(--deep);font-family:'Oswald';font-weight:700;font-size:16px;
+    letter-spacing:.12em;text-transform:uppercase;padding:14px;border-radius:8px;
+    transition:.25s;box-shadow:0 4px 14px rgba(201,150,46,.3);
+  }
+  .claim:hover{filter:brightness(1.08);transform:translateY(-1px);}
+  .claim.done{
+    background:var(--teal);color:var(--paper);cursor:default;box-shadow:none;
+  }
+
+  /* ===== FINALE ===== */
+  #finale{
+    margin:50px 0;padding:30px;border-radius:12px;text-align:center;
+    background:linear-gradient(160deg,#2a2114,#15120c);
+    border:1px solid var(--line);position:relative;
+  }
+  #finale.locked .locktext{display:block;}
+  #finale.locked .diploma{display:none;}
+  #finale .locktext{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:20px;color:#9b8e6a;display:none;}
+  .diploma{display:none;}
+  #finale:not(.locked) .diploma{display:block;animation:reveal 1s ease;}
+  @keyframes reveal{from{opacity:0;transform:scale(.9);}to{opacity:1;transform:scale(1);}}
+  .diploma .seal{
+    width:90px;height:90px;margin:0 auto 12px;border-radius:50%;
+    background:radial-gradient(circle,var(--brass-light),var(--brass) 70%);
+    display:flex;align-items:center;justify-content:center;font-size:42px;
+    box-shadow:0 0 30px rgba(201,150,46,.5);animation:spin 12s linear infinite;
+  }
+  .diploma h2{font-family:'Marck Script',cursive;font-size:50px;color:var(--brass);font-weight:400;}
+  .diploma .line{font-family:'Cormorant Garamond',serif;font-size:20px;color:var(--paper-dark);margin:6px 0;}
+  .name-in{
+    margin:14px auto;display:block;width:80%;max-width:300px;text-align:center;
+    background:transparent;border:none;border-bottom:2px dashed var(--brass);
+    color:var(--brass-light);font-family:'Marck Script',cursive;font-size:30px;padding:4px;
+  }
+  .name-in::placeholder{color:#8a7c58;}
+  .name-in:focus{outline:none;}
+
+  .reset{
+    display:block;margin:30px auto;background:none;border:1px solid var(--line);
+    color:#8a7c58;font-family:'Oswald';font-size:12px;letter-spacing:.1em;text-transform:uppercase;
+    padding:8px 16px;border-radius:6px;cursor:pointer;
+  }
+  footer{text-align:center;padding:24px;color:#6a5f44;font-size:13px;}
+</style>
+</head>
+<body>
+<div class="grain"></div>
+
+<div class="progress-bar">
+  <div class="wrap">
+    <div class="parts" id="parts">
+      <div class="part-chip" data-part="karkas"><span class="dot"></span>Каркас</div>
+      <div class="part-chip" data-part="signal"><span class="dot"></span>Сигнал</div>
+      <div class="part-chip" data-part="dvizhenie"><span class="dot"></span>Движение</div>
+      <div class="part-chip" data-part="energiya"><span class="dot"></span>Энергия</div>
+    </div>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <header class="hero">
+    <svg class="gear" viewBox="0 0 100 100" fill="none">
+      <path fill="#c9962e" d="M50 8l6 12 13-4 1 14 13 5-8 11 8 11-13 5-1 14-13-4-6 12-6-12-13 4-1-14-13-5 8-11-8-11 13-5 1-14 13 4z"/>
+      <circle cx="50" cy="50" r="16" fill="#13110c"/>
+      <circle cx="50" cy="50" r="8" fill="#c9962e"/>
+    </svg>
+    <div class="eyebrow">Нижний Новгород · 1896 → сегодня</div>
+    <h1>Машина<br>времени</h1>
+    <div class="sub">квест юных инженеров</div>
+  </header>
+
+  <section class="scroll" id="start">
+    <h2>Сообщение из 1896 года</h2>
+    <p>Здравствуйте, инженеры! Говорит профессор Шуховский.</p>
+    <p>130 лет назад наш город на 125 дней стал <b>столицей прогресса</b>. Здесь впервые показали изобретения, что изменили будущее. Но моя машина времени дала сбой — её <b>четыре детали</b> разлетелись по эпохам!</p>
+    <p>Найдите каждое изобретение в прошлом, узнайте его «потомка» в сегодняшнем городе — и деталь вернётся. Соберёте все четыре — машина оживёт. В путь!</p>
+  </section>
+
+  <!-- ============ ЭТАП 1: ВЫСТАВКА ============ -->
+  <div class="stage">Этап I · <span>Выставка «Великая Всероссийская»</span></div>
+
+  <article class="station" id="tochka-1">
+    <div class="num">01</div>
+    <span class="tag">Деталь: Каркас</span>
+    <h3>Башня, которой не страшно</h3>
+    <p class="prof">«Найдите ажурную башню-сетку инженера Шухова. Она лёгкая, будто кружево, но держит огромный вес.»</p>
+    <p class="task">Задание: рассмотри башню. <b>Из чего она сделана и почему не падает?</b> Назови одно слово, чем она тебя удивила.</p>
+    <details class="hint"><summary>Подсказка профессора</summary>Это первая в мире гиперболоидная башня — стальная сетка из прямых прутьев, изогнутая в форму. Прочная и лёгкая одновременно.</details>
+    <button class="claim" data-part="karkas">Деталь найдена — забрать «Каркас»</button>
+  </article>
+
+  <article class="station" id="tochka-2">
+    <div class="num">02</div>
+    <span class="tag">Деталь: Сигнал</span>
+    <h3>Прибор, что слышит грозу</h3>
+    <p class="prof">«Отыщите грозоотметчик Попова — устройство, что ловило сигналы прямо из воздуха, без всяких проводов.»</p>
+    <p class="task">Задание: <b>что умел этот прибор?</b> Догадайся, какая привычная нам вещь — его далёкий потомок.</p>
+    <details class="hint"><summary>Подсказка профессора</summary>Он чувствовал электрические сигналы на расстоянии — это предок радио, а значит и телефона, и Wi-Fi.</details>
+    <button class="claim" data-part="signal">Деталь найдена — забрать «Сигнал»</button>
+  </article>
+
+  <article class="station" id="tochka-3">
+    <div class="num">03</div>
+    <span class="tag">Деталь: Движение</span>
+    <h3>Первый русский автомобиль</h3>
+    <p class="prof">«Найдите самобеглую повозку Яковлева и Фрезе — первый автомобиль России, показанный здесь в 1896-м.»</p>
+    <p class="task">Задание: <b>сколько у него колёс? На что он похож?</b> Сравни его со своей машиной мечты.</p>
+    <details class="hint"><summary>Подсказка профессора</summary>Он напоминал карету без лошади, с мотором всего в пару лошадиных сил. Сегодня его потомки — все автомобили на улицах.</details>
+    <button class="claim" data-part="dvizhenie">Деталь найдена — забрать «Движение»</button>
+  </article>
+
+  <article class="station" id="tochka-4">
+    <div class="num">04</div>
+    <span class="tag">Деталь: Энергия</span>
+    <h3>Город, который зажёгся</h3>
+    <p class="prof">«К открытию выставки в городе пустили первый электрический трамвай и зажгли электрический свет. Найдите след этой энергии.»</p>
+    <p class="task">Задание: <b>что нового дала людям электрическая энергия в 1896 году?</b> Назови две вещи.</p>
+    <details class="hint"><summary>Подсказка профессора</summary>Электрический трамвай (первый в России!) и яркое освещение — раньше улицы светили лишь газовыми и масляными фонарями.</details>
+    <button class="claim" data-part="energiya">Деталь найдена — забрать «Энергия»</button>
+  </article>
+
+  <!-- ============ ЭТАП 2: ГОРОД ============ -->
+  <div class="stage">Этап II · <span>Город сегодня</span></div>
+
+  <article class="station" id="tochka-5">
+    <div class="num">05</div>
+    <span class="tag">Каркас · потомок</span>
+    <h3>Внуки башни Шухова</h3>
+    <p class="prof">«Башня выросла! Найдите рядом современную металлическую решётку — опоры канатной дороги или каркас Чкаловской лестницы.»</p>
+    <p class="task">Миссия: <b>сфотографируйтесь всей командой</b> на фоне металлической конструкции. Сосчитай, сколько «треугольников» в её решётке (хотя бы примерно).</p>
+    <details class="hint"><summary>Подсказка</summary>Опоры канатной дороги над Волгой — прямые потомки идей Шухова: лёгкие, ажурные, прочные.</details>
+    <button class="claim" data-part="karkas">Потомок найден — подтвердить «Каркас»</button>
+  </article>
+
+  <article class="station" id="tochka-6">
+    <div class="num">06</div>
+    <span class="tag">Сигнал · потомок</span>
+    <h3>Передай сигнал предкам</h3>
+    <p class="prof">«Попов мечтал о связи без проводов. У вас она в кармане!»</p>
+    <p class="task">Миссия: найди вокруг <b>вышку, антенну или свой телефон</b> и <b>отправь общее фото команды в семейный чат</b> прямо из этой точки. Сигнал отправлен — деталь твоя.</p>
+    <details class="hint"><summary>Подсказка</summary>Каждое сообщение летит по радиоволнам — тем самым, что открыл Попов 130 лет назад.</details>
+    <button class="claim" data-part="signal">Сигнал отправлен — подтвердить</button>
+  </article>
+
+  <article class="station" id="tochka-7">
+    <div class="num">07</div>
+    <span class="tag">Движение · потомок</span>
+    <h3>Транспорт будущего</h3>
+    <p class="prof">«В 1896-м верхом прогресса была повозка с мотором. А вы полетите над рекой!»</p>
+    <p class="task">Миссия (во время полёта на канатной дороге): <b>сосчитай, сколько разных видов транспорта</b> ты видишь внизу — лодки, машины, поезда, другие кабинки?</p>
+    <details class="hint"><summary>Подсказка</summary>Канатная дорога над Волгой — один из немногих «городских» канатных маршрутов в стране. Вот это настоящий транспорт будущего!</details>
+    <button class="claim" data-part="dvizhenie">Полёт совершён — подтвердить «Движение»</button>
+  </article>
+
+  <article class="station" id="tochka-8">
+    <div class="num">08</div>
+    <span class="tag">Энергия · потомок</span>
+    <h3>Свет старый и новый</h3>
+    <p class="prof">«Найдите, как энергия освещает город сегодня.»</p>
+    <p class="task">Миссия: на Большой Покровской или у Кремля <b>найди старинный фонарь и современный</b>. Чем они отличаются? Сфотографируй оба.</p>
+    <details class="hint"><summary>Подсказка</summary>Старые фонари были газовыми, новые — светодиодные. Между ними — 130 лет развития энергии.</details>
+    <button class="claim" data-part="energiya">Свет найден — подтвердить «Энергия»</button>
+  </article>
+
+  <!-- ============ ФИНАЛ ============ -->
+  <section id="finale" class="locked">
+    <p class="locktext">⚙ Машина времени ещё не собрана.<br>Соберите все четыре детали, чтобы запустить её.</p>
+    <div class="diploma">
+      <div class="seal">⚙</div>
+      <h2>Машина запущена!</h2>
+      <div class="line">Настоящим подтверждается, что</div>
+      <input class="name-in" id="diplomaName" placeholder="впиши своё имя" maxlength="24">
+      <div class="line">собрал(а) все четыре детали и получает звание</div>
+      <div class="line" style="font-size:26px;color:var(--brass);font-weight:700;">★ Инженер Времени ★</div>
+      <div class="line" style="font-size:15px;color:#9b8e6a;margin-top:10px;">Нижний Новгород · связь эпох 1896 → сегодня</div>
+    </div>
+  </section>
+
+  <button class="reset" id="reset">↺ начать квест заново</button>
+
+  <footer>Квест по мотивам выставки «Великая Всероссийская» · Пакгаузы на Стрелке</footer>
+</div>
+
+<script>
+  var KEY = 'nn_kvest_parts_v1';
+  var parts = {karkas:false, signal:false, dvizhenie:false, energiya:false};
+
+  // загрузка прогресса (работает на реальном хостинге; в превью просто стартует с нуля)
+  try{
+    var saved = localStorage.getItem(KEY);
+    if(saved) parts = JSON.parse(saved);
+  }catch(e){}
+
+  function save(){
+    try{ localStorage.setItem(KEY, JSON.stringify(parts)); }catch(e){}
+  }
+
+  function render(){
+    var n = 0;
+    Object.keys(parts).forEach(function(p){
+      if(parts[p]) n++;
+      // чипы в шапке
+      document.querySelectorAll('.part-chip[data-part="'+p+'"]').forEach(function(c){
+        c.classList.toggle('got', parts[p]);
+      });
+      // кнопки
+      document.querySelectorAll('.claim[data-part="'+p+'"]').forEach(function(b){
+        if(parts[p]){ b.classList.add('done'); b.textContent='✓ Деталь получена'; }
+      });
+    });
+    var fin = document.getElementById('finale');
+    if(n===4) fin.classList.remove('locked');
+    else fin.classList.add('locked');
+  }
+
+  document.querySelectorAll('.claim').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var p = btn.getAttribute('data-part');
+      parts[p] = true; save(); render();
+      if(parts.karkas&&parts.signal&&parts.dvizhenie&&parts.energiya){
+        setTimeout(function(){
+          document.getElementById('finale').scrollIntoView({behavior:'smooth'});
+        }, 350);
+      }
+    });
+  });
+
+  document.getElementById('reset').addEventListener('click', function(){
+    parts = {karkas:false, signal:false, dvizhenie:false, energiya:false};
+    save();
+    document.querySelectorAll('.claim').forEach(function(b){
+      b.classList.remove('done');
+      var p=b.getAttribute('data-part');
+      var inExhibit = b.closest('#tochka-1,#tochka-2,#tochka-3,#tochka-4');
+      b.textContent = inExhibit ? 'Деталь найдена' : 'Подтвердить деталь';
+    });
+    location.reload();
+  });
+
+  render();
+</script>
+</body>
+</html>
