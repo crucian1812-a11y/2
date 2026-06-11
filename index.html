@@ -236,6 +236,21 @@
     text-align:center;font-size:15px;letter-spacing:.1em;text-transform:uppercase;
     color:var(--brass-light);margin-top:10px;
   }
+
+  /* ===== БОНУС-СТАДИОН ===== */
+  .claim-bonus{
+    margin-top:16px;width:100%;border:none;cursor:pointer;
+    background:linear-gradient(180deg,#2fa37a,var(--teal));
+    color:#fff;font-family:'Oswald';font-weight:700;font-size:16px;
+    letter-spacing:.1em;text-transform:uppercase;padding:14px;border-radius:8px;
+    transition:.25s;box-shadow:0 4px 14px rgba(31,93,91,.4);
+  }
+  .claim-bonus:hover{filter:brightness(1.08);transform:translateY(-1px);}
+  .claim-bonus.done{background:var(--brass);color:var(--deep);cursor:default;box-shadow:none;}
+  .bonus-msg{
+    margin-top:14px;text-align:center;font-family:'Cormorant Garamond',serif;font-style:italic;
+    font-size:18px;color:var(--brass-light);
+  }
 </style>
 </head>
 <body>
@@ -363,6 +378,21 @@
     <p class="task">Миссия: на Большой Покровской или у Кремля <b>найди старинный фонарь и современный</b>. Чем они отличаются? Сфотографируй оба.</p>
     <details class="hint"><summary>Подсказка</summary>Старые фонари были газовыми, новые — светодиодные. Между ними — 130 лет развития энергии.</details>
     <button class="claim" data-part="energiya" data-station="8">Свет найден — подтвердить «Энергия»</button>
+  </article>
+
+  <!-- ============ БОНУС: СТАДИОН ============ -->
+  <div class="stage">Станция-бонус · <span>Стадион на Стрелке</span></div>
+  <article class="station" id="tochka-9">
+    <div class="num">⚽</div>
+    <span class="tag">Бонус · Машина для футбола</span>
+    <h3>Каркас, который умеет в футбол</h3>
+    <p class="prof">«Инженеры 1896 года мечтали о больших лёгких конструкциях. Посмотрите — прямо на Стрелке, рядом с выставкой, стоит огромный стадион «Нижний Новгород». Его построили к чемпионату мира 2018 года: стальной каркас, стекло, белые «колонны», в которых зашифрованы вода и ветер Волги. Настоящий потомок башни Шухова!»</p>
+    <p class="task">Миссия из двух частей:<br>
+    1. <b>Найдите стадион</b> на Стрелке и сфотографируйтесь всей командой на его фоне.<br>
+    2. А ещё сегодня, <b>11 июня, стартует Чемпионат мира по футболу!</b> Придумайте название своей команды инженеров и <b>отпразднуйте «гол»</b> — сделайте фото в позе футболиста.</p>
+    <details class="hint"><summary>Подсказка профессора</summary>Стадион принимал матчи чемпионата мира 2018 года. Его «волнистый» фасад из белых опор придуман по мотивам волжской воды и ветра — это и красиво, и прочно, как мечтал Шухов.</details>
+    <button class="claim-bonus" id="stadiumBtn">⚽ Гол! Бонус выполнен</button>
+    <div id="stadiumMsg" class="bonus-msg hidden">★ Команда инженеров отпраздновала гол на Стрелке! Бонус засчитан.</div>
   </article>
 
   <!-- ============ ВИКТОРИНА ============ -->
@@ -521,6 +551,30 @@
     st.insertBefore(b, claim);
   });
 
+  // ===== БОНУС: СТАДИОН =====
+  var STKEY = 'nn_kvest_stadium_v1';
+  var stBtn = document.getElementById('stadiumBtn');
+  var stMsg = document.getElementById('stadiumMsg');
+  function renderStadium(){
+    var done = false;
+    try{ done = localStorage.getItem(STKEY) === '1'; }catch(e){}
+    if(done){
+      stBtn.classList.add('done'); stBtn.textContent = '✓ Бонус выполнен';
+      stMsg.classList.remove('hidden');
+    }
+  }
+  if(stBtn){
+    stBtn.addEventListener('click', function(){
+      try{ localStorage.setItem(STKEY, '1'); }catch(e){}
+      renderStadium();
+      if(typeof playBurst === 'function'){
+        document.getElementById('burstLabel').textContent = 'Гол! ⚽';
+        var b=document.getElementById('burst'); b.classList.remove('go'); void b.offsetWidth; b.classList.add('go');
+      }
+    });
+    renderStadium();
+  }
+
   // ===== ВИКТОРИНА =====
   var quizState = {};
   document.querySelectorAll('.quiz-card').forEach(function(card, ci){
@@ -550,7 +604,7 @@
   }
 
   document.getElementById('reset').addEventListener('click', function(){
-    try{ localStorage.removeItem(KEY); }catch(e){}
+    try{ localStorage.removeItem(KEY); localStorage.removeItem(STKEY); }catch(e){}
     location.reload();
   });
 
