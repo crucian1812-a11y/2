@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Великий Новгород · путеводитель путешественника</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700;800&family=Marck+Script&family=Source+Sans+3:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --gold:#c9a227;
+    --gold-light:#e8cf6f;
+    --ink:#1f2a2e;
+    --cream:#f7f1e1;
+    --cream-dark:#ecdfc0;
+    --river:#2f6f8f;
+    --river-dark:#1d4a5e;
+    --brick:#8a3b2a;
+    --paper:#fffaf0;
+    --line:#cdb98a;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html{scroll-behavior:smooth;}
+  body{
+    font-family:'Source Sans 3',sans-serif;
+    color:var(--ink);
+    background:var(--paper);
+    line-height:1.6;
+    overflow-x:hidden;
+  }
+  .wrap{max-width:920px;margin:0 auto;padding:0 20px;}
+  img{max-width:100%;display:block;}
+
+  /* ===== NAV ===== */
+  nav{
+    position:sticky;top:0;z-index:50;
+    background:rgba(255,250,240,.92);backdrop-filter:blur(6px);
+    border-bottom:1px solid var(--line);
+  }
+  nav .wrap{display:flex;align-items:center;justify-content:space-between;padding:12px 20px;}
+  nav .logo{font-family:'Playfair Display',serif;font-weight:800;font-size:20px;color:var(--river-dark);}
+  nav .logo span{color:var(--gold);}
+  nav .links{display:flex;gap:18px;flex-wrap:wrap;}
+  nav .links a{
+    font-size:14px;font-weight:600;letter-spacing:.02em;color:var(--ink);
+    text-decoration:none;padding:6px 4px;border-bottom:2px solid transparent;transition:.2s;
+  }
+  nav .links a:hover{border-color:var(--gold);color:var(--river-dark);}
+
+  /* ===== HERO ===== */
+  header.hero{
+    position:relative;
+    padding:90px 20px 70px;text-align:center;
+    background:
+      radial-gradient(circle at 18% 20%, rgba(201,162,39,.18), transparent 45%),
+      radial-gradient(circle at 85% 80%, rgba(47,111,143,.22), transparent 50%),
+      linear-gradient(160deg,#eef4f6,var(--cream));
+    border-bottom:1px solid var(--line);
+    overflow:hidden;
+  }
+  header.hero::before{
+    content:"";position:absolute;inset:0;opacity:.5;pointer-events:none;
+    background-image:
+      radial-gradient(circle, var(--gold) 1px, transparent 1.4px);
+    background-size:34px 34px;
+    opacity:.08;
+  }
+  .hero .eyebrow{
+    font-size:13px;letter-spacing:.4em;text-transform:uppercase;
+    color:var(--river-dark);font-weight:700;
+  }
+  .hero h1{
+    font-family:'Playfair Display',serif;font-weight:800;
+    font-size:clamp(40px,9vw,76px);color:var(--ink);
+    margin:14px 0 6px;line-height:1.05;
+  }
+  .hero h1 em{
+    font-style:italic;color:var(--gold);
+    font-family:'Marck Script',cursive;font-weight:400;
+    display:inline-block;font-size:1.05em;
+  }
+  .hero .sub{
+    font-size:19px;color:#465056;max-width:560px;margin:14px auto 0;
+  }
+  .hero .badges{
+    display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-top:26px;
+  }
+  .badge{
+    font-size:13px;font-weight:600;color:var(--river-dark);
+    border:1px solid var(--river);border-radius:30px;padding:7px 14px;
+    background:rgba(47,111,143,.06);
+  }
+
+  /* ===== SECTION TITLES ===== */
+  .section{padding:60px 0;}
+  .section.alt{background:linear-gradient(180deg,var(--cream),var(--cream-dark));}
+  .kicker{
+    font-size:13px;letter-spacing:.35em;text-transform:uppercase;
+    color:var(--gold);font-weight:700;text-align:center;margin-bottom:8px;
+  }
+  .section h2{
+    font-family:'Playfair Display',serif;font-weight:800;font-size:clamp(28px,5vw,42px);
+    text-align:center;color:var(--ink);margin-bottom:10px;
+  }
+  .section .lead{
+    text-align:center;max-width:640px;margin:0 auto 36px;color:#566066;font-size:17px;
+  }
+
+  /* ===== INTRO TEXT ===== */
+  .intro-grid{display:grid;gap:24px;grid-template-columns:1.3fr 1fr;align-items:start;}
+  @media(max-width:720px){.intro-grid{grid-template-columns:1fr;}}
+  .intro-card{
+    background:var(--paper);border:1px solid var(--line);border-radius:12px;
+    padding:24px 26px;box-shadow:0 6px 24px rgba(31,42,46,.06);
+  }
+  .intro-card h3{font-family:'Playfair Display',serif;color:var(--river-dark);margin-bottom:10px;font-size:22px;}
+  .intro-card p{margin-bottom:10px;font-size:16px;color:#3c454a;}
+  .fact-list{list-style:none;display:flex;flex-direction:column;gap:12px;}
+  .fact-list li{
+    display:flex;gap:12px;align-items:flex-start;
+    background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:14px 16px;
+  }
+  .fact-list .ic{font-size:22px;line-height:1.2;}
+  .fact-list b{display:block;color:var(--river-dark);font-size:15px;}
+  .fact-list span{font-size:14px;color:#566066;}
+
+  /* ===== TIMELINE ===== */
+  .timeline{position:relative;margin:0 auto;max-width:760px;padding-left:28px;border-left:3px solid var(--gold);}
+  .tl-item{position:relative;padding:0 0 28px 24px;}
+  .tl-item:last-child{padding-bottom:0;}
+  .tl-item::before{
+    content:"";position:absolute;left:-39px;top:2px;width:14px;height:14px;border-radius:50%;
+    background:var(--gold);border:3px solid var(--paper);box-shadow:0 0 0 2px var(--gold);
+  }
+  .tl-item .year{font-family:'Playfair Display',serif;font-weight:800;color:var(--river-dark);font-size:20px;}
+  .tl-item p{color:#566066;font-size:15px;margin-top:4px;}
+
+  /* ===== SIGHTS GRID ===== */
+  .sights{display:grid;grid-template-columns:repeat(2,1fr);gap:22px;}
+  @media(max-width:680px){.sights{grid-template-columns:1fr;}}
+  .sight{
+    background:var(--paper);border:1px solid var(--line);border-radius:14px;overflow:hidden;
+    box-shadow:0 6px 24px rgba(31,42,46,.06);display:flex;flex-direction:column;
+  }
+  .sight .ph{
+    height:150px;display:flex;align-items:center;justify-content:center;font-size:54px;
+    background:linear-gradient(135deg,var(--river),var(--river-dark));color:#fff;
+  }
+  .sight .body{padding:18px 20px;flex:1;display:flex;flex-direction:column;}
+  .sight .tag{
+    font-size:11px;letter-spacing:.15em;text-transform:uppercase;color:var(--gold);
+    font-weight:700;margin-bottom:6px;
+  }
+  .sight h3{font-family:'Playfair Display',serif;font-size:21px;color:var(--ink);margin-bottom:8px;}
+  .sight p{font-size:15px;color:#566066;flex:1;}
+  .sight .meta{
+    margin-top:12px;font-size:13px;color:var(--river-dark);font-weight:600;
+    display:flex;gap:14px;flex-wrap:wrap;
+  }
+
+  /* ===== ITINERARY ===== */
+  .days{display:flex;flex-direction:column;gap:18px;max-width:760px;margin:0 auto;}
+  .day{
+    background:var(--paper);border:1px solid var(--line);border-radius:12px;
+    padding:20px 22px;box-shadow:0 6px 20px rgba(31,42,46,.05);
+  }
+  .day .head{display:flex;align-items:center;gap:12px;margin-bottom:10px;}
+  .day .num{
+    font-family:'Playfair Display',serif;font-weight:800;font-size:24px;color:#fff;
+    background:var(--gold);width:42px;height:42px;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;flex-shrink:0;
+  }
+  .day h3{font-family:'Playfair Display',serif;font-size:20px;color:var(--ink);}
+  .day ul{list-style:none;display:flex;flex-direction:column;gap:8px;}
+  .day li{font-size:15px;color:#3c454a;padding-left:22px;position:relative;}
+  .day li::before{content:"→";position:absolute;left:0;color:var(--river);font-weight:700;}
+
+  /* ===== PRACTICAL INFO ===== */
+  .info-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;}
+  @media(max-width:760px){.info-grid{grid-template-columns:1fr;}}
+  .info-card{
+    background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:20px;
+    box-shadow:0 6px 20px rgba(31,42,46,.05);
+  }
+  .info-card .ic{font-size:28px;margin-bottom:8px;}
+  .info-card h3{font-family:'Playfair Display',serif;color:var(--river-dark);margin-bottom:8px;font-size:19px;}
+  .info-card ul{list-style:none;display:flex;flex-direction:column;gap:6px;}
+  .info-card li{font-size:14.5px;color:#3c454a;padding-left:16px;position:relative;}
+  .info-card li::before{content:"•";position:absolute;left:0;color:var(--gold);font-weight:700;}
+
+  /* ===== FOOD ===== */
+  .food-list{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;}
+  @media(max-width:680px){.food-list{grid-template-columns:1fr;}}
+  .food-item{
+    display:flex;gap:14px;align-items:flex-start;background:var(--paper);
+    border:1px solid var(--line);border-radius:10px;padding:14px 16px;
+  }
+  .food-item .ic{font-size:30px;}
+  .food-item b{display:block;color:var(--river-dark);font-size:15.5px;margin-bottom:2px;}
+  .food-item span{font-size:14px;color:#566066;}
+
+  /* ===== CHECKLIST ===== */
+  .checklist{max-width:560px;margin:0 auto;display:flex;flex-direction:column;gap:10px;}
+  .check{
+    display:flex;gap:12px;align-items:flex-start;background:var(--paper);
+    border:1px solid var(--line);border-radius:10px;padding:12px 16px;cursor:pointer;user-select:none;
+    transition:.2s;
+  }
+  .check:hover{border-color:var(--gold);}
+  .check input{margin-top:3px;accent-color:var(--gold);width:18px;height:18px;flex-shrink:0;}
+  .check span{font-size:15px;color:#3c454a;}
+  .check.checked span{color:#9aa3a8;text-decoration:line-through;}
+
+  /* ===== FOOTER ===== */
+  footer{
+    text-align:center;padding:36px 20px;color:#8a8073;font-size:13px;
+    background:var(--river-dark);color:#cfe3ec;
+  }
+  footer .top{font-family:'Playfair Display',serif;font-size:20px;color:#fff;margin-bottom:8px;}
+  footer a{color:var(--gold-light);text-decoration:none;}
+
+  /* ===== MAP PLACEHOLDER ===== */
+  .map-card{
+    border:1px solid var(--line);border-radius:14px;overflow:hidden;
+    box-shadow:0 6px 24px rgba(31,42,46,.06);
+  }
+  .map-card iframe{width:100%;height:380px;border:0;display:block;}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="wrap">
+    <div class="logo">Великий <span>Новгород</span></div>
+    <div class="links">
+      <a href="#about">О городе</a>
+      <a href="#history">История</a>
+      <a href="#sights">Что посмотреть</a>
+      <a href="#itinerary">Маршрут</a>
+      <a href="#info">Полезно знать</a>
+      <a href="#food">Еда</a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="eyebrow">Путеводитель путешественника</div>
+    <h1>Великий <em>Новгород</em></h1>
+    <p class="sub">Один из древнейших городов России — родина русской государственности, берестяных грамот, белокаменных соборов и тихих улочек на берегу Волхова.</p>
+    <div class="badges">
+      <span class="badge">📍 Новгородская область</span>
+      <span class="badge">🕰 Основан в 859 году</span>
+      <span class="badge">⛪ Объект ЮНЕСКО</span>
+      <span class="badge">🚆 ~3 ч от Москвы</span>
+    </div>
+  </div>
+</header>
+
+<!-- ===== О ГОРОДЕ ===== -->
+<section class="section" id="about">
+  <div class="wrap">
+    <div class="kicker">Знакомство</div>
+    <h2>Город, где начиналась Русь</h2>
+    <p class="lead">Великий Новгород — это компактный, уютный город, по которому удобно гулять пешком. Здесь сохранились памятники архитектуры XI–XVII веков, а вечера хороши для прогулок по набережной Волхова.</p>
+
+    <div class="intro-grid">
+      <div class="intro-card">
+        <h3>Почему стоит ехать</h3>
+        <p>Новгород часто называют «отцом городов русских» — именно сюда, по легенде, в 862 году был призван Рюрик. Здесь зародилось вече — прообраз народного самоуправления, а уникальный влажный культурный слой сохранил тысячи берестяных грамот — настоящих писем людей XI–XV веков.</p>
+        <p>Город небольшой: исторический центр можно обойти за один день, а если задержаться на два-три дня — успеете и в окрестные монастыри, и в музей деревянного зодчества под открытым небом.</p>
+      </div>
+      <ul class="fact-list">
+        <li><span class="ic">🏰</span><div><b>Детинец (Кремль)</b><span>Древнейшая каменная крепость России, в центре — Софийский собор</span></div></li>
+        <li><span class="ic">🌊</span><div><b>Река Волхов</b><span>Делит город на Софийскую и Торговую стороны</span></div></li>
+        <li><span class="ic">📜</span><div><b>Берестяные грамоты</b><span>Найдено более 1100 экземпляров — больше, чем где-либо</span></div></li>
+        <li><span class="ic">🚉</span><div><b>Транспорт</b><span>Поезд и автобус из Санкт-Петербурга (~2,5 ч) и Москвы (~6–8 ч)</span></div></li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ===== ИСТОРИЯ ===== -->
+<section class="section alt" id="history">
+  <div class="wrap">
+    <div class="kicker">Хронология</div>
+    <h2>Краткая история города</h2>
+    <p class="lead">Несколько ключевых дат, которые помогут понять, что вы увидите на месте.</p>
+
+    <div class="timeline">
+      <div class="tl-item">
+        <div class="year">859 / 862</div>
+        <p>Первые летописные упоминания о Новгороде; по легенде — призвание Рюрика на княжение.</p>
+      </div>
+      <div class="tl-item">
+        <div class="year">1045–1050</div>
+        <p>Строительство Софийского собора — главного храма города, который стоит до сих пор.</p>
+      </div>
+      <div class="tl-item">
+        <div class="year">XII–XV века</div>
+        <p>Новгородская республика — период расцвета вечевого самоуправления, торговли с Ганзейским союзом и расцвета каменного зодчества.</p>
+      </div>
+      <div class="tl-item">
+        <div class="year">1478</div>
+        <p>Присоединение Новгорода к Московскому государству при Иване III.</p>
+      </div>
+      <div class="tl-item">
+        <div class="year">1944</div>
+        <p>Освобождение от немецкой оккупации; город сильно разрушен и впоследствии восстановлен.</p>
+      </div>
+      <div class="tl-item">
+        <div class="year">1992</div>
+        <p>Памятники Новгорода и окрестностей включены в список Всемирного наследия ЮНЕСКО.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== ЧТО ПОСМОТРЕТЬ ===== -->
+<section class="section" id="sights">
+  <div class="wrap">
+    <div class="kicker">Главное</div>
+    <h2>Что посмотреть</h2>
+    <p class="lead">Топ мест, без которых поездка в Новгород будет неполной.</p>
+
+    <div class="sights">
+      <div class="sight">
+        <div class="ph">🏰</div>
+        <div class="body">
+          <div class="tag">Сердце города</div>
+          <h3>Новгородский детинец (Кремль)</h3>
+          <p>Каменная крепость XI–XVII веков с земляными валами, башнями и Софийским собором внутри. Можно подняться на смотровую площадку звонницы или на стену с прогулочным маршрутом.</p>
+          <div class="meta"><span>⏱ 2–3 часа</span><span>🎫 платный вход в музеи</span></div>
+        </div>
+      </div>
+
+      <div class="sight">
+        <div class="ph">⛪</div>
+        <div class="body">
+          <div class="tag">Главный храм</div>
+          <h3>Софийский собор</h3>
+          <p>Старейший православный храм на территории России (1045–1050), с уникальными бронзовыми Магдебургскими вратами и сохранившимися фресками.</p>
+          <div class="meta"><span>⏱ 30–60 минут</span><span>🆓 вход бесплатный</span></div>
+        </div>
+      </div>
+
+      <div class="sight">
+        <div class="ph">🛶</div>
+        <div class="body">
+          <div class="tag">Торговая сторона</div>
+          <h3>Ярославово дворище и торговые ряды</h3>
+          <p>Комплекс церквей XII–XVII веков на месте древнего княжеского двора, прямо на берегу Волхова напротив Кремля — отличная точка для фотографий.</p>
+          <div class="meta"><span>⏱ 1 час</span><span>🚶 пешком от Кремля 10 мин</span></div>
+        </div>
+      </div>
+
+      <div class="sight">
+        <div class="ph">🌲</div>
+        <div class="body">
+          <div class="tag">Музей под открытым небом</div>
+          <h3>Витославлицы</h3>
+          <p>Музей деревянного зодчества: старинные избы, церкви и мельницы, привезённые из новгородских деревень. Рядом — Юрьев монастырь.</p>
+          <div class="meta"><span>⏱ 2 часа</span><span>📍 ~7 км от центра</span></div>
+        </div>
+      </div>
+
+      <div class="sight">
+        <div class="ph">🕊</div>
+        <div class="body">
+          <div class="tag">Действующий монастырь</div>
+          <h3>Юрьев монастырь</h3>
+          <p>Один из древнейших монастырей Руси (основан в 1030 году) с величественным Георгиевским собором на берегу озера Ильмень.</p>
+          <div class="meta"><span>⏱ 1 час</span><span>📍 рядом с Витославлицами</span></div>
+        </div>
+      </div>
+
+      <div class="sight">
+        <div class="ph">🚤</div>
+        <div class="body">
+          <div class="tag">Прогулка</div>
+          <h3>Набережная и озеро Ильмень</h3>
+          <p>Пешеходный мост через Волхов, набережные обеих сторон города и, при желании, речная прогулка на теплоходе к озеру Ильмень.</p>
+          <div class="meta"><span>⏱ по настроению</span><span>🚢 теплоходы летом</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== МАРШРУТ ===== -->
+<section class="section alt" id="itinerary">
+  <div class="wrap">
+    <div class="kicker">План поездки</div>
+    <h2>Маршрут на 2 дня</h2>
+    <p class="lead">Оптимальный вариант для первого знакомства с городом. При наличии третьего дня — добавьте поездку в Старую Руссу или Валдай.</p>
+
+    <div class="days">
+      <div class="day">
+        <div class="head"><div class="num">1</div><h3>Софийская сторона</h3></div>
+        <ul>
+          <li>Утро — Новгородский детинец: Софийский собор, звонница, стены кремля</li>
+          <li>Музей изобразительных искусств или Грановитая палата (по желанию)</li>
+          <li>Обед в кафе у кремлёвского парка</li>
+          <li>Прогулка по парку Кремлёвскому и набережной Волхова</li>
+          <li>Вечер — пешеходный мост и вид на Ярославово дворище с подсветкой</li>
+        </ul>
+      </div>
+      <div class="day">
+        <div class="head"><div class="num">2</div><h3>Торговая сторона и окрестности</h3></div>
+        <ul>
+          <li>Утро — Ярославово дворище и церкви Торговой стороны</li>
+          <li>Поездка (такси/автобус) в Витославлицы — музей деревянного зодчества</li>
+          <li>Юрьев монастырь и вид на озеро Ильмень</li>
+          <li>Возвращение в центр, свободное время для покупок и сувениров</li>
+          <li>Ужин в ресторане новгородской кухни</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== ПОЛЕЗНО ЗНАТЬ ===== -->
+<section class="section" id="info">
+  <div class="wrap">
+    <div class="kicker">Практика</div>
+    <h2>Полезно знать перед поездкой</h2>
+
+    <div class="info-grid">
+      <div class="info-card">
+        <div class="ic">🚆</div>
+        <h3>Как добраться</h3>
+        <ul>
+          <li>Из Санкт-Петербурга: поезд или автобус — около 2,5–3 часов</li>
+          <li>Из Москвы: поезд (ночной или дневной) — 6–8 часов, либо самолёт до СПб + поезд</li>
+          <li>На автомобиле: трасса М10/М11 (СПб) или М10/М9 (Москва через Тверь)</li>
+        </ul>
+      </div>
+      <div class="info-card">
+        <div class="ic">🚶</div>
+        <h3>Передвижение по городу</h3>
+        <ul>
+          <li>Исторический центр — компактный, всё в пределах пешей доступности</li>
+          <li>До Витославлицев и Юрьева монастыря — автобус, такси или аренда велосипеда</li>
+          <li>Летом популярны речные прогулки на теплоходах по Волхову</li>
+        </ul>
+      </div>
+      <div class="info-card">
+        <div class="ic">🗓</div>
+        <h3>Когда ехать</h3>
+        <ul>
+          <li>Май–сентябрь — комфортная погода, белые ночи в июне</li>
+          <li>Зима — особая атмосфера, заснеженный кремль и Рождественские ярмарки</li>
+          <li>Лучше избегать межсезонья (слякоть в апреле/ноябре)</li>
+        </ul>
+      </div>
+      <div class="info-card">
+        <div class="ic">🎫</div>
+        <h3>Билеты и музеи</h3>
+        <ul>
+          <li>Софийский собор — бесплатный вход, музеи Кремля — платно</li>
+          <li>Единый билет в Новгородский музей-заповедник выгоднее отдельных</li>
+          <li>Лучше проверять часы работы заранее — многие музеи закрыты по понедельникам</li>
+        </ul>
+      </div>
+      <div class="info-card">
+        <div class="ic">🏨</div>
+        <h3>Где остановиться</h3>
+        <ul>
+          <li>Софийская сторона — рядом с Кремлём, самый удобный район для пешей прогулки</li>
+          <li>Торговая сторона — тише, ближе к набережной</li>
+          <li>Варианты: от гостиниц среднего уровня до апартаментов и гостевых домов</li>
+        </ul>
+      </div>
+      <div class="info-card">
+        <div class="ic">💡</div>
+        <h3>Советы</h3>
+        <ul>
+          <li>Возьмите удобную обувь — много прогулок по мостовым и валам</li>
+          <li>В храмах действует дресс-код: закрытые плечи и колени, женщинам — платок</li>
+          <li>Сувениры из бересты и керамики — отличная память о поездке</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== ЕДА ===== -->
+<section class="section alt" id="food">
+  <div class="wrap">
+    <div class="kicker">Гастрономия</div>
+    <h2>Что попробовать</h2>
+    <p class="lead">Новгородская кухня — это рыба из Ильменя, пироги, грибы и травяные настои.</p>
+
+    <div class="food-list">
+      <div class="food-item"><span class="ic">🐟</span><div><b>Снетки и рыба из Ильменя</b><span>Местная рыба — основа многих традиционных блюд</span></div></div>
+      <div class="food-item"><span class="ic">🥧</span><div><b>Пироги и расстегаи</b><span>С рыбой, грибами или ягодами — отличная еда на вынос</span></div></div>
+      <div class="food-item"><span class="ic">🍄</span><div><b>Грибные блюда</b><span>Новгородская область славится лесными грибами</span></div></div>
+      <div class="food-item"><span class="ic">🍯</span><div><b>Медовуха и травяные сборы</b><span>Традиционный напиток, который часто предлагают в кафе центра</span></div></div>
+      <div class="food-item"><span class="ic">🥛</span><div><b>Молочные продукты</b><span>Фермерские сыры и творог из окрестных хозяйств</span></div></div>
+      <div class="food-item"><span class="ic">☕</span><div><b>Кафе у Кремля</b><span>Уютные кофейни с видом на стены и валы детинца</span></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== ЧЕК-ЛИСТ ===== -->
+<section class="section">
+  <div class="wrap">
+    <div class="kicker">Перед выездом</div>
+    <h2>Чек-лист путешественника</h2>
+    <p class="lead">Отмечайте пункты по мере подготовки — список сохраняется в вашем браузере.</p>
+    <div class="checklist" id="checklist">
+      <label class="check"><input type="checkbox" data-id="0"><span>Забронировать жильё в Софийской или Торговой стороне</span></label>
+      <label class="check"><input type="checkbox" data-id="1"><span>Купить билеты на поезд/автобус заранее</span></label>
+      <label class="check"><input type="checkbox" data-id="2"><span>Проверить расписание работы музеев и соборов</span></label>
+      <label class="check"><input type="checkbox" data-id="3"><span>Взять удобную обувь для долгих прогулок</span></label>
+      <label class="check"><input type="checkbox" data-id="4"><span>Взять платок/одежду для посещения храмов</span></label>
+      <label class="check"><input type="checkbox" data-id="5"><span>Спланировать поездку в Витославлицы и Юрьев монастырь</span></label>
+      <label class="check"><input type="checkbox" data-id="6"><span>Скачать офлайн-карту города</span></label>
+      <label class="check"><input type="checkbox" data-id="7"><span>Оставить место в чемодане для сувениров из бересты</span></label>
+    </div>
+  </div>
+</section>
+
+<!-- ===== КАРТА ===== -->
+<section class="section alt">
+  <div class="wrap">
+    <div class="kicker">Ориентир</div>
+    <h2>Где это находится</h2>
+    <div class="map-card">
+      <iframe src="https://maps.google.com/maps?q=%D0%9D%D0%BE%D0%B2%D0%B3%D0%BE%D1%80%D0%BE%D0%B4%D1%81%D0%BA%D0%B8%D0%B9%20%D0%B4%D0%B5%D1%82%D0%B8%D0%BD%D0%B5%D1%86&t=&z=14&ie=UTF8&iwloc=&output=embed" loading="lazy" allowfullscreen title="Карта: Новгородский детинец"></iframe>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="top">Великий Новгород ждёт вас</div>
+  <p>Путеводитель составлен для самостоятельных путешественников · приятной поездки!</p>
+</footer>
+
+<script>
+  // ===== ЧЕК-ЛИСТ С СОХРАНЕНИЕМ =====
+  var CKEY = 'vn_checklist_v1';
+  var state = {};
+  try{
+    var saved = localStorage.getItem(CKEY);
+    if(saved) state = JSON.parse(saved);
+  }catch(e){}
+
+  document.querySelectorAll('#checklist input[type="checkbox"]').forEach(function(cb){
+    var id = cb.getAttribute('data-id');
+    var label = cb.closest('.check');
+    if(state[id]){ cb.checked = true; label.classList.add('checked'); }
+    cb.addEventListener('change', function(){
+      state[id] = cb.checked;
+      label.classList.toggle('checked', cb.checked);
+      try{ localStorage.setItem(CKEY, JSON.stringify(state)); }catch(e){}
+    });
+  });
+</script>
+</body>
+</html>
