@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Наша поездка в Нижний Новгород</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Marck+Script&family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&family=Oswald:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --sky:#3a7bd5;
+    --sky-light:#bfe1ff;
+    --sand:#f6efe2;
+    --ink:#26303a;
+    --accent:#e08e45;
+    --teal:#1f7a72;
+    --line:#d8c9ad;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html{scroll-behavior:smooth;}
+  body{
+    font-family:'Oswald',sans-serif;
+    background:var(--sand);
+    color:var(--ink);
+    line-height:1.6;
+    overflow-x:hidden;
+  }
+  .wrap{max-width:760px;margin:0 auto;padding:0 18px;}
+
+  /* ===== HERO ===== */
+  header.hero{
+    position:relative;
+    min-height:62vh;
+    display:flex;align-items:center;justify-content:center;text-align:center;
+    background:linear-gradient(180deg, rgba(58,123,213,.55), rgba(31,122,114,.55)),
+      url('photos/06-naberezhnaya.jpg') center 35%/cover no-repeat;
+    color:#fff;padding:40px 18px;
+  }
+  header.hero .inner{position:relative;z-index:2;}
+  .hero .eyebrow{
+    font-size:13px;letter-spacing:.4em;text-transform:uppercase;
+    color:var(--sky-light);font-weight:600;margin-bottom:10px;
+  }
+  .hero h1{
+    font-family:'Marck Script',cursive;
+    font-size:clamp(44px,12vw,80px);
+    font-weight:400;line-height:1.05;
+    text-shadow:0 4px 24px rgba(0,0,0,.35);
+  }
+  .hero .sub{
+    font-family:'Cormorant Garamond',serif;font-style:italic;font-size:21px;
+    margin-top:10px;color:#fdf6ea;
+  }
+  .hero .date{
+    margin-top:18px;font-size:13px;letter-spacing:.2em;text-transform:uppercase;
+    color:var(--sky-light);
+  }
+  .wave{
+    position:absolute;bottom:-1px;left:0;width:100%;display:block;line-height:0;
+  }
+
+  /* ===== INTRO ===== */
+  .intro{
+    background:#fff;border-radius:14px;padding:28px 26px;margin:-40px auto 36px;
+    max-width:720px;position:relative;z-index:3;
+    box-shadow:0 14px 40px rgba(38,48,58,.12);
+    border:1px solid var(--line);
+  }
+  .intro h2{
+    font-family:'Cormorant Garamond',serif;font-size:28px;color:var(--teal);
+    margin-bottom:10px;font-weight:700;
+  }
+  .intro p{font-family:'Cormorant Garamond',serif;font-size:19px;color:#3c4855;}
+
+  /* ===== TIMELINE / STORY ===== */
+  main{padding-top:10px;}
+  .stage-label{
+    text-align:center;margin:50px 0 18px;
+    font-size:13px;letter-spacing:.35em;text-transform:uppercase;
+    color:var(--teal);font-weight:600;
+  }
+  .stage-label span{color:var(--accent);}
+
+  .story{
+    display:flex;flex-direction:column;gap:46px;margin-bottom:40px;
+  }
+  .card{
+    background:#fff;border-radius:16px;overflow:hidden;
+    box-shadow:0 10px 34px rgba(38,48,58,.10);
+    border:1px solid var(--line);
+  }
+  .card .photo{
+    width:100%;display:block;cursor:zoom-in;
+    aspect-ratio:4/3;object-fit:cover;
+    transition:transform .5s ease;
+  }
+  .card.tall .photo{aspect-ratio:3/4;}
+  .card:hover .photo{transform:scale(1.025);}
+  .card .text{padding:18px 22px 22px;}
+  .card .num{
+    font-family:'Marck Script',cursive;font-size:30px;color:var(--accent);
+    line-height:1;display:block;margin-bottom:4px;
+  }
+  .card h3{
+    font-family:'Cormorant Garamond',serif;font-size:24px;color:var(--ink);
+    font-weight:700;margin-bottom:6px;
+  }
+  .card p{font-family:'Cormorant Garamond',serif;font-size:18px;color:#56636f;}
+
+  /* alternate layout on wider screens */
+  @media (min-width:680px){
+    .card{display:grid;grid-template-columns:1.1fr 1fr;align-items:stretch;}
+    .card .photo{height:100%;aspect-ratio:auto;}
+    .card .text{display:flex;flex-direction:column;justify-content:center;}
+    .card.reverse{grid-template-columns:1fr 1.1fr;}
+    .card.reverse .photo{order:2;}
+    .card.reverse .text{order:1;}
+  }
+
+  /* ===== GALLERY GRID (mosaic finale) ===== */
+  .gallery{
+    display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:30px 0 50px;
+  }
+  .gallery img{
+    width:100%;height:100%;object-fit:cover;aspect-ratio:1/1;
+    border-radius:8px;cursor:zoom-in;transition:transform .3s ease, box-shadow .3s ease;
+  }
+  .gallery img:hover{transform:scale(1.04);box-shadow:0 8px 24px rgba(38,48,58,.2);z-index:1;}
+
+  /* ===== FOOTER ===== */
+  footer{
+    text-align:center;padding:36px 18px 50px;color:#8a7c64;font-size:13px;
+  }
+  footer .heart{color:var(--accent);}
+
+  /* ===== LIGHTBOX ===== */
+  .lightbox{
+    position:fixed;inset:0;background:rgba(20,24,28,.92);
+    display:flex;align-items:center;justify-content:center;
+    z-index:100;opacity:0;pointer-events:none;transition:opacity .25s ease;
+    padding:24px;
+  }
+  .lightbox.open{opacity:1;pointer-events:auto;}
+  .lightbox img{
+    max-width:100%;max-height:90vh;border-radius:8px;
+    box-shadow:0 20px 60px rgba(0,0,0,.5);
+  }
+  .lightbox .close{
+    position:absolute;top:18px;right:22px;color:#fff;font-size:34px;
+    cursor:pointer;line-height:1;font-family:sans-serif;
+  }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="inner">
+    <div class="eyebrow">Семейная поездка</div>
+    <h1>Нижний Новгород</h1>
+    <div class="sub">тёплое лето, дорогие люди, город на двух реках</div>
+    <div class="date">июнь 2026</div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <section class="intro">
+    <h2>Как всё было</h2>
+    <p>Несколько дней вместе — с играми дома, прогулками по набережной, ужином на закате
+    и футболом на зелёной площадке. Эта страница — небольшая память о нашей поездке:
+    фотографии и моменты, которые хочется сохранить.</p>
+  </section>
+
+  <main>
+
+    <div class="stage-label">Дома · <span>уютные вечера</span></div>
+    <div class="story">
+
+      <article class="card tall">
+        <img class="photo" src="photos/01-divan.jpg" alt="Дети смотрят мультики на диване" loading="lazy">
+        <div class="text">
+          <span class="num">01</span>
+          <h3>Вечер на синем диване</h3>
+          <p>Тихий вечер перед поездкой — мультики, уютный плед и предвкушение приключений.</p>
+        </div>
+      </article>
+
+      <article class="card reverse tall">
+        <img class="photo" src="photos/02-igra.jpg" alt="Дети играют в настольную игру на полу" loading="lazy">
+        <div class="text">
+          <span class="num">02</span>
+          <h3>Настольные игры на полу</h3>
+          <p>Самые весёлые партии случаются именно на ковре — азарт, смех и фишки во все стороны.</p>
+        </div>
+      </article>
+
+    </div>
+
+    <div class="stage-label">Город · <span>прогулки и закаты</span></div>
+    <div class="story">
+
+      <article class="card">
+        <img class="photo" src="photos/03-vecher.jpg" alt="Папа с дочкой бегут по вечерней улице" loading="lazy">
+        <div class="text">
+          <span class="num">03</span>
+          <h3>Вечерняя пробежка по городу</h3>
+          <p>Старые улочки, мягкий свет заката и весёлая погоня — лучшее начало вечера.</p>
+        </div>
+      </article>
+
+      <article class="card reverse">
+        <img class="photo" src="photos/04-uzhin.jpg" alt="Семья ужинает на летней террасе" loading="lazy">
+        <div class="text">
+          <span class="num">04</span>
+          <h3>Ужин под открытым небом</h3>
+          <p>Большой стол, тёплый вечер и вся компания в сборе — простое счастье после долгого дня.</p>
+        </div>
+      </article>
+
+      <article class="card tall">
+        <img class="photo" src="photos/05-progulka.jpg" alt="Семья идёт по парку на Стрелке в солнечный день" loading="lazy">
+        <div class="text">
+          <span class="num">05</span>
+          <h3>Прогулка по парку на Стрелке</h3>
+          <p>Яркое солнце, бескрайнее небо и долгая прогулка всей семьёй вдоль реки.</p>
+        </div>
+      </article>
+
+      <article class="card reverse tall">
+        <img class="photo" src="photos/06-naberezhnaya.jpg" alt="Компания на смотровой площадке над Волгой" loading="lazy">
+        <div class="text">
+          <span class="num">06</span>
+          <h3>Вид на Волгу со смотровой</h3>
+          <p>Та самая фотография на память — река, мост и горизонт до самого края.</p>
+        </div>
+      </article>
+
+    </div>
+
+    <div class="stage-label">Спорт · <span>заряд бодрости</span></div>
+    <div class="story">
+
+      <article class="card">
+        <img class="photo" src="photos/07-futbol.jpg" alt="Команда лежит на футбольном поле после тренировки" loading="lazy">
+        <div class="text">
+          <span class="num">07</span>
+          <h3>После игры на поле</h3>
+          <p>Финальный свисток — и можно наконец упасть на траву всей командой.</p>
+        </div>
+      </article>
+
+    </div>
+
+    <div class="stage-label">Все фото · <span>на память</span></div>
+    <div class="gallery" id="gallery">
+      <img src="photos/01-divan.jpg" alt="Фото 1">
+      <img src="photos/02-igra.jpg" alt="Фото 2">
+      <img src="photos/03-vecher.jpg" alt="Фото 3">
+      <img src="photos/04-uzhin.jpg" alt="Фото 4">
+      <img src="photos/05-progulka.jpg" alt="Фото 5">
+      <img src="photos/06-naberezhnaya.jpg" alt="Фото 6">
+      <img src="photos/07-futbol.jpg" alt="Фото 7">
+    </div>
+
+  </main>
+
+  <footer>
+    Нижний Новгород, июнь 2026 · с любовью <span class="heart">♥</span>
+  </footer>
+
+</div>
+
+<div class="lightbox" id="lightbox">
+  <span class="close" id="lightboxClose">&times;</span>
+  <img id="lightboxImg" src="" alt="">
+</div>
+
+<script>
+  var lb = document.getElementById('lightbox');
+  var lbImg = document.getElementById('lightboxImg');
+  document.querySelectorAll('.photo, .gallery img').forEach(function(img){
+    img.addEventListener('click', function(){
+      lbImg.src = img.src;
+      lb.classList.add('open');
+    });
+  });
+  function closeLb(){ lb.classList.remove('open'); lbImg.src=''; }
+  document.getElementById('lightboxClose').addEventListener('click', closeLb);
+  lb.addEventListener('click', function(e){ if(e.target === lb) closeLb(); });
+  document.addEventListener('keydown', function(e){ if(e.key === 'Escape') closeLb(); });
+</script>
+</body>
+</html>
