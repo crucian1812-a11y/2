@@ -60,37 +60,25 @@
   .section-eyebrow{text-align:center}
 
   /* MAP */
-  .map-wrap{
-    border:2px solid var(--panel-line); border-radius:5px; overflow:hidden;
-    box-shadow:0 6px 18px rgba(60,40,18,.18); margin:18px 0;
-  }
+  .map-wrap{border:2px solid var(--panel-line); border-radius:5px; overflow:hidden;
+    box-shadow:0 6px 18px rgba(60,40,18,.18); margin:18px 0}
   #map{height:420px; width:100%}
-  .map-legend{
-    background:linear-gradient(180deg,#f3e8cf,#ecdfc1);
+  .map-legend{background:linear-gradient(180deg,#f3e8cf,#ecdfc1);
     padding:10px 16px; display:flex; flex-wrap:wrap; gap:8px 20px;
-    border-top:1px solid rgba(122,81,43,.3);
-  }
+    border-top:1px solid rgba(122,81,43,.3)}
   .map-legend span{display:flex; align-items:center; gap:7px; font-size:.84rem}
   .leg-line{display:inline-block; width:22px; height:3px; border-radius:2px}
 
   /* CARDS / accordion */
-  .card{
-    position:relative;
-    background:
-      repeating-linear-gradient(0deg, rgba(120,80,40,.035) 0 2px, transparent 2px 10px),
+  .card{position:relative;
+    background:repeating-linear-gradient(0deg, rgba(120,80,40,.035) 0 2px, transparent 2px 10px),
       linear-gradient(180deg,#f3e8cf,#ecdfc1);
     border:2px solid var(--panel-line); border-radius:5px; margin:18px 0;
-    box-shadow:0 6px 18px rgba(60,40,18,.18); overflow:hidden;
-  }
+    box-shadow:0 6px 18px rgba(60,40,18,.18); overflow:hidden}
   .card::before{content:""; position:absolute; inset:6px; border:1px solid rgba(122,81,43,.45); border-radius:3px; pointer-events:none; z-index:1}
-
-  .card-head{
-    display:flex; align-items:center; gap:14px;
-    padding:18px 22px 14px; cursor:pointer; user-select:none;
-    position:relative; z-index:2;
-  }
+  .card-head{display:flex; align-items:center; gap:14px; padding:18px 22px 14px;
+    cursor:pointer; user-select:none; position:relative; z-index:2}
   .card-head:hover{background:rgba(138,74,30,.06)}
-
   .badge{flex:0 0 auto; width:54px; height:54px; border-radius:50%; border:3px solid var(--rust);
     display:grid; place-items:center; font-family:"Ruslan Display",serif; color:var(--rust); font-size:1.5rem;
     box-shadow:inset 0 0 0 2px rgba(138,74,30,.35)}
@@ -98,23 +86,14 @@
   .card-head .t .day{font-family:"Ruslan Display",serif; font-size:1.7rem; line-height:1.05}
   .card-head .t .date{color:var(--rust); font-family:"Ruslan Display",serif; font-size:1.05rem}
   .card-head .t .theme{font-style:italic; color:var(--sepia)}
-
-  .toggle-btn{
-    flex:0 0 auto; width:32px; height:32px; border-radius:50%;
-    border:2px solid var(--rust); background:transparent;
-    color:var(--rust); font-size:1.4rem; line-height:1;
-    display:grid; place-items:center; cursor:pointer;
+  .toggle-btn{flex:0 0 auto; width:32px; height:32px; border-radius:50%;
+    border:2px solid var(--rust); background:transparent; color:var(--rust);
+    font-size:1.4rem; line-height:1; display:grid; place-items:center; cursor:pointer;
     transition:transform .28s ease, background .15s;
-    font-family:monospace; font-weight:700; pointer-events:none;
-  }
+    font-family:monospace; font-weight:700; pointer-events:none}
   .card-head:hover .toggle-btn{background:var(--rust); color:#fff}
   .card.open .toggle-btn{transform:rotate(45deg)}
-
-  .card-body{
-    overflow:hidden; max-height:0;
-    transition:max-height .38s ease, padding .25s;
-    padding:0 22px;
-  }
+  .card-body{overflow:hidden; max-height:0; transition:max-height .38s ease, padding .25s; padding:0 22px}
   .card.open .card-body{max-height:700px; padding:0 22px 18px}
 
   ul.steps{list-style:none; margin:6px 0 0; padding:0}
@@ -123,38 +102,32 @@
   .warn{color:var(--rust); font-weight:700}
 
   /* FOOD accordion */
-  .food-card{
-    position:relative;
-    background:
-      repeating-linear-gradient(0deg, rgba(120,80,40,.035) 0 2px, transparent 2px 10px),
+  .food-card{position:relative;
+    background:repeating-linear-gradient(0deg, rgba(120,80,40,.035) 0 2px, transparent 2px 10px),
       linear-gradient(180deg,#f3e8cf,#ecdfc1);
     border:2px solid var(--panel-line); border-radius:5px; margin:18px 0;
-    box-shadow:0 6px 18px rgba(60,40,18,.18); overflow:hidden;
-  }
+    box-shadow:0 6px 18px rgba(60,40,18,.18); overflow:hidden}
   .food-card::before{content:""; position:absolute; inset:6px; border:1px solid rgba(122,81,43,.45); border-radius:3px; pointer-events:none; z-index:1}
-
-  .food-head{
-    display:flex; align-items:center; justify-content:space-between; gap:12px;
-    padding:14px 22px; cursor:pointer; user-select:none; position:relative; z-index:2;
-  }
+  .food-head{display:flex; align-items:center; justify-content:space-between; gap:12px;
+    padding:14px 22px; cursor:pointer; user-select:none; position:relative; z-index:2}
   .food-head:hover{background:rgba(138,74,30,.06)}
-  .food-head h3{
-    font-family:"Ruslan Display",serif; font-weight:400; font-size:1.15rem;
-    color:var(--ink); margin:0; flex:1;
-  }
+  .food-head h3{font-family:"Ruslan Display",serif; font-weight:400; font-size:1.15rem;
+    color:var(--ink); margin:0; flex:1}
   .food-card.open .toggle-btn{transform:rotate(45deg)}
   .food-head:hover .toggle-btn{background:var(--rust); color:#fff}
   .food-body{overflow:hidden; max-height:0; transition:max-height .38s ease, padding .25s; padding:0 22px}
   .food-card.open .food-body{max-height:900px; padding:0 22px 18px}
 
+  /* place row */
   .place{padding:9px 0; border-bottom:1px dashed rgba(122,81,43,.4)}
   .place:last-child{border-bottom:none}
   .place .name{font-weight:700}
   .place .desc{color:#4a361f}
-  .links{margin-top:3px; display:flex; gap:8px; flex-wrap:wrap}
-  .links a{font-size:.86rem; text-decoration:none; color:var(--rust); border:1.4px solid var(--rust);
-    border-radius:3px; padding:2px 10px; white-space:nowrap}
-  .links a:hover{background:var(--rust); color:#fff}
+  .links{margin-top:5px; display:flex; gap:8px; flex-wrap:wrap}
+  .links a, .btn-menu{font-size:.86rem; text-decoration:none; color:var(--rust);
+    border:1.4px solid var(--rust); border-radius:3px; padding:2px 10px; white-space:nowrap;
+    background:transparent; cursor:pointer; font-family:inherit}
+  .links a:hover, .btn-menu:hover{background:var(--rust); color:#fff}
   .note{font-style:italic; color:var(--sepia)}
 
   .plain-card{position:relative; background:
@@ -167,6 +140,43 @@
   footer{text-align:center; color:var(--sepia); font-style:italic; margin-top:40px;
     border-top:2px solid rgba(122,81,43,.4); padding-top:16px}
   a.plain{color:var(--rust)}
+
+  /* ── MODAL ── */
+  .modal-overlay{
+    display:none; position:fixed; inset:0; z-index:100;
+    background:rgba(30,18,8,.72); backdrop-filter:blur(3px);
+    align-items:center; justify-content:center; padding:16px;
+  }
+  .modal-overlay.active{display:flex}
+  .modal{
+    position:relative; width:100%; max-width:820px; height:min(86vh,700px);
+    background:var(--panel); border:2px solid var(--panel-line); border-radius:6px;
+    box-shadow:0 16px 48px rgba(30,18,8,.5); display:flex; flex-direction:column; overflow:hidden;
+  }
+  .modal-bar{
+    display:flex; align-items:center; gap:12px; padding:10px 14px;
+    background:linear-gradient(180deg,#ede0c4,#dfd0a8);
+    border-bottom:1px solid var(--panel-line); flex-shrink:0;
+  }
+  .modal-title{font-family:"Ruslan Display",serif; font-size:1.1rem; flex:1; min-width:0;
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .modal-ext{font-size:.82rem; text-decoration:none; color:var(--rust);
+    border:1.4px solid var(--rust); border-radius:3px; padding:2px 10px; white-space:nowrap}
+  .modal-ext:hover{background:var(--rust); color:#fff}
+  .modal-close{width:30px; height:30px; border-radius:50%; border:2px solid var(--rust);
+    background:transparent; color:var(--rust); font-size:1.2rem; cursor:pointer;
+    display:grid; place-items:center; flex-shrink:0}
+  .modal-close:hover{background:var(--rust); color:#fff}
+  .modal-frame-wrap{position:relative; flex:1; overflow:hidden}
+  .modal-frame-wrap iframe{width:100%; height:100%; border:none; display:block}
+  .modal-fallback{
+    display:none; position:absolute; inset:0;
+    background:linear-gradient(180deg,#f3e8cf,#ecdfc1);
+    align-items:center; justify-content:center; flex-direction:column;
+    gap:14px; text-align:center; padding:24px;
+  }
+  .modal-fallback.show{display:flex}
+  .modal-fallback p{color:var(--sepia); font-style:italic; max-width:34ch; margin:0}
 </style>
 </head>
 <body>
@@ -326,22 +336,35 @@
         <div class="place">
           <div class="name">Дом Берга</div>
           <div class="desc">Купеческий ресторан, серые щи, настойки, у Кремля.</div>
-          <div class="links"><a href="https://domberga.ru" target="_blank" rel="noopener">сайт</a><a href="tel:+78162788838">+7 8162 78-88-38</a></div>
+          <div class="links">
+            <button class="btn-menu" onclick="openMenu('Дом Берга — меню','https://domberga.ru/menu/')">📜 Меню</button>
+            <a href="https://domberga.ru" target="_blank" rel="noopener">сайт</a>
+            <a href="tel:+78162788838">+7 8162 78-88-38</a>
+          </div>
         </div>
         <div class="place">
           <div class="name">Чародейка</div>
           <div class="desc">Современная «домотканая» русская кухня, локальные продукты, крафтовые настойки.</div>
-          <div class="links"><a href="https://zavod-group.ru/charodeyka/" target="_blank" rel="noopener">сайт</a></div>
+          <div class="links">
+            <button class="btn-menu" onclick="openMenu('Чародейка — меню','https://zavod-group.ru/charodeyka/')">📜 Меню</button>
+            <a href="https://zavod-group.ru/charodeyka/" target="_blank" rel="noopener">сайт</a>
+          </div>
         </div>
         <div class="place">
           <div class="name">Завод</div>
           <div class="desc">Пивоварня и гастробар той же команды — для пап.</div>
-          <div class="links"><a href="https://zavod-group.ru" target="_blank" rel="noopener">сайт</a></div>
+          <div class="links">
+            <button class="btn-menu" onclick="openMenu('Завод — меню','https://zavod-group.ru/menu/')">📜 Меню</button>
+            <a href="https://zavod-group.ru" target="_blank" rel="noopener">сайт</a>
+          </div>
         </div>
         <div class="place">
           <div class="name">Дом Коромыслом</div>
           <div class="desc">Древнерусский интерьер, очень высокий рейтинг, цены кафе. <span class="note">Вс — выходной, севернее центра.</span></div>
-          <div class="links"><a href="tel:+78162604362">+7 8162 60-43-62</a></div>
+          <div class="links">
+            <button class="btn-menu" onclick="openMenu('Дом Коромыслом — 2ГИС','https://2gis.ru/velikiynovgorod/firm/70000001027679916/tab/menu')">📜 Меню</button>
+            <a href="tel:+78162604362">+7 8162 60-43-62</a>
+          </div>
         </div>
       </div>
     </div>
@@ -355,22 +378,35 @@
         <div class="place">
           <div class="name">География</div>
           <div class="desc">Европейская/итал./яп./рус. кухня у Кремлёвского парка, завтраки с 8:30, бизнес-ланч.</div>
-          <div class="links"><a href="https://geo-vn.ru" target="_blank" rel="noopener">сайт</a></div>
+          <div class="links">
+            <button class="btn-menu" onclick="openMenu('География — меню','https://geo-vn.ru/menu')">📜 Меню</button>
+            <a href="https://geo-vn.ru" target="_blank" rel="noopener">сайт</a>
+          </div>
         </div>
         <div class="place">
           <div class="name">Время Ч</div>
           <div class="desc">Кафе, детям есть где «покачаться», есть веган-пицца.</div>
-          <div class="links"><a href="tel:+78162998040">+7 8162 99-80-40</a></div>
+          <div class="links">
+            <button class="btn-menu" onclick="openMenu('Время Ч — 2ГИС','https://2gis.ru/velikiynovgorod/firm/70000001042907397/tab/menu')">📜 Меню</button>
+            <a href="tel:+78162998040">+7 8162 99-80-40</a>
+          </div>
         </div>
         <div class="place">
           <div class="name">Пиццафабрика</div>
           <div class="desc">Большая детская игровая, семейный формат.</div>
-          <div class="links"><a href="https://pizzafabrika.ru" target="_blank" rel="noopener">сайт</a><a href="tel:+78005500600">+7 800 550-06-00</a></div>
+          <div class="links">
+            <button class="btn-menu" onclick="openMenu('Пиццафабрика — меню','https://pizzafabrika.ru/menu/')">📜 Меню</button>
+            <a href="https://pizzafabrika.ru" target="_blank" rel="noopener">сайт</a>
+            <a href="tel:+78005500600">+7 800 550-06-00</a>
+          </div>
         </div>
         <div class="place">
           <div class="name">Gourmetto</div>
           <div class="desc">Пицца / суши / итальянское и своя кондитерская.</div>
-          <div class="links"><a href="tel:+78162926494">+7 8162 92-64-94</a></div>
+          <div class="links">
+            <button class="btn-menu" onclick="openMenu('Gourmetto — 2ГИС','https://2gis.ru/velikiynovgorod/firm/70000001041699765/tab/menu')">📜 Меню</button>
+            <a href="tel:+78162926494">+7 8162 92-64-94</a>
+          </div>
         </div>
       </div>
     </div>
@@ -384,17 +420,27 @@
         <div class="place">
           <div class="name">Башня</div>
           <div class="desc">Лучшее кафе города, панорама на главную площадь, есть детское меню. <span class="warn">По выходным бронь с предоплатой — звонить заранее.</span></div>
-          <div class="links"><a href="https://2gis.ru/staraya-russa/firm/70000001061858155" target="_blank" rel="noopener">меню · 2ГИС</a><a href="tel:+79216061999">+7 921 606-19-99</a></div>
+          <div class="links">
+            <button class="btn-menu" onclick="openMenu('Башня — 2ГИС','https://2gis.ru/staraya-russa/firm/70000001061858155/tab/menu')">📜 Меню</button>
+            <a href="https://2gis.ru/staraya-russa/firm/70000001061858155" target="_blank" rel="noopener">2ГИС</a>
+            <a href="tel:+79216061999">+7 921 606-19-99</a>
+          </div>
         </div>
         <div class="place">
           <div class="name">Карамазовы</div>
           <div class="desc">Атмосферное место в гостинице «Полисть», уха с расстегаем.</div>
-          <div class="links"><a href="tel:+79658078173">+7 965 807-81-73</a></div>
+          <div class="links">
+            <button class="btn-menu" onclick="openMenu('Карамазовы — 2ГИС','https://2gis.ru/staraya-russa/firm/70000001010271793/tab/menu')">📜 Меню</button>
+            <a href="tel:+79658078173">+7 965 807-81-73</a>
+          </div>
         </div>
         <div class="place">
           <div class="name">Ильмень</div>
           <div class="desc">Рядом с курортом и Муравьёвским фонтаном, большие порции, недорого.</div>
-          <div class="links"><a href="tel:+78165231968">+7 816-52 3-19-68</a></div>
+          <div class="links">
+            <button class="btn-menu" onclick="openMenu('Ильмень — 2ГИС','https://2gis.ru/staraya-russa/firm/70000001010272388/tab/menu')">📜 Меню</button>
+            <a href="tel:+78165231968">+7 816-52 3-19-68</a>
+          </div>
         </div>
         <div class="place">
           <div class="desc"><span class="note">Гид «Где поесть» по городу-курорту:</span> <a class="plain" href="https://visitrussa.ru/food/" target="_blank" rel="noopener">visitrussa.ru/food</a>. Семейное кафе SOVA по воскресеньям закрыто.</div>
@@ -428,62 +474,98 @@
 
 </div>
 
+<!-- ── MODAL ── -->
+<div class="modal-overlay" id="modal" onclick="closeModalOutside(event)">
+  <div class="modal">
+    <div class="modal-bar">
+      <span class="modal-title" id="modal-title"></span>
+      <a class="modal-ext" id="modal-ext" href="#" target="_blank" rel="noopener">↗ открыть в браузере</a>
+      <button class="modal-close" onclick="closeModal()" aria-label="закрыть">×</button>
+    </div>
+    <div class="modal-frame-wrap">
+      <iframe id="modal-iframe" src="" title="Меню ресторана"
+        sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+        onload="checkFrameLoad(this)"></iframe>
+      <div class="modal-fallback" id="modal-fallback">
+        <p>Сайт не разрешает встраивание.<br>Откройте меню в новой вкладке:</p>
+        <a class="btn-menu" id="fallback-link" href="#" target="_blank" rel="noopener">↗ Открыть меню</a>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-/* ── accordion: дни ── */
-function toggleCard(head) {
-  head.closest('.card').classList.toggle('open');
+/* ── accordion ── */
+function toggleCard(head){ head.closest('.card').classList.toggle('open') }
+function toggleFood(head){ head.closest('.food-card').classList.toggle('open') }
+
+/* ── modal ── */
+function openMenu(title, url) {
+  document.getElementById('modal-title').textContent = title;
+  document.getElementById('modal-ext').href = url;
+  document.getElementById('fallback-link').href = url;
+  document.getElementById('modal-fallback').classList.remove('show');
+  document.getElementById('modal-iframe').src = url;
+  document.getElementById('modal').classList.add('active');
+  document.body.style.overflow = 'hidden';
 }
-/* ── accordion: еда ── */
-function toggleFood(head) {
-  head.closest('.food-card').classList.toggle('open');
+function closeModal() {
+  document.getElementById('modal').classList.remove('active');
+  document.getElementById('modal-iframe').src = '';
+  document.body.style.overflow = '';
+}
+function closeModalOutside(e) {
+  if (e.target === document.getElementById('modal')) closeModal();
+}
+document.addEventListener('keydown', function(e){ if(e.key==='Escape') closeModal(); });
+
+function checkFrameLoad(fr) {
+  try {
+    var doc = fr.contentDocument || fr.contentWindow.document;
+    if (!doc || !doc.body || doc.body.innerHTML === '') showFallback();
+  } catch(e) { showFallback(); }
+}
+function showFallback() {
+  document.getElementById('modal-fallback').classList.add('show');
 }
 
 /* ── map ── */
 (function(){
   var MOSCOW   = [55.7558, 37.6173];
   var NOVGOROD = [58.5213, 31.2754];
-  var TROITSA  = [58.4436, 31.2542]; // 58deg26'37"N  31deg15'15"E
+  var TROITSA  = [58.4436, 31.2542];
   var ST_RUSSA = [57.9919, 31.3567];
   var VALDAI   = [57.9796, 33.2522];
 
-  var map = L.map('map', { zoomControl: true });
+  var map = L.map('map');
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
     maxZoom: 13
   }).addTo(map);
+  map.fitBounds(L.latLngBounds([MOSCOW,NOVGOROD,TROITSA,ST_RUSSA,VALDAI]).pad(0.1));
 
-  var allPts = [MOSCOW, NOVGOROD, TROITSA, ST_RUSSA, VALDAI];
-  map.fitBounds(L.latLngBounds(allPts).pad(0.1));
-
-  function poly(pts, color, dash) {
-    L.polyline(pts, { color: color, weight: 3.5, dashArray: dash || null, opacity: .9 }).addTo(map);
+  function poly(pts,color,dash){
+    L.polyline(pts,{color:color,weight:3.5,dashArray:dash||null,opacity:.9}).addTo(map);
   }
+  poly([MOSCOW,NOVGOROD],'#c0392b');
+  poly([NOVGOROD,TROITSA],'#e67e22');
+  poly([TROITSA,ST_RUSSA,TROITSA],'#27ae60','8 5');
+  poly([TROITSA,VALDAI,MOSCOW],'#2980b9');
 
-  poly([MOSCOW, NOVGOROD], '#c0392b');
-  poly([NOVGOROD, TROITSA], '#e67e22');
-  poly([TROITSA, ST_RUSSA, TROITSA], '#27ae60', '8 5');
-  poly([TROITSA, VALDAI, MOSCOW], '#2980b9');
-
-  function mkIcon(color, label) {
+  function mkIcon(color,label){
     return L.divIcon({
-      html: '<div style="background:' + color + ';color:#fff;border:2.5px solid #fff;border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-family:sans-serif;font-size:10px;font-weight:700;box-shadow:0 2px 6px rgba(0,0,0,.45);line-height:1">' + label + '</div>',
-      className: '', iconSize: [32,32], iconAnchor: [16,16], popupAnchor: [0,-16]
+      html:'<div style="background:'+color+';color:#fff;border:2.5px solid #fff;border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-family:sans-serif;font-size:10px;font-weight:700;box-shadow:0 2px 6px rgba(0,0,0,.45)">'+label+'</div>',
+      className:'',iconSize:[32,32],iconAnchor:[16,16],popupAnchor:[0,-16]
     });
   }
-
-  var places = [
-    { ll:MOSCOW,   color:'#c0392b', label:'М',  title:'Москва' },
-    { ll:NOVGOROD, color:'#8a4a1e', label:'ВН', title:'Великий Новгород' },
-    { ll:TROITSA,  color:'#e67e22', label:'Тр', title:'Деревня Троица<br><small>58°26\'37\"N&nbsp;&nbsp;31°15\'15\"E</small>' },
-    { ll:ST_RUSSA, color:'#27ae60', label:'СР', title:'Старая Русса' },
-    { ll:VALDAI,   color:'#2980b9', label:'Вл', title:'Валдай' },
-  ];
-
-  places.forEach(function(p) {
-    L.marker(p.ll, { icon: mkIcon(p.color, p.label) })
-     .addTo(map)
-     .bindPopup(p.title);
+  [{ll:MOSCOW,color:'#c0392b',label:'М',title:'Москва'},
+   {ll:NOVGOROD,color:'#8a4a1e',label:'ВН',title:'Великий Новгород'},
+   {ll:TROITSA,color:'#e67e22',label:'Тр',title:"Деревня Троица<br><small>58°26'37\"N 31°15'15\"E</small>"},
+   {ll:ST_RUSSA,color:'#27ae60',label:'СР',title:'Старая Русса'},
+   {ll:VALDAI,color:'#2980b9',label:'Вл',title:'Валдай'}
+  ].forEach(function(p){
+    L.marker(p.ll,{icon:mkIcon(p.color,p.label)}).addTo(map).bindPopup(p.title);
   });
 })();
 </script>
