@@ -7,6 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Ruslan+Display&family=Old+Standard+TT:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <style>
   :root{
     --bark:#d9bd8e; --bark-lt:#e8d3a9; --bark-dk:#c6a570;
@@ -25,19 +26,16 @@
       linear-gradient(180deg, var(--bark-lt) 0%, var(--bark) 45%, var(--bark-dk) 100%);
     background-attachment:fixed;
   }
-  /* fibrous grain overlay */
   body::before{
     content:""; position:fixed; inset:0; pointer-events:none; z-index:0; opacity:.5; mix-blend-mode:multiply;
     background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='400' height='400'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.012 0.16' numOctaves='2' seed='7'/><feColorMatrix type='saturate' values='0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='0.35'/></svg>");
   }
   .wrap{position:relative; z-index:1; max-width:var(--maxw); margin:0 auto; padding:0 18px 64px}
 
-  /* headings */
   h1,h2,.vyaz{font-family:"Ruslan Display",serif; font-weight:400; letter-spacing:.02em; color:var(--ink);
     text-shadow:1px 1px 0 rgba(245,232,205,.6)}
   .eyebrow{font-variant:small-caps; letter-spacing:.32em; color:var(--sepia); font-size:.82rem; margin:0}
 
-  /* hero */
   header.hero{text-align:center; padding:54px 0 26px}
   header.hero h1{font-size:clamp(2.6rem,11vw,5rem); line-height:.98; margin:.18em 0}
   .dates{font-family:"Ruslan Display",serif; color:var(--rust); font-size:clamp(1.2rem,5vw,1.7rem); margin:.2em 0}
@@ -45,12 +43,10 @@
   .route{font-weight:700; margin:.4em auto 0; max-width:40ch}
   .seal{width:118px; height:118px; margin:18px auto 0; display:block}
 
-  /* divider */
   .rule{display:flex; align-items:center; justify-content:center; gap:14px; margin:30px 0 8px; color:var(--sepia)}
   .rule::before,.rule::after{content:""; height:2px; background:currentColor; flex:1; max-width:160px; opacity:.7}
   .rule b{font-size:1rem; transform:rotate(45deg); line-height:1}
 
-  /* sticky nav */
   nav{position:sticky; top:0; z-index:5; display:flex; justify-content:center; gap:8px; flex-wrap:wrap;
     padding:10px; margin:6px 0 22px;
     background:linear-gradient(180deg, rgba(233,211,169,.96), rgba(217,189,142,.92));
@@ -63,29 +59,94 @@
   h2.section{font-size:clamp(1.7rem,7vw,2.6rem); text-align:center; margin:.2em 0 .1em}
   .section-eyebrow{text-align:center}
 
-  /* panels / грамота cards */
-  .card{position:relative; background:
+  /* MAP */
+  .map-wrap{
+    border:2px solid var(--panel-line); border-radius:5px; overflow:hidden;
+    box-shadow:0 6px 18px rgba(60,40,18,.18); margin:18px 0;
+  }
+  #map{height:420px; width:100%}
+  .map-legend{
+    background:linear-gradient(180deg,#f3e8cf,#ecdfc1);
+    padding:10px 16px; display:flex; flex-wrap:wrap; gap:8px 20px;
+    border-top:1px solid rgba(122,81,43,.3);
+  }
+  .map-legend span{display:flex; align-items:center; gap:7px; font-size:.84rem}
+  .leg-line{display:inline-block; width:22px; height:3px; border-radius:2px}
+
+  /* CARDS / accordion */
+  .card{
+    position:relative;
+    background:
       repeating-linear-gradient(0deg, rgba(120,80,40,.035) 0 2px, transparent 2px 10px),
       linear-gradient(180deg,#f3e8cf,#ecdfc1);
-    border:2px solid var(--panel-line); border-radius:5px; padding:22px 22px 18px; margin:18px 0;
-    box-shadow:0 6px 18px rgba(60,40,18,.18)}
-  .card::before{content:""; position:absolute; inset:6px; border:1px solid rgba(122,81,43,.45); border-radius:3px; pointer-events:none}
-  .card-head{display:flex; align-items:flex-start; gap:14px; margin-bottom:6px}
+    border:2px solid var(--panel-line); border-radius:5px; margin:18px 0;
+    box-shadow:0 6px 18px rgba(60,40,18,.18); overflow:hidden;
+  }
+  .card::before{content:""; position:absolute; inset:6px; border:1px solid rgba(122,81,43,.45); border-radius:3px; pointer-events:none; z-index:1}
+
+  .card-head{
+    display:flex; align-items:center; gap:14px;
+    padding:18px 22px 14px; cursor:pointer; user-select:none;
+    position:relative; z-index:2;
+  }
+  .card-head:hover{background:rgba(138,74,30,.06)}
+
   .badge{flex:0 0 auto; width:54px; height:54px; border-radius:50%; border:3px solid var(--rust);
     display:grid; place-items:center; font-family:"Ruslan Display",serif; color:var(--rust); font-size:1.5rem;
     box-shadow:inset 0 0 0 2px rgba(138,74,30,.35)}
+  .card-head .t{flex:1 1 auto}
   .card-head .t .day{font-family:"Ruslan Display",serif; font-size:1.7rem; line-height:1.05}
   .card-head .t .date{color:var(--rust); font-family:"Ruslan Display",serif; font-size:1.05rem}
   .card-head .t .theme{font-style:italic; color:var(--sepia)}
-  ul.steps{list-style:none; margin:10px 0 0; padding:0}
+
+  .toggle-btn{
+    flex:0 0 auto; width:32px; height:32px; border-radius:50%;
+    border:2px solid var(--rust); background:transparent;
+    color:var(--rust); font-size:1.4rem; line-height:1;
+    display:grid; place-items:center; cursor:pointer;
+    transition:transform .28s ease, background .15s;
+    font-family:monospace; font-weight:700; pointer-events:none;
+  }
+  .card-head:hover .toggle-btn{background:var(--rust); color:#fff}
+  .card.open .toggle-btn{transform:rotate(45deg)}
+
+  .card-body{
+    overflow:hidden; max-height:0;
+    transition:max-height .38s ease, padding .25s;
+    padding:0 22px;
+  }
+  .card.open .card-body{max-height:700px; padding:0 22px 18px}
+
+  ul.steps{list-style:none; margin:6px 0 0; padding:0}
   ul.steps li{position:relative; padding:6px 0 6px 26px}
   ul.steps li::before{content:"◆"; position:absolute; left:2px; top:7px; color:var(--sepia); font-size:.8rem}
   .warn{color:var(--rust); font-weight:700}
 
-  /* food */
-  .food-group{margin-top:8px}
-  .food-group h3{font-family:"Ruslan Display",serif; font-weight:400; font-size:1.25rem; color:var(--ink);
-    border-bottom:2px solid rgba(122,81,43,.4); padding-bottom:4px; margin:18px 0 6px}
+  /* FOOD accordion */
+  .food-card{
+    position:relative;
+    background:
+      repeating-linear-gradient(0deg, rgba(120,80,40,.035) 0 2px, transparent 2px 10px),
+      linear-gradient(180deg,#f3e8cf,#ecdfc1);
+    border:2px solid var(--panel-line); border-radius:5px; margin:18px 0;
+    box-shadow:0 6px 18px rgba(60,40,18,.18); overflow:hidden;
+  }
+  .food-card::before{content:""; position:absolute; inset:6px; border:1px solid rgba(122,81,43,.45); border-radius:3px; pointer-events:none; z-index:1}
+
+  .food-head{
+    display:flex; align-items:center; justify-content:space-between; gap:12px;
+    padding:14px 22px; cursor:pointer; user-select:none; position:relative; z-index:2;
+  }
+  .food-head:hover{background:rgba(138,74,30,.06)}
+  .food-head h3{
+    font-family:"Ruslan Display",serif; font-weight:400; font-size:1.15rem;
+    color:var(--ink); margin:0; flex:1;
+  }
+  .food-card.open .toggle-btn{transform:rotate(45deg)}
+  .food-head:hover .toggle-btn{background:var(--rust); color:#fff}
+  .food-body{overflow:hidden; max-height:0; transition:max-height .38s ease, padding .25s; padding:0 22px}
+  .food-card.open .food-body{max-height:900px; padding:0 22px 18px}
+
   .place{padding:9px 0; border-bottom:1px dashed rgba(122,81,43,.4)}
   .place:last-child{border-bottom:none}
   .place .name{font-weight:700}
@@ -95,6 +156,13 @@
     border-radius:3px; padding:2px 10px; white-space:nowrap}
   .links a:hover{background:var(--rust); color:#fff}
   .note{font-style:italic; color:var(--sepia)}
+
+  .plain-card{position:relative; background:
+      repeating-linear-gradient(0deg, rgba(120,80,40,.035) 0 2px, transparent 2px 10px),
+      linear-gradient(180deg,#f3e8cf,#ecdfc1);
+    border:2px solid var(--panel-line); border-radius:5px; padding:22px 22px 18px; margin:18px 0;
+    box-shadow:0 6px 18px rgba(60,40,18,.18)}
+  .plain-card::before{content:""; position:absolute; inset:6px; border:1px solid rgba(122,81,43,.45); border-radius:3px; pointer-events:none}
 
   footer{text-align:center; color:var(--sepia); font-style:italic; margin-top:40px;
     border-top:2px solid rgba(122,81,43,.4); padding-top:16px}
@@ -129,86 +197,116 @@
   </header>
 
   <nav>
+    <a href="#karta">Карта</a>
     <a href="#dni">Дни</a>
     <a href="#eda">Гдѣ поѣсть</a>
     <a href="#pamyatka">Памятка</a>
   </nav>
+
+  <!-- КАРТА -->
+  <section id="karta">
+    <p class="eyebrow section-eyebrow">Путь повозокъ</p>
+    <h2 class="section">Карта маршрута</h2>
+    <div class="map-wrap">
+      <div id="map"></div>
+      <div class="map-legend">
+        <span><span class="leg-line" style="background:#c0392b"></span>Пт 26 · Москва → Новгород</span>
+        <span><span class="leg-line" style="background:#e67e22"></span>Сб 27 · Новгород → Троица</span>
+        <span><span class="leg-line" style="background:#27ae60"></span>Вс 28 · Троица → Старая Русса → Троица</span>
+        <span><span class="leg-line" style="background:#2980b9"></span>Пн 29 · Троица → Валдай → Москва</span>
+      </div>
+    </div>
+  </section>
+
+  <div class="rule"><b>◆</b></div>
 
   <!-- ДНИ -->
   <section id="dni">
     <p class="eyebrow section-eyebrow">Путевой свитокъ</p>
     <h2 class="section">Программа по днямъ</h2>
 
-    <div class="card">
-      <div class="card-head">
+    <div class="card open">
+      <div class="card-head" onclick="toggleCard(this)">
         <div class="badge">1</div>
         <div class="t">
           <div class="day">Пятница</div>
           <div class="date">26 июня</div>
           <div class="theme">«Дорога и стольный градъ»</div>
         </div>
+        <button class="toggle-btn" aria-label="раскрыть / свернуть">+</button>
       </div>
-      <ul class="steps">
-        <li>7:30 — выезд из Москвы, трасса М-11 (около 6 часов в пути)</li>
-        <li>≈15:00 — отель «Береста», заселение и передышка</li>
-        <li>15:30 — Спас на Ильине: фрески Феофана Грека (закрыт в дождь, до 17:00)</li>
-        <li>Вечер — Детинец, колесо обозрения, Ярославово дворище</li>
-        <li>Ужин — «Дом Берга» или пивоварня «Завод»</li>
-      </ul>
+      <div class="card-body">
+        <ul class="steps">
+          <li>7:30 — выезд из Москвы, трасса М-11 (около 6 часов в пути)</li>
+          <li>≈15:00 — отель «Береста», заселение и передышка</li>
+          <li>15:30 — Спас на Ильине: фрески Феофана Грека (закрыт в дождь, до 17:00)</li>
+          <li>Вечер — Детинец, колесо обозрения, Ярославово дворище</li>
+          <li>Ужин — «Дом Берга» или пивоварня «Завод»</li>
+        </ul>
+      </div>
     </div>
 
     <div class="card">
-      <div class="card-head">
+      <div class="card-head" onclick="toggleCard(this)">
         <div class="badge">2</div>
         <div class="t">
           <div class="day">Суббота</div>
           <div class="date">27 июня</div>
           <div class="theme">«Грамоты и переездъ»</div>
         </div>
+        <button class="toggle-btn" aria-label="раскрыть / свернуть">+</button>
       </div>
-      <ul class="steps">
-        <li>Утро — бассейн в отеле</li>
-        <li>До 12:00 — выезд из «Бересты», вещи в машину</li>
-        <li>Главное здание музея в Кремле: берестяные грамоты и иконы</li>
-        <li>Обед, затем ВкусВилл — забрать мясо, и в деревню Троица</li>
-        <li>Вечер — мясо, костёр, отдых</li>
-      </ul>
+      <div class="card-body">
+        <ul class="steps">
+          <li>Утро — бассейн в отеле</li>
+          <li>До 12:00 — выезд из «Бересты», вещи в машину</li>
+          <li>Главное здание музея в Кремле: берестяные грамоты и иконы</li>
+          <li>Обед, затем ВкусВилл — забрать мясо, и в деревню Троица</li>
+          <li>Вечер — мясо, костёр, отдых</li>
+        </ul>
+      </div>
     </div>
 
     <div class="card">
-      <div class="card-head">
+      <div class="card-head" onclick="toggleCard(this)">
         <div class="badge">3</div>
         <div class="t">
           <div class="day">Воскресенье</div>
           <div class="date">28 июня</div>
           <div class="theme">«Мельница и Старая Русса»</div>
         </div>
+        <button class="toggle-btn" aria-label="раскрыть / свернуть">+</button>
       </div>
-      <ul class="steps">
-        <li><span class="warn">Утро — Музей-мельница в деревне Завал, только по записи</span></li>
-        <li>День — Старая Русса: Усадьба средневекового рушанина, Муравьёвский фонтан</li>
-        <li>Дом-музей Достоевского — для взрослых и старшего сына</li>
-        <li>Обед — кафе «Башня» на главной площади</li>
-        <li>Вечер — обратно в деревню</li>
-      </ul>
+      <div class="card-body">
+        <ul class="steps">
+          <li><span class="warn">Утро — Музей-мельница в деревне Завал, только по записи</span></li>
+          <li>День — Старая Русса: Усадьба средневекового рушанина, Муравьёвский фонтан</li>
+          <li>Дом-музей Достоевского — для взрослых и старшего сына</li>
+          <li>Обед — кафе «Башня» на главной площади</li>
+          <li>Вечер — обратно в деревню</li>
+        </ul>
+      </div>
     </div>
 
     <div class="card">
-      <div class="card-head">
+      <div class="card-head" onclick="toggleCard(this)">
         <div class="badge">4</div>
         <div class="t">
           <div class="day">Понедельник</div>
           <div class="date">29 июня</div>
           <div class="theme">«Домой черезъ Валдай»</div>
         </div>
+        <button class="toggle-btn" aria-label="раскрыть / свернуть">+</button>
       </div>
-      <ul class="steps">
-        <li>≈9:00 — выезд из деревни</li>
-        <li>Валдай — Музей колоколов (детям дают звонить)</li>
-        <li>Обед «Mesto.valday» у озера, прогулка по набережной</li>
-        <li>Иверский монастырь — если останутся силы</li>
-        <li>Валдай → Москва (около 5,5 часов)</li>
-      </ul>
+      <div class="card-body">
+        <ul class="steps">
+          <li>≈9:00 — выезд из деревни</li>
+          <li>Валдай — Музей колоколов (детям дают звонить)</li>
+          <li>Обед «Mesto.valday» у озера, прогулка по набережной</li>
+          <li>Иверский монастырь — если останутся силы</li>
+          <li>Валдай → Москва (около 5,5 часов)</li>
+        </ul>
+      </div>
     </div>
   </section>
 
@@ -219,9 +317,12 @@
     <p class="eyebrow section-eyebrow">Хлѣбъ да соль</p>
     <h2 class="section">Гдѣ поѣсть</h2>
 
-    <div class="card">
-      <div class="food-group">
+    <div class="food-card open">
+      <div class="food-head" onclick="toggleFood(this)">
         <h3>Великий Новгород · русская кухня</h3>
+        <button class="toggle-btn" aria-label="раскрыть / свернуть">+</button>
+      </div>
+      <div class="food-body">
         <div class="place">
           <div class="name">Дом Берга</div>
           <div class="desc">Купеческий ресторан, серые щи, настойки, у Кремля.</div>
@@ -243,9 +344,14 @@
           <div class="links"><a href="tel:+78162604362">+7 8162 60-43-62</a></div>
         </div>
       </div>
+    </div>
 
-      <div class="food-group">
+    <div class="food-card">
+      <div class="food-head" onclick="toggleFood(this)">
         <h3>Великий Новгород · семейные и для детей</h3>
+        <button class="toggle-btn" aria-label="раскрыть / свернуть">+</button>
+      </div>
+      <div class="food-body">
         <div class="place">
           <div class="name">География</div>
           <div class="desc">Европейская/итал./яп./рус. кухня у Кремлёвского парка, завтраки с 8:30, бизнес-ланч.</div>
@@ -267,9 +373,14 @@
           <div class="links"><a href="tel:+78162926494">+7 8162 92-64-94</a></div>
         </div>
       </div>
+    </div>
 
-      <div class="food-group">
+    <div class="food-card open">
+      <div class="food-head" onclick="toggleFood(this)">
         <h3>Старая Русса · на воскресенье</h3>
+        <button class="toggle-btn" aria-label="раскрыть / свернуть">+</button>
+      </div>
+      <div class="food-body">
         <div class="place">
           <div class="name">Башня</div>
           <div class="desc">Лучшее кафе города, панорама на главную площадь, есть детское меню. <span class="warn">По выходным бронь с предоплатой — звонить заранее.</span></div>
@@ -298,7 +409,7 @@
   <section id="pamyatka">
     <p class="eyebrow section-eyebrow">Передъ дорогой</p>
     <h2 class="section">Памятка</h2>
-    <div class="card">
+    <div class="plain-card">
       <ul class="steps">
         <li><span class="warn">Завал — позвонить и забронировать на вс 28-го:</span> <a class="plain" href="tel:+79116453318">+7 911 645-33-18</a> · <a class="plain" href="https://vk.com/melnitsa_zaval" target="_blank" rel="noopener">vk.com/melnitsa_zaval</a></li>
         <li>Спас на Ильине — в дождь закрыт; запас: суббота утром.</li>
@@ -316,5 +427,65 @@
   </footer>
 
 </div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+/* ── accordion: дни ── */
+function toggleCard(head) {
+  head.closest('.card').classList.toggle('open');
+}
+/* ── accordion: еда ── */
+function toggleFood(head) {
+  head.closest('.food-card').classList.toggle('open');
+}
+
+/* ── map ── */
+(function(){
+  var MOSCOW   = [55.7558, 37.6173];
+  var NOVGOROD = [58.5213, 31.2754];
+  var TROITSA  = [58.4436, 31.2542]; // 58deg26'37"N  31deg15'15"E
+  var ST_RUSSA = [57.9919, 31.3567];
+  var VALDAI   = [57.9796, 33.2522];
+
+  var map = L.map('map', { zoomControl: true });
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    maxZoom: 13
+  }).addTo(map);
+
+  var allPts = [MOSCOW, NOVGOROD, TROITSA, ST_RUSSA, VALDAI];
+  map.fitBounds(L.latLngBounds(allPts).pad(0.1));
+
+  function poly(pts, color, dash) {
+    L.polyline(pts, { color: color, weight: 3.5, dashArray: dash || null, opacity: .9 }).addTo(map);
+  }
+
+  poly([MOSCOW, NOVGOROD], '#c0392b');
+  poly([NOVGOROD, TROITSA], '#e67e22');
+  poly([TROITSA, ST_RUSSA, TROITSA], '#27ae60', '8 5');
+  poly([TROITSA, VALDAI, MOSCOW], '#2980b9');
+
+  function mkIcon(color, label) {
+    return L.divIcon({
+      html: '<div style="background:' + color + ';color:#fff;border:2.5px solid #fff;border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-family:sans-serif;font-size:10px;font-weight:700;box-shadow:0 2px 6px rgba(0,0,0,.45);line-height:1">' + label + '</div>',
+      className: '', iconSize: [32,32], iconAnchor: [16,16], popupAnchor: [0,-16]
+    });
+  }
+
+  var places = [
+    { ll:MOSCOW,   color:'#c0392b', label:'М',  title:'Москва' },
+    { ll:NOVGOROD, color:'#8a4a1e', label:'ВН', title:'Великий Новгород' },
+    { ll:TROITSA,  color:'#e67e22', label:'Тр', title:'Деревня Троица<br><small>58°26\'37\"N&nbsp;&nbsp;31°15\'15\"E</small>' },
+    { ll:ST_RUSSA, color:'#27ae60', label:'СР', title:'Старая Русса' },
+    { ll:VALDAI,   color:'#2980b9', label:'Вл', title:'Валдай' },
+  ];
+
+  places.forEach(function(p) {
+    L.marker(p.ll, { icon: mkIcon(p.color, p.label) })
+     .addTo(map)
+     .bindPopup(p.title);
+  });
+})();
+</script>
 </body>
 </html>
