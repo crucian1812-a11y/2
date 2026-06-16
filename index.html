@@ -3,625 +3,489 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Машина времени · Квест по Нижнему Новгороду</title>
+<title>Великій Новгородъ · 26–29 июня</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Marck+Script&family=Oswald:wght@400;600;700&family=Cormorant+Garamond:wght@500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Ruslan+Display&family=Old+Standard+TT:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <style>
   :root{
-    --brass:#c9962e;
-    --brass-light:#e8c468;
-    --ink:#1c1812;
-    --paper:#f3e8cf;
-    --paper-dark:#e4d4ad;
-    --rust:#9c4a1a;
-    --teal:#1f5d5b;
-    --deep:#13110c;
-    --line:#7a6a44;
+    --bark:#d9bd8e; --bark-lt:#e8d3a9; --bark-dk:#c6a570;
+    --ink:#2e2113; --sepia:#6b4423; --rust:#8a4a1e;
+    --panel:#efe3c7; --panel-line:#7a512b;
+    --maxw:880px;
   }
-  *{box-sizing:border-box;margin:0;padding:0;}
-  html{scroll-behavior:smooth;}
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
   body{
-    font-family:'Oswald',sans-serif;
+    margin:0; color:var(--ink);
+    font-family:"Old Standard TT",Georgia,serif; font-size:18px; line-height:1.6;
     background:
-      radial-gradient(circle at 20% 10%, rgba(201,150,46,.12), transparent 40%),
-      radial-gradient(circle at 80% 90%, rgba(31,93,91,.15), transparent 45%),
-      var(--deep);
-    color:var(--paper);
-    line-height:1.5;
-    overflow-x:hidden;
+      radial-gradient(120% 80% at 50% -10%, rgba(255,245,220,.55), transparent 60%),
+      repeating-linear-gradient(0deg, rgba(70,44,22,.05) 0 2px, transparent 2px 9px),
+      linear-gradient(180deg, var(--bark-lt) 0%, var(--bark) 45%, var(--bark-dk) 100%);
+    background-attachment:fixed;
   }
-  .grain{
-    position:fixed;inset:0;pointer-events:none;z-index:1;opacity:.05;
-    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  body::before{
+    content:""; position:fixed; inset:0; pointer-events:none; z-index:0; opacity:.5; mix-blend-mode:multiply;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='400' height='400'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.012 0.16' numOctaves='2' seed='7'/><feColorMatrix type='saturate' values='0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='0.35'/></svg>");
   }
-  .wrap{max-width:680px;margin:0 auto;padding:0 18px;position:relative;z-index:2;}
+  .wrap{position:relative; z-index:1; max-width:var(--maxw); margin:0 auto; padding:0 18px 64px}
 
-  /* ===== HERO ===== */
-  header.hero{
-    text-align:center;padding:54px 18px 30px;position:relative;
-  }
-  .hero .eyebrow{
-    font-size:14px;letter-spacing:.45em;text-transform:uppercase;
-    color:var(--brass-light);font-weight:600;
-  }
-  .hero h1{
-    font-family:'Marck Script',cursive;
-    font-size:clamp(46px,13vw,86px);
-    color:var(--brass);font-weight:400;line-height:.95;
-    margin:6px 0 4px;text-shadow:0 2px 18px rgba(201,150,46,.35);
-  }
-  .hero .sub{
-    font-family:'Cormorant Garamond',serif;font-size:20px;font-style:italic;
-    color:var(--paper-dark);
-  }
-  .gear{
-    display:inline-block;width:64px;height:64px;margin-bottom:8px;
-    animation:spin 14s linear infinite;
-  }
-  @keyframes spin{to{transform:rotate(360deg);}}
+  h1,h2,.vyaz{font-family:"Ruslan Display",serif; font-weight:400; letter-spacing:.02em; color:var(--ink);
+    text-shadow:1px 1px 0 rgba(245,232,205,.6)}
+  .eyebrow{font-variant:small-caps; letter-spacing:.32em; color:var(--sepia); font-size:.82rem; margin:0}
 
-  /* ===== PROGRESS ===== */
-  .progress-bar{
-    position:sticky;top:0;z-index:20;
-    background:linear-gradient(180deg,var(--deep),rgba(19,17,12,.92));
-    border-bottom:1px solid var(--line);
-    padding:10px 0;backdrop-filter:blur(4px);
-  }
-  .parts{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;}
-  .part-chip{
-    display:flex;align-items:center;gap:6px;
-    font-size:12px;letter-spacing:.08em;text-transform:uppercase;
-    padding:5px 10px;border:1px solid var(--line);border-radius:30px;
-    color:#8a7c58;transition:.4s;
-  }
-  .part-chip .dot{width:9px;height:9px;border-radius:50%;background:#4a4330;transition:.4s;}
-  .part-chip.got{color:var(--brass-light);border-color:var(--brass);box-shadow:0 0 12px rgba(201,150,46,.3);}
-  .part-chip.got .dot{background:var(--brass);box-shadow:0 0 8px var(--brass);}
+  header.hero{text-align:center; padding:54px 0 26px}
+  header.hero h1{font-size:clamp(2.6rem,11vw,5rem); line-height:.98; margin:.18em 0}
+  .dates{font-family:"Ruslan Display",serif; color:var(--rust); font-size:clamp(1.2rem,5vw,1.7rem); margin:.2em 0}
+  .sub{font-style:italic; color:var(--sepia); max-width:34ch; margin:.5em auto}
+  .route{font-weight:700; margin:.4em auto 0; max-width:40ch}
+  .seal{width:118px; height:118px; margin:18px auto 0; display:block}
 
-  /* ===== INTRO ===== */
-  .scroll{
-    background:linear-gradient(180deg,var(--paper),var(--paper-dark));
-    color:var(--ink);border-radius:6px;padding:26px 24px;margin:26px 0;
-    border:1px solid #b89a5a;
-    box-shadow:0 10px 40px rgba(0,0,0,.5), inset 0 0 60px rgba(156,74,26,.07);
+  .rule{display:flex; align-items:center; justify-content:center; gap:14px; margin:30px 0 8px; color:var(--sepia)}
+  .rule::before,.rule::after{content:""; height:2px; background:currentColor; flex:1; max-width:160px; opacity:.7}
+  .rule b{font-size:1rem; transform:rotate(45deg); line-height:1}
+
+  nav{position:sticky; top:0; z-index:5; display:flex; justify-content:center; gap:8px; flex-wrap:wrap;
+    padding:10px; margin:6px 0 22px;
+    background:linear-gradient(180deg, rgba(233,211,169,.96), rgba(217,189,142,.92));
+    border-top:1px solid rgba(122,81,43,.5); border-bottom:1px solid rgba(122,81,43,.5); backdrop-filter:blur(2px)}
+  nav a{font-family:"Ruslan Display",serif; text-decoration:none; color:var(--ink);
+    border:1.5px solid var(--panel-line); border-radius:3px; padding:5px 14px; font-size:.95rem; background:rgba(239,227,199,.6)}
+  nav a:hover{background:var(--rust); color:#fff}
+
+  section{margin:38px 0}
+  h2.section{font-size:clamp(1.7rem,7vw,2.6rem); text-align:center; margin:.2em 0 .1em}
+  .section-eyebrow{text-align:center}
+
+  /* MAP */
+  .map-wrap{
+    border:2px solid var(--panel-line); border-radius:5px; overflow:hidden;
+    box-shadow:0 6px 18px rgba(60,40,18,.18); margin:18px 0;
+  }
+  #map{height:420px; width:100%}
+  .map-legend{
+    background:linear-gradient(180deg,#f3e8cf,#ecdfc1);
+    padding:10px 16px; display:flex; flex-wrap:wrap; gap:8px 20px;
+    border-top:1px solid rgba(122,81,43,.3);
+  }
+  .map-legend span{display:flex; align-items:center; gap:7px; font-size:.84rem}
+  .leg-line{display:inline-block; width:22px; height:3px; border-radius:2px}
+
+  /* CARDS / accordion */
+  .card{
     position:relative;
+    background:
+      repeating-linear-gradient(0deg, rgba(120,80,40,.035) 0 2px, transparent 2px 10px),
+      linear-gradient(180deg,#f3e8cf,#ecdfc1);
+    border:2px solid var(--panel-line); border-radius:5px; margin:18px 0;
+    box-shadow:0 6px 18px rgba(60,40,18,.18); overflow:hidden;
   }
-  .scroll::before,.scroll::after{
-    content:"";position:absolute;left:0;right:0;height:14px;
-    background:repeating-linear-gradient(90deg,transparent 0 8px,rgba(122,106,68,.25) 8px 10px);
-  }
-  .scroll::before{top:0;} .scroll::after{bottom:0;}
-  .scroll h2{font-family:'Cormorant Garamond',serif;font-size:30px;color:var(--rust);margin-bottom:10px;font-weight:700;}
-  .scroll p{font-family:'Cormorant Garamond',serif;font-size:19px;margin-bottom:10px;}
+  .card::before{content:""; position:absolute; inset:6px; border:1px solid rgba(122,81,43,.45); border-radius:3px; pointer-events:none; z-index:1}
 
-  /* ===== STAGE LABEL ===== */
-  .stage{
-    text-align:center;margin:46px 0 6px;
-    font-size:15px;letter-spacing:.35em;text-transform:uppercase;color:var(--teal);font-weight:600;
+  .card-head{
+    display:flex; align-items:center; gap:14px;
+    padding:18px 22px 14px; cursor:pointer; user-select:none;
+    position:relative; z-index:2;
   }
-  .stage span{color:var(--brass-light);}
+  .card-head:hover{background:rgba(138,74,30,.06)}
 
-  /* ===== STATION CARD ===== */
-  .station{
-    background:linear-gradient(165deg,#221d14,#191510);
-    border:1px solid var(--line);border-radius:10px;
-    padding:24px 22px;margin:18px 0;
-    scroll-margin-top:70px;
-    box-shadow:0 6px 30px rgba(0,0,0,.4);
-    position:relative;overflow:hidden;
-  }
-  .station::before{
-    content:"";position:absolute;top:-40px;right:-40px;width:120px;height:120px;
-    border:2px dashed rgba(201,150,46,.18);border-radius:50%;
-  }
-  .station .num{
-    font-family:'Marck Script',cursive;font-size:40px;color:var(--brass);line-height:1;
-  }
-  .station .tag{
-    display:inline-block;font-size:11px;letter-spacing:.15em;text-transform:uppercase;
-    color:var(--teal);border:1px solid var(--teal);border-radius:20px;padding:3px 10px;margin-bottom:8px;
-  }
-  .station h3{font-family:'Cormorant Garamond',serif;font-size:26px;color:var(--brass-light);margin:4px 0 10px;font-weight:700;}
-  .station .prof{
-    font-family:'Cormorant Garamond',serif;font-style:italic;font-size:18px;
-    color:var(--paper-dark);border-left:3px solid var(--rust);padding-left:12px;margin:12px 0;
-  }
-  .station .task{font-size:16px;margin:10px 0;color:var(--paper);}
-  .station .task b{color:var(--brass-light);}
-  .hint{
-    margin-top:12px;font-size:14px;color:#9b8e6a;
-  }
-  .hint summary{cursor:pointer;color:var(--teal);font-weight:600;letter-spacing:.05em;}
-  .hint summary::-webkit-details-marker{color:var(--brass);}
+  .badge{flex:0 0 auto; width:54px; height:54px; border-radius:50%; border:3px solid var(--rust);
+    display:grid; place-items:center; font-family:"Ruslan Display",serif; color:var(--rust); font-size:1.5rem;
+    box-shadow:inset 0 0 0 2px rgba(138,74,30,.35)}
+  .card-head .t{flex:1 1 auto}
+  .card-head .t .day{font-family:"Ruslan Display",serif; font-size:1.7rem; line-height:1.05}
+  .card-head .t .date{color:var(--rust); font-family:"Ruslan Display",serif; font-size:1.05rem}
+  .card-head .t .theme{font-style:italic; color:var(--sepia)}
 
-  .claim{
-    margin-top:16px;width:100%;border:none;cursor:pointer;
-    background:linear-gradient(180deg,var(--brass-light),var(--brass));
-    color:var(--deep);font-family:'Oswald';font-weight:700;font-size:16px;
-    letter-spacing:.12em;text-transform:uppercase;padding:14px;border-radius:8px;
-    transition:.25s;box-shadow:0 4px 14px rgba(201,150,46,.3);
+  .toggle-btn{
+    flex:0 0 auto; width:32px; height:32px; border-radius:50%;
+    border:2px solid var(--rust); background:transparent;
+    color:var(--rust); font-size:1.4rem; line-height:1;
+    display:grid; place-items:center; cursor:pointer;
+    transition:transform .28s ease, background .15s;
+    font-family:monospace; font-weight:700; pointer-events:none;
   }
-  .claim:hover{filter:brightness(1.08);transform:translateY(-1px);}
-  .claim.done{
-    background:var(--teal);color:var(--paper);cursor:default;box-shadow:none;
-  }
+  .card-head:hover .toggle-btn{background:var(--rust); color:#fff}
+  .card.open .toggle-btn{transform:rotate(45deg)}
 
-  /* ===== FINALE ===== */
-  #finale{
-    margin:50px 0;padding:30px;border-radius:12px;text-align:center;
-    background:linear-gradient(160deg,#2a2114,#15120c);
-    border:1px solid var(--line);position:relative;
+  .card-body{
+    overflow:hidden; max-height:0;
+    transition:max-height .38s ease, padding .25s;
+    padding:0 22px;
   }
-  #finale.locked .locktext{display:block;}
-  #finale.locked .diploma{display:none;}
-  #finale .locktext{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:20px;color:#9b8e6a;display:none;}
-  .diploma{display:none;}
-  #finale:not(.locked) .diploma{display:block;animation:reveal 1s ease;}
-  @keyframes reveal{from{opacity:0;transform:scale(.9);}to{opacity:1;transform:scale(1);}}
-  .diploma .seal{
-    width:90px;height:90px;margin:0 auto 12px;border-radius:50%;
-    background:radial-gradient(circle,var(--brass-light),var(--brass) 70%);
-    display:flex;align-items:center;justify-content:center;font-size:42px;
-    box-shadow:0 0 30px rgba(201,150,46,.5);animation:spin 12s linear infinite;
-  }
-  .diploma h2{font-family:'Marck Script',cursive;font-size:50px;color:var(--brass);font-weight:400;}
-  .diploma .line{font-family:'Cormorant Garamond',serif;font-size:20px;color:var(--paper-dark);margin:6px 0;}
-  .name-in{
-    margin:14px auto;display:block;width:80%;max-width:300px;text-align:center;
-    background:transparent;border:none;border-bottom:2px dashed var(--brass);
-    color:var(--brass-light);font-family:'Marck Script',cursive;font-size:30px;padding:4px;
-  }
-  .name-in::placeholder{color:#8a7c58;}
-  .name-in:focus{outline:none;}
+  .card.open .card-body{max-height:700px; padding:0 22px 18px}
 
-  .reset{
-    display:block;margin:30px auto;background:none;border:1px solid var(--line);
-    color:#8a7c58;font-family:'Oswald';font-size:12px;letter-spacing:.1em;text-transform:uppercase;
-    padding:8px 16px;border-radius:6px;cursor:pointer;
-  }
-  footer{text-align:center;padding:24px;color:#6a5f44;font-size:13px;}
+  ul.steps{list-style:none; margin:6px 0 0; padding:0}
+  ul.steps li{position:relative; padding:6px 0 6px 26px}
+  ul.steps li::before{content:"◆"; position:absolute; left:2px; top:7px; color:var(--sepia); font-size:.8rem}
+  .warn{color:var(--rust); font-weight:700}
 
-  /* ===== КНОПКА ОЗВУЧКИ ===== */
-  .speak{
-    display:inline-flex;align-items:center;gap:6px;margin:6px 0 2px;cursor:pointer;
-    background:rgba(31,93,91,.18);border:1px solid var(--teal);color:var(--brass-light);
-    font-family:'Oswald';font-size:13px;letter-spacing:.06em;
-    padding:6px 12px;border-radius:30px;transition:.2s;
+  /* FOOD accordion */
+  .food-card{
+    position:relative;
+    background:
+      repeating-linear-gradient(0deg, rgba(120,80,40,.035) 0 2px, transparent 2px 10px),
+      linear-gradient(180deg,#f3e8cf,#ecdfc1);
+    border:2px solid var(--panel-line); border-radius:5px; margin:18px 0;
+    box-shadow:0 6px 18px rgba(60,40,18,.18); overflow:hidden;
   }
-  .speak:hover{background:rgba(31,93,91,.35);}
-  .speak.playing{background:var(--teal);color:var(--paper);}
-  .speak .ic{font-size:15px;}
+  .food-card::before{content:""; position:absolute; inset:6px; border:1px solid rgba(122,81,43,.45); border-radius:3px; pointer-events:none; z-index:1}
 
-  /* ===== АНИМАЦИЯ ВЫПОЛНЕНИЯ ===== */
-  #burst{
-    position:fixed;inset:0;z-index:60;pointer-events:none;
-    display:flex;align-items:center;justify-content:center;opacity:0;
+  .food-head{
+    display:flex; align-items:center; justify-content:space-between; gap:12px;
+    padding:14px 22px; cursor:pointer; user-select:none; position:relative; z-index:2;
   }
-  #burst.go{animation:burstFade 1.3s ease forwards;}
-  @keyframes burstFade{0%{opacity:1;}70%{opacity:1;}100%{opacity:0;}}
-  #burst .bgear{
-    width:120px;height:120px;animation:burstSpin 1.3s ease;
-    filter:drop-shadow(0 0 24px rgba(201,150,46,.7));
+  .food-head:hover{background:rgba(138,74,30,.06)}
+  .food-head h3{
+    font-family:"Ruslan Display",serif; font-weight:400; font-size:1.15rem;
+    color:var(--ink); margin:0; flex:1;
   }
-  @keyframes burstSpin{0%{transform:scale(.2) rotate(0);}60%{transform:scale(1.1) rotate(220deg);}100%{transform:scale(1) rotate(360deg);}}
-  .spark{position:absolute;width:10px;height:10px;border-radius:50%;background:var(--brass-light);}
-  #burst.go .spark{animation:sparkFly 1s ease forwards;}
-  @keyframes sparkFly{
-    0%{opacity:1;transform:translate(0,0) scale(1);}
-    100%{opacity:0;transform:translate(var(--dx),var(--dy)) scale(.2);}
-  }
-  #burst .label{
-    position:absolute;bottom:34%;font-family:'Marck Script',cursive;
-    font-size:38px;color:var(--brass);text-shadow:0 2px 18px rgba(0,0,0,.6);
-  }
+  .food-card.open .toggle-btn{transform:rotate(45deg)}
+  .food-head:hover .toggle-btn{background:var(--rust); color:#fff}
+  .food-body{overflow:hidden; max-height:0; transition:max-height .38s ease, padding .25s; padding:0 22px}
+  .food-card.open .food-body{max-height:900px; padding:0 22px 18px}
 
-  /* ===== ВИКТОРИНА ===== */
-  #quiz{margin:40px 0;}
-  .quiz-card{
-    background:linear-gradient(165deg,#1f2a29,#161d1c);
-    border:1px solid var(--teal);border-radius:10px;padding:20px 18px;margin:14px 0;
-  }
-  .quiz-card .q{font-family:'Cormorant Garamond',serif;font-size:21px;color:var(--brass-light);font-weight:700;margin-bottom:12px;}
-  .quiz-card .opt{
-    display:block;width:100%;text-align:left;margin:7px 0;cursor:pointer;
-    background:#12100b;border:1px solid var(--line);color:var(--paper);
-    font-family:'Oswald';font-size:15px;padding:11px 14px;border-radius:8px;transition:.2s;
-  }
-  .quiz-card .opt:hover{border-color:var(--brass);}
-  .quiz-card .opt.correct{background:var(--teal);border-color:var(--teal);color:#fff;}
-  .quiz-card .opt.wrong{background:#5a2418;border-color:var(--rust);color:#ffd9c9;}
-  .quiz-card .fb{margin-top:8px;font-family:'Cormorant Garamond',serif;font-style:italic;font-size:16px;min-height:20px;color:var(--paper-dark);}
-  .quiz-score{
-    text-align:center;font-size:15px;letter-spacing:.1em;text-transform:uppercase;
-    color:var(--brass-light);margin-top:10px;
-  }
+  .place{padding:9px 0; border-bottom:1px dashed rgba(122,81,43,.4)}
+  .place:last-child{border-bottom:none}
+  .place .name{font-weight:700}
+  .place .desc{color:#4a361f}
+  .links{margin-top:3px; display:flex; gap:8px; flex-wrap:wrap}
+  .links a{font-size:.86rem; text-decoration:none; color:var(--rust); border:1.4px solid var(--rust);
+    border-radius:3px; padding:2px 10px; white-space:nowrap}
+  .links a:hover{background:var(--rust); color:#fff}
+  .note{font-style:italic; color:var(--sepia)}
 
-  /* ===== БОНУС-СТАДИОН ===== */
-  .claim-bonus{
-    margin-top:16px;width:100%;border:none;cursor:pointer;
-    background:linear-gradient(180deg,#2fa37a,var(--teal));
-    color:#fff;font-family:'Oswald';font-weight:700;font-size:16px;
-    letter-spacing:.1em;text-transform:uppercase;padding:14px;border-radius:8px;
-    transition:.25s;box-shadow:0 4px 14px rgba(31,93,91,.4);
-  }
-  .claim-bonus:hover{filter:brightness(1.08);transform:translateY(-1px);}
-  .claim-bonus.done{background:var(--brass);color:var(--deep);cursor:default;box-shadow:none;}
-  .bonus-msg{
-    margin-top:14px;text-align:center;font-family:'Cormorant Garamond',serif;font-style:italic;
-    font-size:18px;color:var(--brass-light);
-  }
+  .plain-card{position:relative; background:
+      repeating-linear-gradient(0deg, rgba(120,80,40,.035) 0 2px, transparent 2px 10px),
+      linear-gradient(180deg,#f3e8cf,#ecdfc1);
+    border:2px solid var(--panel-line); border-radius:5px; padding:22px 22px 18px; margin:18px 0;
+    box-shadow:0 6px 18px rgba(60,40,18,.18)}
+  .plain-card::before{content:""; position:absolute; inset:6px; border:1px solid rgba(122,81,43,.45); border-radius:3px; pointer-events:none}
+
+  footer{text-align:center; color:var(--sepia); font-style:italic; margin-top:40px;
+    border-top:2px solid rgba(122,81,43,.4); padding-top:16px}
+  a.plain{color:var(--rust)}
 </style>
 </head>
 <body>
-<div class="grain"></div>
-<div id="burst">
-  <svg class="bgear" viewBox="0 0 100 100">
-    <path fill="#c9962e" d="M50 8l6 12 13-4 1 14 13 5-8 11 8 11-13 5-1 14-13-4-6 12-6-12-13 4-1-14-13-5 8-11-8-11 13-5 1-14 13 4z"/>
-    <circle cx="50" cy="50" r="16" fill="#13110c"/><circle cx="50" cy="50" r="8" fill="#c9962e"/>
-  </svg>
-  <div class="label" id="burstLabel">Деталь собрана!</div>
-</div>
-
-<div class="progress-bar">
-  <div class="wrap">
-    <div class="parts" id="parts">
-      <div class="part-chip" data-part="karkas"><span class="dot"></span>Каркас</div>
-      <div class="part-chip" data-part="signal"><span class="dot"></span>Сигнал</div>
-      <div class="part-chip" data-part="dvizhenie"><span class="dot"></span>Движение</div>
-      <div class="part-chip" data-part="energiya"><span class="dot"></span>Энергия</div>
-    </div>
-  </div>
-</div>
-
 <div class="wrap">
 
   <header class="hero">
-    <svg class="gear" viewBox="0 0 100 100" fill="none">
-      <path fill="#c9962e" d="M50 8l6 12 13-4 1 14 13 5-8 11 8 11-13 5-1 14-13-4-6 12-6-12-13 4-1-14-13-5 8-11-8-11 13-5 1-14 13 4z"/>
-      <circle cx="50" cy="50" r="16" fill="#13110c"/>
-      <circle cx="50" cy="50" r="8" fill="#c9962e"/>
+    <p class="eyebrow">Семейная экспедиція</p>
+    <h1>Великій<br>Новгородъ</h1>
+    <p class="dates">26–29 ИЮНЯ</p>
+    <p class="sub">Двѣ дружины на двухъ повозкахъ — три отца и четыре чада (8, 7, 7, 4)</p>
+    <p class="route">Москва → Новгородъ → Троица → Валдай → домой</p>
+    <svg class="seal" viewBox="0 0 120 120" aria-hidden="true">
+      <g fill="none" stroke="#8a4a1e">
+        <circle cx="60" cy="60" r="56" stroke-width="3"/>
+        <circle cx="60" cy="60" r="47" stroke-width="1.5"/>
+        <circle cx="60" cy="60" r="22" stroke-width="2.5"/>
+      </g>
+      <g stroke="#8a4a1e" stroke-width="1.5">
+        <line x1="60" y1="38" x2="60" y2="13"/><line x1="60" y1="82" x2="60" y2="107"/>
+        <line x1="38" y1="60" x2="13" y2="60"/><line x1="82" y1="60" x2="107" y2="60"/>
+        <line x1="44" y1="44" x2="27" y2="27"/><line x1="76" y1="76" x2="93" y2="93"/>
+        <line x1="76" y1="44" x2="93" y2="27"/><line x1="44" y1="76" x2="27" y2="93"/>
+      </g>
+      <text x="60" y="60" text-anchor="middle" dominant-baseline="central"
+        font-family="Ruslan Display, serif" font-size="22" fill="#8a4a1e">ВН</text>
     </svg>
-    <div class="eyebrow">Нижний Новгород · 1896 → сегодня</div>
-    <h1>Машина<br>времени</h1>
-    <div class="sub">квест юных инженеров</div>
+    <div class="rule"><b>◆</b></div>
   </header>
 
-  <section class="scroll" id="start">
-    <h2>Сообщение из 1896 года</h2>
-    <p>Здравствуйте, инженеры! Говорит профессор Шуховский.</p>
-    <p>130 лет назад наш город на 125 дней стал <b>столицей прогресса</b>. Здесь впервые показали изобретения, что изменили будущее. Но моя машина времени дала сбой — её <b>четыре детали</b> разлетелись по эпохам!</p>
-    <p>Найдите каждое изобретение в прошлом, узнайте его «потомка» в сегодняшнем городе — и деталь вернётся. Соберёте все четыре — машина оживёт. В путь!</p>
-  </section>
+  <nav>
+    <a href="#karta">Карта</a>
+    <a href="#dni">Дни</a>
+    <a href="#eda">Гдѣ поѣсть</a>
+    <a href="#pamyatka">Памятка</a>
+  </nav>
 
-  <!-- ============ ЭТАП 1: ВЫСТАВКА ============ -->
-  <div class="stage">Этап I · <span>Выставка «Великая Всероссийская»</span></div>
-
-  <article class="station" id="tochka-1">
-    <div class="num">01</div>
-    <span class="tag">Деталь: Каркас</span>
-    <h3>Башня, которой не страшно</h3>
-    <p class="prof">«Найдите ажурную башню-сетку инженера Шухова. Она лёгкая, будто кружево, но держит огромный вес.»</p>
-    <p class="task">Задание: рассмотри башню. <b>Из чего она сделана и почему не падает?</b> Назови одно слово, чем она тебя удивила.</p>
-    <details class="hint"><summary>Подсказка профессора</summary>Это первая в мире гиперболоидная башня — стальная сетка из прямых прутьев, изогнутая в форму. Прочная и лёгкая одновременно.</details>
-    <button class="claim" data-part="karkas" data-station="1">Деталь найдена — забрать «Каркас»</button>
-  </article>
-
-  <article class="station" id="tochka-2">
-    <div class="num">02</div>
-    <span class="tag">Деталь: Сигнал</span>
-    <h3>Прибор, что слышит грозу</h3>
-    <p class="prof">«Отыщите грозоотметчик Попова — устройство, что ловило сигналы прямо из воздуха, без всяких проводов.»</p>
-    <p class="task">Задание: <b>что умел этот прибор?</b> Догадайся, какая привычная нам вещь — его далёкий потомок.</p>
-    <details class="hint"><summary>Подсказка профессора</summary>Он чувствовал электрические сигналы на расстоянии — это предок радио, а значит и телефона, и Wi-Fi.</details>
-    <button class="claim" data-part="signal" data-station="2">Деталь найдена — забрать «Сигнал»</button>
-  </article>
-
-  <article class="station" id="tochka-3">
-    <div class="num">03</div>
-    <span class="tag">Деталь: Движение</span>
-    <h3>Первый русский автомобиль</h3>
-    <p class="prof">«Найдите самобеглую повозку Яковлева и Фрезе — первый автомобиль России, показанный здесь в 1896-м.»</p>
-    <p class="task">Задание: <b>сколько у него колёс? На что он похож?</b> Сравни его со своей машиной мечты.</p>
-    <details class="hint"><summary>Подсказка профессора</summary>Он напоминал карету без лошади, с мотором всего в пару лошадиных сил. Сегодня его потомки — все автомобили на улицах.</details>
-    <button class="claim" data-part="dvizhenie" data-station="3">Деталь найдена — забрать «Движение»</button>
-  </article>
-
-  <article class="station" id="tochka-4">
-    <div class="num">04</div>
-    <span class="tag">Деталь: Энергия</span>
-    <h3>Город, который зажёгся</h3>
-    <p class="prof">«К открытию выставки в городе пустили первый электрический трамвай и зажгли электрический свет. Найдите след этой энергии.»</p>
-    <p class="task">Задание: <b>что нового дала людям электрическая энергия в 1896 году?</b> Назови две вещи.</p>
-    <details class="hint"><summary>Подсказка профессора</summary>Электрический трамвай (первый в России!) и яркое освещение — раньше улицы светили лишь газовыми и масляными фонарями.</details>
-    <button class="claim" data-part="energiya" data-station="4">Деталь найдена — забрать «Энергия»</button>
-  </article>
-
-  <!-- ============ ЭТАП 2: ГОРОД ============ -->
-  <div class="stage">Этап II · <span>Город сегодня</span></div>
-
-  <article class="station" id="tochka-5">
-    <div class="num">05</div>
-    <span class="tag">Каркас · потомок</span>
-    <h3>Внуки башни Шухова</h3>
-    <p class="prof">«Башня выросла! Найдите рядом современную металлическую решётку — каркас Чкаловской лестницы, мост, опоры освещения или любую ажурную стальную конструкцию.»</p>
-    <p class="task">Миссия: <b>сфотографируйтесь всей командой</b> на фоне металлической конструкции. Сосчитай, сколько «треугольников» в её решётке (хотя бы примерно).</p>
-    <details class="hint"><summary>Подсказка</summary>Стальные фермы Чкаловской лестницы и мостов — прямые потомки идей Шухова: лёгкие, ажурные, прочные.</details>
-    <button class="claim" data-part="karkas" data-station="5">Потомок найден — подтвердить «Каркас»</button>
-  </article>
-
-  <article class="station" id="tochka-6">
-    <div class="num">06</div>
-    <span class="tag">Сигнал · потомок</span>
-    <h3>Передай сигнал предкам</h3>
-    <p class="prof">«Попов мечтал о связи без проводов. У вас она в кармане!»</p>
-    <p class="task">Миссия: найди вокруг <b>вышку, антенну или свой телефон</b> и <b>отправь общее фото команды в семейный чат</b> прямо из этой точки. Сигнал отправлен — деталь твоя.</p>
-    <details class="hint"><summary>Подсказка</summary>Каждое сообщение летит по радиоволнам — тем самым, что открыл Попов 130 лет назад.</details>
-    <button class="claim" data-part="signal" data-station="6">Сигнал отправлен — подтвердить</button>
-  </article>
-
-  <article class="station" id="tochka-7">
-    <div class="num">07</div>
-    <span class="tag">Движение · потомок</span>
-    <h3>Транспорт будущего</h3>
-    <p class="prof">«В 1896-м верхом прогресса была повозка с мотором. А сколько потомков у неё сегодня?»</p>
-    <p class="task">Миссия: встаньте у оживлённой улицы или на набережной и <b>сосчитайте, сколько разных видов транспорта</b> вы увидите за пару минут — автомобили, автобусы, трамваи, велосипеды, самокаты, лодки на Волге. Кто насчитает больше?</p>
-    <details class="hint"><summary>Подсказка</summary>Тот самый первый автомобиль 1896 года дал начало всему, что сейчас едет мимо вас. Найдите его «правнука» — любую современную машину.</details>
-    <button class="claim" data-part="dvizhenie" data-station="7">Транспорт найден — подтвердить «Движение»</button>
-  </article>
-
-  <article class="station" id="tochka-8">
-    <div class="num">08</div>
-    <span class="tag">Энергия · потомок</span>
-    <h3>Свет старый и новый</h3>
-    <p class="prof">«Найдите, как энергия освещает город сегодня.»</p>
-    <p class="task">Миссия: на Большой Покровской или у Кремля <b>найди старинный фонарь и современный</b>. Чем они отличаются? Сфотографируй оба.</p>
-    <details class="hint"><summary>Подсказка</summary>Старые фонари были газовыми, новые — светодиодные. Между ними — 130 лет развития энергии.</details>
-    <button class="claim" data-part="energiya" data-station="8">Свет найден — подтвердить «Энергия»</button>
-  </article>
-
-  <!-- ============ БОНУС: СТАДИОН ============ -->
-  <div class="stage">Станция-бонус · <span>Стадион на Стрелке</span></div>
-  <article class="station" id="tochka-9">
-    <div class="num">⚽</div>
-    <span class="tag">Бонус · Машина для футбола</span>
-    <h3>Каркас, который умеет в футбол</h3>
-    <p class="prof">«Инженеры 1896 года мечтали о больших лёгких конструкциях. Посмотрите — прямо на Стрелке, рядом с выставкой, стоит огромный стадион «Нижний Новгород». Его построили к чемпионату мира 2018 года: стальной каркас, стекло, белые «колонны», в которых зашифрованы вода и ветер Волги. Настоящий потомок башни Шухова!»</p>
-    <p class="task">Миссия из двух частей:<br>
-    1. <b>Найдите стадион</b> на Стрелке и сфотографируйтесь всей командой на его фоне.<br>
-    2. А ещё сегодня, <b>11 июня, стартует Чемпионат мира по футболу!</b> Придумайте название своей команды инженеров и <b>отпразднуйте «гол»</b> — сделайте фото в позе футболиста.</p>
-    <details class="hint"><summary>Подсказка профессора</summary>Стадион принимал матчи чемпионата мира 2018 года. Его «волнистый» фасад из белых опор придуман по мотивам волжской воды и ветра — это и красиво, и прочно, как мечтал Шухов.</details>
-    <button class="claim-bonus" id="stadiumBtn">⚽ Гол! Бонус выполнен</button>
-    <div id="stadiumMsg" class="bonus-msg hidden">★ Команда инженеров отпраздновала гол на Стрелке! Бонус засчитан.</div>
-  </article>
-
-  <!-- ============ ВИКТОРИНА ============ -->
-  <div class="stage">Бонус · <span>Викторина знатока</span></div>
-  <section id="quiz">
-    <div class="quiz-card" data-answer="1">
-      <div class="q">1. Кто построил знаменитую ажурную башню-сетку?</div>
-      <button class="opt">Инженер Шухов</button>
-      <button class="opt">Изобретатель Попов</button>
-      <button class="opt">Механик Яковлев</button>
-      <div class="fb"></div>
-    </div>
-    <div class="quiz-card" data-answer="2">
-      <div class="q">2. Что изобрёл Александр Попов?</div>
-      <button class="opt">Первый автомобиль</button>
-      <button class="opt">Радио — связь без проводов</button>
-      <button class="opt">Электрическую лампочку</button>
-      <div class="fb"></div>
-    </div>
-    <div class="quiz-card" data-answer="1">
-      <div class="q">3. Что нового пустили в городе к выставке 1896 года?</div>
-      <button class="opt">Первый в России электрический трамвай</button>
-      <button class="opt">Метро под Волгой</button>
-      <button class="opt">Аэропорт</button>
-      <div class="fb"></div>
-    </div>
-    <div class="quiz-card" data-answer="3">
-      <div class="q">4. Сколько дней работала Всероссийская выставка?</div>
-      <button class="opt">Всего 10 дней</button>
-      <button class="opt">Целых 3 года</button>
-      <button class="opt">125 дней</button>
-      <div class="fb"></div>
-    </div>
-    <div class="quiz-score" id="quizScore">Отвечено верно: 0 из 4</div>
-  </section>
-
-  <!-- ============ ФИНАЛ ============ -->
-  <section id="finale" class="locked">
-    <p class="locktext">⚙ Машина времени ещё не собрана.<br>Найдите все 8 станций — прошлое и настоящее каждой детали, — чтобы запустить её.</p>
-    <div class="diploma">
-      <div class="seal">⚙</div>
-      <h2>Машина запущена!</h2>
-      <div class="line">Настоящим подтверждается, что</div>
-      <input class="name-in" id="diplomaName" placeholder="впиши своё имя" maxlength="24">
-      <div class="line">собрал(а) все четыре детали и получает звание</div>
-      <div class="line" style="font-size:26px;color:var(--brass);font-weight:700;">★ Инженер Времени ★</div>
-      <div class="line" style="font-size:15px;color:#9b8e6a;margin-top:10px;">Нижний Новгород · связь эпох 1896 → сегодня</div>
+  <!-- КАРТА -->
+  <section id="karta">
+    <p class="eyebrow section-eyebrow">Путь повозокъ</p>
+    <h2 class="section">Карта маршрута</h2>
+    <div class="map-wrap">
+      <div id="map"></div>
+      <div class="map-legend">
+        <span><span class="leg-line" style="background:#c0392b"></span>Пт 26 · Москва → Новгород</span>
+        <span><span class="leg-line" style="background:#e67e22"></span>Сб 27 · Новгород → Троица</span>
+        <span><span class="leg-line" style="background:#27ae60"></span>Вс 28 · Троица → Старая Русса → Троица</span>
+        <span><span class="leg-line" style="background:#2980b9"></span>Пн 29 · Троица → Валдай → Москва</span>
+      </div>
     </div>
   </section>
 
-  <button class="reset" id="reset">↺ начать квест заново</button>
+  <div class="rule"><b>◆</b></div>
 
-  <footer>Квест по мотивам выставки «Великая Всероссийская» · Пакгаузы на Стрелке</footer>
+  <!-- ДНИ -->
+  <section id="dni">
+    <p class="eyebrow section-eyebrow">Путевой свитокъ</p>
+    <h2 class="section">Программа по днямъ</h2>
+
+    <div class="card open">
+      <div class="card-head" onclick="toggleCard(this)">
+        <div class="badge">1</div>
+        <div class="t">
+          <div class="day">Пятница</div>
+          <div class="date">26 июня</div>
+          <div class="theme">«Дорога и стольный градъ»</div>
+        </div>
+        <button class="toggle-btn" aria-label="раскрыть / свернуть">+</button>
+      </div>
+      <div class="card-body">
+        <ul class="steps">
+          <li>7:30 — выезд из Москвы, трасса М-11 (около 6 часов в пути)</li>
+          <li>≈15:00 — отель «Береста», заселение и передышка</li>
+          <li>15:30 — Спас на Ильине: фрески Феофана Грека (закрыт в дождь, до 17:00)</li>
+          <li>Вечер — Детинец, колесо обозрения, Ярославово дворище</li>
+          <li>Ужин — «Дом Берга» или пивоварня «Завод»</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head" onclick="toggleCard(this)">
+        <div class="badge">2</div>
+        <div class="t">
+          <div class="day">Суббота</div>
+          <div class="date">27 июня</div>
+          <div class="theme">«Грамоты и переездъ»</div>
+        </div>
+        <button class="toggle-btn" aria-label="раскрыть / свернуть">+</button>
+      </div>
+      <div class="card-body">
+        <ul class="steps">
+          <li>Утро — бассейн в отеле</li>
+          <li>До 12:00 — выезд из «Бересты», вещи в машину</li>
+          <li>Главное здание музея в Кремле: берестяные грамоты и иконы</li>
+          <li>Обед, затем ВкусВилл — забрать мясо, и в деревню Троица</li>
+          <li>Вечер — мясо, костёр, отдых</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head" onclick="toggleCard(this)">
+        <div class="badge">3</div>
+        <div class="t">
+          <div class="day">Воскресенье</div>
+          <div class="date">28 июня</div>
+          <div class="theme">«Мельница и Старая Русса»</div>
+        </div>
+        <button class="toggle-btn" aria-label="раскрыть / свернуть">+</button>
+      </div>
+      <div class="card-body">
+        <ul class="steps">
+          <li><span class="warn">Утро — Музей-мельница в деревне Завал, только по записи</span></li>
+          <li>День — Старая Русса: Усадьба средневекового рушанина, Муравьёвский фонтан</li>
+          <li>Дом-музей Достоевского — для взрослых и старшего сына</li>
+          <li>Обед — кафе «Башня» на главной площади</li>
+          <li>Вечер — обратно в деревню</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head" onclick="toggleCard(this)">
+        <div class="badge">4</div>
+        <div class="t">
+          <div class="day">Понедельник</div>
+          <div class="date">29 июня</div>
+          <div class="theme">«Домой черезъ Валдай»</div>
+        </div>
+        <button class="toggle-btn" aria-label="раскрыть / свернуть">+</button>
+      </div>
+      <div class="card-body">
+        <ul class="steps">
+          <li>≈9:00 — выезд из деревни</li>
+          <li>Валдай — Музей колоколов (детям дают звонить)</li>
+          <li>Обед «Mesto.valday» у озера, прогулка по набережной</li>
+          <li>Иверский монастырь — если останутся силы</li>
+          <li>Валдай → Москва (около 5,5 часов)</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <div class="rule"><b>◆</b></div>
+
+  <!-- ЕДА -->
+  <section id="eda">
+    <p class="eyebrow section-eyebrow">Хлѣбъ да соль</p>
+    <h2 class="section">Гдѣ поѣсть</h2>
+
+    <div class="food-card open">
+      <div class="food-head" onclick="toggleFood(this)">
+        <h3>Великий Новгород · русская кухня</h3>
+        <button class="toggle-btn" aria-label="раскрыть / свернуть">+</button>
+      </div>
+      <div class="food-body">
+        <div class="place">
+          <div class="name">Дом Берга</div>
+          <div class="desc">Купеческий ресторан, серые щи, настойки, у Кремля.</div>
+          <div class="links"><a href="https://domberga.ru" target="_blank" rel="noopener">сайт</a><a href="tel:+78162788838">+7 8162 78-88-38</a></div>
+        </div>
+        <div class="place">
+          <div class="name">Чародейка</div>
+          <div class="desc">Современная «домотканая» русская кухня, локальные продукты, крафтовые настойки.</div>
+          <div class="links"><a href="https://zavod-group.ru/charodeyka/" target="_blank" rel="noopener">сайт</a></div>
+        </div>
+        <div class="place">
+          <div class="name">Завод</div>
+          <div class="desc">Пивоварня и гастробар той же команды — для пап.</div>
+          <div class="links"><a href="https://zavod-group.ru" target="_blank" rel="noopener">сайт</a></div>
+        </div>
+        <div class="place">
+          <div class="name">Дом Коромыслом</div>
+          <div class="desc">Древнерусский интерьер, очень высокий рейтинг, цены кафе. <span class="note">Вс — выходной, севернее центра.</span></div>
+          <div class="links"><a href="tel:+78162604362">+7 8162 60-43-62</a></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="food-card">
+      <div class="food-head" onclick="toggleFood(this)">
+        <h3>Великий Новгород · семейные и для детей</h3>
+        <button class="toggle-btn" aria-label="раскрыть / свернуть">+</button>
+      </div>
+      <div class="food-body">
+        <div class="place">
+          <div class="name">География</div>
+          <div class="desc">Европейская/итал./яп./рус. кухня у Кремлёвского парка, завтраки с 8:30, бизнес-ланч.</div>
+          <div class="links"><a href="https://geo-vn.ru" target="_blank" rel="noopener">сайт</a></div>
+        </div>
+        <div class="place">
+          <div class="name">Время Ч</div>
+          <div class="desc">Кафе, детям есть где «покачаться», есть веган-пицца.</div>
+          <div class="links"><a href="tel:+78162998040">+7 8162 99-80-40</a></div>
+        </div>
+        <div class="place">
+          <div class="name">Пиццафабрика</div>
+          <div class="desc">Большая детская игровая, семейный формат.</div>
+          <div class="links"><a href="https://pizzafabrika.ru" target="_blank" rel="noopener">сайт</a><a href="tel:+78005500600">+7 800 550-06-00</a></div>
+        </div>
+        <div class="place">
+          <div class="name">Gourmetto</div>
+          <div class="desc">Пицца / суши / итальянское и своя кондитерская.</div>
+          <div class="links"><a href="tel:+78162926494">+7 8162 92-64-94</a></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="food-card open">
+      <div class="food-head" onclick="toggleFood(this)">
+        <h3>Старая Русса · на воскресенье</h3>
+        <button class="toggle-btn" aria-label="раскрыть / свернуть">+</button>
+      </div>
+      <div class="food-body">
+        <div class="place">
+          <div class="name">Башня</div>
+          <div class="desc">Лучшее кафе города, панорама на главную площадь, есть детское меню. <span class="warn">По выходным бронь с предоплатой — звонить заранее.</span></div>
+          <div class="links"><a href="https://2gis.ru/staraya-russa/firm/70000001061858155" target="_blank" rel="noopener">меню · 2ГИС</a><a href="tel:+79216061999">+7 921 606-19-99</a></div>
+        </div>
+        <div class="place">
+          <div class="name">Карамазовы</div>
+          <div class="desc">Атмосферное место в гостинице «Полисть», уха с расстегаем.</div>
+          <div class="links"><a href="tel:+79658078173">+7 965 807-81-73</a></div>
+        </div>
+        <div class="place">
+          <div class="name">Ильмень</div>
+          <div class="desc">Рядом с курортом и Муравьёвским фонтаном, большие порции, недорого.</div>
+          <div class="links"><a href="tel:+78165231968">+7 816-52 3-19-68</a></div>
+        </div>
+        <div class="place">
+          <div class="desc"><span class="note">Гид «Где поесть» по городу-курорту:</span> <a class="plain" href="https://visitrussa.ru/food/" target="_blank" rel="noopener">visitrussa.ru/food</a>. Семейное кафе SOVA по воскресеньям закрыто.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="rule"><b>◆</b></div>
+
+  <!-- ПАМЯТКА -->
+  <section id="pamyatka">
+    <p class="eyebrow section-eyebrow">Передъ дорогой</p>
+    <h2 class="section">Памятка</h2>
+    <div class="plain-card">
+      <ul class="steps">
+        <li><span class="warn">Завал — позвонить и забронировать на вс 28-го:</span> <a class="plain" href="tel:+79116453318">+7 911 645-33-18</a> · <a class="plain" href="https://vk.com/melnitsa_zaval" target="_blank" rel="noopener">vk.com/melnitsa_zaval</a></li>
+        <li>Спас на Ильине — в дождь закрыт; запас: суббота утром.</li>
+        <li>Музей-заповедник — выходной вторник; ваша суббота открыта.</li>
+        <li>Центр Поветкина (если захотите) — сеанс в 14:00, <a class="plain" href="tel:+78162635019">+7 8162 63-50-19</a>.</li>
+        <li>Контактный зоопарк — в запасе, если дети просят побегать.</li>
+        <li>Плечи пути: до Старой Руссы ≈1,5 ч · до Валдая ≈2 ч.</li>
+        <li>Уточнить, где деревня Троица — от этого километраж вс и пн.</li>
+      </ul>
+    </div>
+  </section>
+
+  <footer>
+    Москва · Великій Новгородъ · лѣта 7534
+  </footer>
+
 </div>
 
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-  var KEY = 'nn_kvest_v2';
-  // 8 станций по отдельности
-  var done = {1:false,2:false,3:false,4:false,5:false,6:false,7:false,8:false};
-  // какие станции относятся к каждой детали (выставка + город)
-  var partStations = {
-    karkas:[1,5], signal:[2,6], dvizhenie:[3,7], energiya:[4,8]
-  };
+/* ── accordion: дни ── */
+function toggleCard(head) {
+  head.closest('.card').classList.toggle('open');
+}
+/* ── accordion: еда ── */
+function toggleFood(head) {
+  head.closest('.food-card').classList.toggle('open');
+}
 
-  try{
-    var saved = localStorage.getItem(KEY);
-    if(saved) done = JSON.parse(saved);
-  }catch(e){}
+/* ── map ── */
+(function(){
+  const MOSCOW   = [55.7558, 37.6173];
+  const NOVGOROD = [58.5213, 31.2754];
+  const TROITSA  = [58.4436, 31.2542]; // 58°26′37″N  31°15′15″E
+  const ST_RUSSA = [57.9919, 31.3567];
+  const VALDAI   = [57.9796, 33.2522];
 
-  function save(){
-    try{ localStorage.setItem(KEY, JSON.stringify(done)); }catch(e){}
+  const map = L.map('map', { zoomControl: true });
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    maxZoom: 13
+  }).addTo(map);
+
+  const allPts = [MOSCOW, NOVGOROD, TROITSA, ST_RUSSA, VALDAI];
+  map.fitBounds(L.latLngBounds(allPts).pad(0.1));
+
+  function poly(pts, color, dash) {
+    L.polyline(pts, { color, weight: 3.5, dashArray: dash || null, opacity: .9 }).addTo(map);
   }
 
-  function partComplete(p){
-    return partStations[p].every(function(s){ return done[s]; });
+  poly([MOSCOW, NOVGOROD], '#c0392b');
+  poly([NOVGOROD, TROITSA], '#e67e22');
+  poly([TROITSA, ST_RUSSA, TROITSA], '#27ae60', '8 5');
+  poly([TROITSA, VALDAI, MOSCOW], '#2980b9');
+
+  function mkIcon(color, label) {
+    return L.divIcon({
+      html: `<div style="background:${color};color:#fff;border:2.5px solid #fff;border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-family:sans-serif;font-size:10px;font-weight:700;box-shadow:0 2px 6px rgba(0,0,0,.45);line-height:1">${label}</div>`,
+      className: '', iconSize: [32,32], iconAnchor: [16,16], popupAnchor: [0,-16]
+    });
   }
 
-  function render(){
-    // кнопки — каждая сама за себя
-    document.querySelectorAll('.claim').forEach(function(b){
-      var s = b.getAttribute('data-station');
-      if(done[s]){ b.classList.add('done'); b.textContent='✓ Засчитано'; }
-      else { b.classList.remove('done'); }
-    });
-    // чипы в шапке — горят только когда собраны ОБЕ половинки детали
-    Object.keys(partStations).forEach(function(p){
-      var ok = partComplete(p);
-      document.querySelectorAll('.part-chip[data-part="'+p+'"]').forEach(function(c){
-        c.classList.toggle('got', ok);
-      });
-    });
-    // финал — когда все 8 станций пройдены
-    var total = Object.keys(done).filter(function(k){return done[k];}).length;
-    var fin = document.getElementById('finale');
-    if(total===8) fin.classList.remove('locked');
-    else fin.classList.add('locked');
-  }
+  const places = [
+    { ll:MOSCOW,   color:'#c0392b', label:'М',  title:'Москва' },
+    { ll:NOVGOROD, color:'#8a4a1e', label:'ВН', title:'Великий Новгород' },
+    { ll:TROITSA,  color:'#e67e22', label:'Тр', title:'Деревня Троица<br><small>58°26′37″N 31°15′15″E</small>' },
+    { ll:ST_RUSSA, color:'#27ae60', label:'СР', title:'Старая Русса' },
+    { ll:VALDAI,   color:'#2980b9', label:'Вл', title:'Валдай' },
+  ];
 
-  document.querySelectorAll('.claim').forEach(function(btn){
-    btn.addEventListener('click', function(){
-      var s = btn.getAttribute('data-station');
-      if(done[s]) return;            // уже засчитано — не трогаем
-      done[s] = true; save(); render();
-      playBurst();                    // анимация выполнения
-      var total = Object.keys(done).filter(function(k){return done[k];}).length;
-      if(total===8){
-        setTimeout(function(){
-          document.getElementById('finale').scrollIntoView({behavior:'smooth'});
-        }, 1300);
-      }
-    });
+  places.forEach(p => {
+    L.marker(p.ll, { icon: mkIcon(p.color, p.label) })
+     .addTo(map)
+     .bindPopup(p.title);
   });
-
-  // ===== АНИМАЦИЯ ВСПЫШКИ =====
-  function playBurst(){
-    var b = document.getElementById('burst');
-    // искры
-    b.querySelectorAll('.spark').forEach(function(s){ s.remove(); });
-    for(var i=0;i<12;i++){
-      var sp=document.createElement('div'); sp.className='spark';
-      var ang=(Math.PI*2/12)*i, dist=120+Math.random()*60;
-      sp.style.setProperty('--dx',(Math.cos(ang)*dist)+'px');
-      sp.style.setProperty('--dy',(Math.sin(ang)*dist)+'px');
-      b.appendChild(sp);
-    }
-    var n = Object.keys(done).filter(function(k){return done[k];}).length;
-    document.getElementById('burstLabel').textContent = (n===8) ? 'Машина запущена!' : 'Засчитано! +1';
-    b.classList.remove('go'); void b.offsetWidth; b.classList.add('go');
-  }
-
-  // ===== ОЗВУЧКА (синтез речи телефона) =====
-  var synth = window.speechSynthesis;
-  function speak(text, btn){
-    if(!synth){ return; }
-    synth.cancel();
-    var u = new SpeechSynthesisUtterance(text);
-    u.lang='ru-RU'; u.rate=0.95; u.pitch=1;
-    btn.classList.add('playing');
-    u.onend = function(){ btn.classList.remove('playing'); };
-    synth.speak(u);
-  }
-  // добавляем кнопку «послушать» в каждую станцию
-  document.querySelectorAll('.station').forEach(function(st){
-    var prof = st.querySelector('.prof');
-    var task = st.querySelector('.task');
-    var txt = (prof?prof.textContent:'') + '. ' + (task?task.textContent:'');
-    var b = document.createElement('button');
-    b.className='speak'; b.innerHTML='<span class="ic">🔊</span> Послушать вопрос';
-    b.addEventListener('click', function(){
-      if(b.classList.contains('playing')){ synth.cancel(); b.classList.remove('playing'); return; }
-      document.querySelectorAll('.speak.playing').forEach(function(x){x.classList.remove('playing');});
-      speak(txt, b);
-    });
-    // вставляем кнопку после подсказки, перед claim
-    var claim = st.querySelector('.claim');
-    st.insertBefore(b, claim);
-  });
-
-  // ===== БОНУС: СТАДИОН =====
-  var STKEY = 'nn_kvest_stadium_v1';
-  var stBtn = document.getElementById('stadiumBtn');
-  var stMsg = document.getElementById('stadiumMsg');
-  function renderStadium(){
-    var done = false;
-    try{ done = localStorage.getItem(STKEY) === '1'; }catch(e){}
-    if(done){
-      stBtn.classList.add('done'); stBtn.textContent = '✓ Бонус выполнен';
-      stMsg.classList.remove('hidden');
-    }
-  }
-  if(stBtn){
-    stBtn.addEventListener('click', function(){
-      try{ localStorage.setItem(STKEY, '1'); }catch(e){}
-      renderStadium();
-      if(typeof playBurst === 'function'){
-        document.getElementById('burstLabel').textContent = 'Гол! ⚽';
-        var b=document.getElementById('burst'); b.classList.remove('go'); void b.offsetWidth; b.classList.add('go');
-      }
-    });
-    renderStadium();
-  }
-
-  // ===== ВИКТОРИНА =====
-  var quizState = {};
-  document.querySelectorAll('.quiz-card').forEach(function(card, ci){
-    var ans = parseInt(card.getAttribute('data-answer'),10); // 1-based
-    var opts = card.querySelectorAll('.opt');
-    var fb = card.querySelector('.fb');
-    opts.forEach(function(opt, oi){
-      opt.addEventListener('click', function(){
-        if(quizState[ci]==='ok') return; // уже верно — не меняем
-        opts.forEach(function(o){o.classList.remove('wrong');});
-        if(oi === ans-1){
-          opt.classList.add('correct');
-          fb.textContent='Верно! Так и есть.';
-          quizState[ci]='ok';
-        }else{
-          opt.classList.add('wrong');
-          fb.textContent='Не угадал — попробуй ещё раз.';
-          quizState[ci]='try';
-        }
-        updateQuiz();
-      });
-    });
-  });
-  function updateQuiz(){
-    var ok=0; Object.keys(quizState).forEach(function(k){ if(quizState[k]==='ok') ok++; });
-    document.getElementById('quizScore').textContent='Отвечено верно: '+ok+' из 4';
-  }
-
-  document.getElementById('reset').addEventListener('click', function(){
-    try{ localStorage.removeItem(KEY); localStorage.removeItem(STKEY); }catch(e){}
-    location.reload();
-  });
-
-  render();
-
-  // надёжный переход к точке по QR-ссылке (#tochka-N) после полной загрузки
-  function goToHash(){
-    if(location.hash){
-      var el = document.querySelector(location.hash);
-      if(el){ el.scrollIntoView(); }
-    }
-  }
-  window.addEventListener('load', function(){
-    setTimeout(goToHash, 250);
-    setTimeout(goToHash, 700);
-  });
-  window.addEventListener('hashchange', goToHash);
+})();
 </script>
 </body>
 </html>
