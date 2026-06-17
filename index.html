@@ -59,7 +59,6 @@
   h2.section{font-size:clamp(1.7rem,7vw,2.6rem); text-align:center; margin:.2em 0 .1em}
   .section-eyebrow{text-align:center}
 
-  /* MAP */
   .map-wrap{border:2px solid var(--panel-line); border-radius:5px; overflow:hidden;
     box-shadow:0 6px 18px rgba(60,40,18,.18); margin:18px 0}
   #map{height:420px; width:100%}
@@ -69,7 +68,6 @@
   .map-legend span{display:flex; align-items:center; gap:7px; font-size:.84rem}
   .leg-line{display:inline-block; width:22px; height:3px; border-radius:2px}
 
-  /* CARDS / accordion */
   .card{position:relative;
     background:repeating-linear-gradient(0deg, rgba(120,80,40,.035) 0 2px, transparent 2px 10px),
       linear-gradient(180deg,#f3e8cf,#ecdfc1);
@@ -101,7 +99,6 @@
   ul.steps li::before{content:"◆"; position:absolute; left:2px; top:7px; color:var(--sepia); font-size:.8rem}
   .warn{color:var(--rust); font-weight:700}
 
-  /* FOOD accordion */
   .food-card{position:relative;
     background:repeating-linear-gradient(0deg, rgba(120,80,40,.035) 0 2px, transparent 2px 10px),
       linear-gradient(180deg,#f3e8cf,#ecdfc1);
@@ -118,7 +115,6 @@
   .food-body{overflow:hidden; max-height:0; transition:max-height .38s ease, padding .25s; padding:0 22px}
   .food-card.open .food-body{max-height:900px; padding:0 22px 18px}
 
-  /* place row */
   .place{padding:9px 0; border-bottom:1px dashed rgba(122,81,43,.4)}
   .place:last-child{border-bottom:none}
   .place .name{font-weight:700}
@@ -128,7 +124,6 @@
     border:1.4px solid var(--rust); border-radius:3px; padding:2px 10px; white-space:nowrap;
     background:transparent; cursor:pointer; font-family:inherit}
   .links a:hover, .btn-menu:hover{background:var(--rust); color:#fff}
-  .btn-menu{font-size:.86rem}
   .note{font-style:italic; color:var(--sepia)}
 
   .plain-card{position:relative; background:
@@ -166,14 +161,10 @@
   .modal-ext:hover{background:var(--rust); color:#fff}
   .modal-close{width:30px; height:30px; border-radius:50%; border:2px solid var(--rust);
     background:transparent; color:var(--rust); font-size:1.2rem; cursor:pointer;
-    display:grid; place-items:center; flex-shrink:0; line-height:1}
+    display:grid; place-items:center; flex-shrink:0}
   .modal-close:hover{background:var(--rust); color:#fff}
-
   .modal-frame-wrap{position:relative; flex:1; overflow:hidden}
-  .modal-frame-wrap iframe{
-    width:100%; height:100%; border:none; display:block;
-  }
-  /* fallback shown when iframe can't load */
+  .modal-frame-wrap iframe{width:100%; height:100%; border:none; display:block}
   .modal-fallback{
     display:none; position:absolute; inset:0;
     background:linear-gradient(180deg,#f3e8cf,#ecdfc1);
@@ -182,7 +173,21 @@
   }
   .modal-fallback.show{display:flex}
   .modal-fallback p{color:var(--sepia); font-style:italic; max-width:34ch; margin:0}
-  .modal-fallback a{color:var(--rust)}
+
+  /* ── INLINE MENU ── */
+  #modal-inline{
+    display:none; overflow-y:auto; height:100%;
+    padding:16px 22px 24px; font-size:.93rem; line-height:1.5;
+  }
+  .mc{font-family:"Ruslan Display",serif; color:var(--rust); font-size:1.05rem;
+    margin:14px 0 4px; border-bottom:1px solid rgba(122,81,43,.35); padding-bottom:3px}
+  .mi{display:flex; justify-content:space-between; align-items:baseline;
+    padding:4px 0; border-bottom:1px dotted rgba(122,81,43,.22); gap:10px}
+  .mn{flex:1; color:var(--ink)}
+  .md{font-size:.82rem; color:var(--sepia); display:block; margin-top:1px}
+  .mp{color:var(--rust); font-weight:700; white-space:nowrap; flex-shrink:0; font-size:.95rem}
+  .mn-note{font-style:italic; color:var(--sepia); font-size:.87rem; margin:6px 0 2px}
+  .mn-note a{color:var(--rust)}
 </style>
 </head>
 <body>
@@ -343,7 +348,7 @@
           <div class="name">Дом Берга</div>
           <div class="desc">Купеческий ресторан, серые щи, настойки, у Кремля.</div>
           <div class="links">
-            <button class="btn-menu" onclick="openMenu('Дом Берга — меню','https://domberga.ru/menu/')">📜 Меню</button>
+            <button class="btn-menu" onclick="openMenu('Дом Берга — меню','https://domberga.ru/menu/','menu-domberga')">📜 Меню</button>
             <a href="https://domberga.ru" target="_blank" rel="noopener">сайт</a>
             <a href="tel:+78162788838">+7 8162 78-88-38</a>
           </div>
@@ -352,16 +357,18 @@
           <div class="name">Чародейка</div>
           <div class="desc">Современная «домотканая» русская кухня, локальные продукты, крафтовые настойки.</div>
           <div class="links">
-            <button class="btn-menu" onclick="openMenu('Чародейка — меню','https://zavod-group.ru/charodeyka/')">📜 Меню</button>
+            <button class="btn-menu" onclick="openMenu('Чародейка — меню (PDF)','https://zavod-group.ru/wp-content/uploads/2025/12/Menyu_dekabr_2025_280kh190.pdf')">📜 Меню</button>
             <a href="https://zavod-group.ru/charodeyka/" target="_blank" rel="noopener">сайт</a>
+            <a href="tel:+79116001409">+7 911 600-14-09</a>
           </div>
         </div>
         <div class="place">
           <div class="name">Завод</div>
-          <div class="desc">Пивоварня и гастробар той же команды — для пап.</div>
+          <div class="desc">Пивоварня и гастробар той же команды — для пап. ~50 видов настоек, блюда из дровяной печи.</div>
           <div class="links">
-            <button class="btn-menu" onclick="openMenu('Завод — меню','https://zavod-group.ru/menu/')">📜 Меню</button>
+            <button class="btn-menu" onclick="openMenu('Завод — меню (PDF)','https://zavod-group.ru/wp-content/uploads/2025/11/Zavod_Menyu_A3_2025.pdf')">📜 Меню</button>
             <a href="https://zavod-group.ru" target="_blank" rel="noopener">сайт</a>
+            <a href="tel:+79116003309">+7 911 600-33-09</a>
           </div>
         </div>
         <div class="place">
@@ -383,34 +390,35 @@
       <div class="food-body">
         <div class="place">
           <div class="name">География</div>
-          <div class="desc">Европейская/итал./яп./рус. кухня у Кремлёвского парка, завтраки с 8:30, бизнес-ланч.</div>
+          <div class="desc">Европейская/итал./яп./рус. кухня у Кремлёвского парка, завтраки с 8:30, бизнес-ланч. Лучший ресторан 2025.</div>
           <div class="links">
             <button class="btn-menu" onclick="openMenu('География — меню','https://geo-vn.ru/menu')">📜 Меню</button>
             <a href="https://geo-vn.ru" target="_blank" rel="noopener">сайт</a>
+            <a href="tel:+78162900055">+7 8162 90-00-55</a>
           </div>
         </div>
         <div class="place">
           <div class="name">Время Ч</div>
-          <div class="desc">Кафе, детям есть где «покачаться», есть веган-пицца.</div>
+          <div class="desc">Кафе, детям есть где «покачаться», авторская кухня, веган-пицца.</div>
           <div class="links">
-            <button class="btn-menu" onclick="openMenu('Время Ч — 2ГИС','https://2gis.ru/velikiynovgorod/firm/70000001042907397/tab/menu')">📜 Меню</button>
+            <button class="btn-menu" onclick="openMenu('Время Ч — меню','https://chibbis.ru/vn/restaurant/cafe-vremya-ch/menu','menu-vremya-ch')">📜 Меню</button>
             <a href="tel:+78162998040">+7 8162 99-80-40</a>
           </div>
         </div>
         <div class="place">
           <div class="name">Пиццафабрика</div>
-          <div class="desc">Большая детская игровая, семейный формат.</div>
+          <div class="desc">Большая детская игровая зона, аниматоры, семейный формат.</div>
           <div class="links">
-            <button class="btn-menu" onclick="openMenu('Пиццафабрика — меню','https://pizzafabrika.ru/menu/')">📜 Меню</button>
+            <button class="btn-menu" onclick="openMenu('Пиццафабрика — меню','https://pizzafabrika.ru/velikijnovgorod','menu-pizza')">📜 Меню</button>
             <a href="https://pizzafabrika.ru" target="_blank" rel="noopener">сайт</a>
             <a href="tel:+78005500600">+7 800 550-06-00</a>
           </div>
         </div>
         <div class="place">
           <div class="name">Gourmetto</div>
-          <div class="desc">Пицца / суши / итальянское и своя кондитерская.</div>
+          <div class="desc">Пицца / суши / грузинская кухня / итальянское, своя кондитерская.</div>
           <div class="links">
-            <button class="btn-menu" onclick="openMenu('Gourmetto — 2ГИС','https://2gis.ru/velikiynovgorod/firm/70000001041699765/tab/menu')">📜 Меню</button>
+            <button class="btn-menu" onclick="openMenu('Gourmetto — меню','https://chibbis.ru/vn/restaurant/gourmetto/menu/','menu-gourmetto')">📜 Меню</button>
             <a href="tel:+78162926494">+7 8162 92-64-94</a>
           </div>
         </div>
@@ -427,22 +435,23 @@
           <div class="name">Башня</div>
           <div class="desc">Лучшее кафе города, панорама на главную площадь, есть детское меню. <span class="warn">По выходным бронь с предоплатой — звонить заранее.</span></div>
           <div class="links">
-            <button class="btn-menu" onclick="openMenu('Башня — 2ГИС','https://2gis.ru/staraya-russa/firm/70000001061858155/tab/menu')">📜 Меню</button>
+            <button class="btn-menu" onclick="openMenu('Башня — меню','https://2gis.ru/staraya-russa/firm/70000001061858155/tab/menu','menu-bashnya')">📜 Меню</button>
             <a href="https://2gis.ru/staraya-russa/firm/70000001061858155" target="_blank" rel="noopener">2ГИС</a>
             <a href="tel:+79216061999">+7 921 606-19-99</a>
           </div>
         </div>
         <div class="place">
           <div class="name">Карамазовы</div>
-          <div class="desc">Атмосферное место в гостинице «Полисть», уха с расстегаем.</div>
+          <div class="desc">Атмосферное место в гостинице «Полисть», уха с расстегаем, дворянская кухня.</div>
           <div class="links">
-            <button class="btn-menu" onclick="openMenu('Карамазовы — 2ГИС','https://2gis.ru/staraya-russa/firm/70000001010271793/tab/menu')">📜 Меню</button>
+            <button class="btn-menu" onclick="openMenu('Карамазовы — меню (PDF)','https://karamazovy.ru/documents/menu_karamazovy.pdf')">📜 Меню</button>
+            <a href="https://karamazovy.ru" target="_blank" rel="noopener">сайт</a>
             <a href="tel:+79658078173">+7 965 807-81-73</a>
           </div>
         </div>
         <div class="place">
           <div class="name">Ильмень</div>
-          <div class="desc">Рядом с курортом и Муравьёвским фонтаном, большие порции, недорого.</div>
+          <div class="desc">Рядом с курортом и Муравьёвским фонтаном, большие порции, недорого. Ср. чек ~500 ₽.</div>
           <div class="links">
             <button class="btn-menu" onclick="openMenu('Ильмень — 2ГИС','https://2gis.ru/staraya-russa/firm/70000001010272388/tab/menu')">📜 Меню</button>
             <a href="tel:+78165231968">+7 816-52 3-19-68</a>
@@ -491,13 +500,320 @@
     <div class="modal-frame-wrap">
       <iframe id="modal-iframe" src="" title="Меню ресторана"
         sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
-        onload="checkFrameLoad(this)" onerror="showFallback()"></iframe>
+        onload="checkFrameLoad(this)"></iframe>
+      <div id="modal-inline"></div>
       <div class="modal-fallback" id="modal-fallback">
         <p>Сайт не разрешает встраивание.<br>Откройте меню в новой вкладке:</p>
         <a class="btn-menu" id="fallback-link" href="#" target="_blank" rel="noopener">↗ Открыть меню</a>
       </div>
     </div>
   </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     СКРЫТЫЕ ДАННЫЕ МЕНЮ
+     ══════════════════════════════════════════ -->
+
+<div id="menu-domberga" style="display:none">
+  <p class="mn-note">Купеческий ресторан · ул. Большая Московская, 24 · <a href="tel:+78162788838">+7 8162 78-88-38</a></p>
+  <p class="mn-note">Ниже — холодные закуски (декабрь 2024). Полное меню (8 разделов) на <a href="https://domberga.ru/menu/" target="_blank">domberga.ru/menu</a></p>
+  <h4 class="mc">Холодные закуски</h4>
+  <div class="mi"><span class="mn">Винегрет с запечённым картофелем и лососем слабой соли</span><span class="mp">810 ₽</span></div>
+  <div class="mi"><span class="mn">Мясной салат в сырной корзинке</span><span class="mp">690 ₽</span></div>
+  <div class="mi"><span class="mn">Салат «Дачник» с вялеными томатами</span><span class="mp">—</span></div>
+  <div class="mi"><span class="mn">Салат из свежих овощей с заправкой песто</span><span class="mp">490 ₽</span></div>
+  <div class="mi"><span class="mn">Австрийский салат с яйцом <span class="md">нежная телятина с малосольными огурчиками в сметано-горчичной заправке</span></span><span class="mp">660 ₽</span></div>
+  <div class="mi"><span class="mn">Соленья «Из кадушки» <span class="md">тарелка овощей домашнего посола</span></span><span class="mp">620 ₽</span></div>
+  <div class="mi"><span class="mn">Студень мясной <span class="md">подаётся с хреном и горчицей</span></span><span class="mp">660 ₽</span></div>
+  <div class="mi"><span class="mn">Новгородское сало с горчицей и чесноком</span><span class="mp">510 ₽</span></div>
+  <div class="mi"><span class="mn">Новгородские грузди со сметаной</span><span class="mp">790 ₽</span></div>
+  <div class="mi"><span class="mn">Сельдь с отварным картофелем</span><span class="mp">480 ₽</span></div>
+  <div class="mi"><span class="mn">Говяжий ростбиф с кремом из хрена и солёными груздями</span><span class="mp">860 ₽</span></div>
+  <p class="mn-note">Фирменные блюда по отзывам: чёрные щи, соляночка с грудинкой и почками, телячьи щёчки, блинчики со щучьей икрой.</p>
+</div>
+
+<div id="menu-vremya-ch" style="display:none">
+  <p class="mn-note">Авторская европейская кухня · <a href="tel:+78162998040">+7 8162 99-80-40</a> · с 12:00</p>
+  <h4 class="mc">Холодные закуски — тапасы (по 40 г)</h4>
+  <div class="mi"><span class="mn">Грецкий орех</span><span class="mp">170 ₽</span></div>
+  <div class="mi"><span class="mn">Кешью</span><span class="mp">170 ₽</span></div>
+  <div class="mi"><span class="mn">Маслины</span><span class="mp">170 ₽</span></div>
+  <div class="mi"><span class="mn">Оливки</span><span class="mp">170 ₽</span></div>
+  <div class="mi"><span class="mn">Колбаса сыровяленая</span><span class="mp">230 ₽</span></div>
+  <div class="mi"><span class="mn">Пепперони</span><span class="mp">170 ₽</span></div>
+  <div class="mi"><span class="mn">Сыр твёрдный</span><span class="mp">170 ₽</span></div>
+  <div class="mi"><span class="mn">Сыр с плесенью</span><span class="mp">230 ₽</span></div>
+  <div class="mi"><span class="mn">Сыр Чеддер</span><span class="mp">170 ₽</span></div>
+  <h4 class="mc">Холодные закуски — брускетты</h4>
+  <div class="mi"><span class="mn">С форелью и огурцом <span class="md">80 г</span></span><span class="mp">290 ₽</span></div>
+  <div class="mi"><span class="mn">С ростбифом и корнишонами <span class="md">60 г</span></span><span class="mp">290 ₽</span></div>
+  <div class="mi"><span class="mn">С уткой конфи и грушей <span class="md">80 г</span></span><span class="mp">290 ₽</span></div>
+  <div class="mi"><span class="mn">С маринованным тунцом <span class="md">80 г</span></span><span class="mp">260 ₽</span></div>
+  <div class="mi"><span class="mn">С балыком и вялеными томатами <span class="md">80 г</span></span><span class="mp">270 ₽</span></div>
+  <div class="mi"><span class="mn">Кудряшки Ниф-Нифа <span class="md">160 г</span></span><span class="mp">390 ₽</span></div>
+  <div class="mi"><span class="mn">Веган котлетки с тыквенным пюре <span class="md">200 г</span></span><span class="mp">390 ₽</span></div>
+  <div class="mi"><span class="mn">Сет домашних паштетов <span class="md">230 г</span></span><span class="mp">490 ₽</span></div>
+  <h4 class="mc">Горячие закуски</h4>
+  <div class="mi"><span class="mn">Grimber-гренки с фирменным соусом <span class="md">170 г</span></span><span class="mp">270 ₽</span></div>
+  <div class="mi"><span class="mn">Хрустящие креветки в азиатском стиле <span class="md">200 г</span></span><span class="mp">570 ₽</span></div>
+  <div class="mi"><span class="mn">Мидии, запечённые в пикантном соусе <span class="md">110 г</span></span><span class="mp">540 ₽</span></div>
+  <div class="mi"><span class="mn">Шарики 4 сыра <span class="md">190 г</span></span><span class="mp">460 ₽</span></div>
+  <div class="mi"><span class="mn">Камамбер запечённый <span class="md">220 г</span></span><span class="mp">790 ₽</span></div>
+  <div class="mi"><span class="mn">Курочка по-корейски <span class="md">220 г</span></span><span class="mp">490 ₽</span></div>
+  <h4 class="mc">Салаты</h4>
+  <div class="mi"><span class="mn">С говядиной и вялеными томатами <span class="md">260 г</span></span><span class="mp">590 ₽</span></div>
+  <div class="mi"><span class="mn">Цезарь с курицей <span class="md">250 г</span></span><span class="mp">540 ₽</span></div>
+  <div class="mi"><span class="mn">С кальмаром в азиатском стиле <span class="md">290 г</span></span><span class="mp">540 ₽</span></div>
+  <div class="mi"><span class="mn">Овощной с жареным сыром <span class="md">200 г</span></span><span class="mp">390 ₽</span></div>
+  <div class="mi"><span class="mn">Цезарь с креветками <span class="md">250 г</span></span><span class="mp">690 ₽</span></div>
+  <div class="mi"><span class="mn">С креветками и томатом <span class="md">170 г</span></span><span class="mp">690 ₽</span></div>
+  <h4 class="mc">Супы</h4>
+  <div class="mi"><span class="mn">Крем-суп тыквенный на кокосовом молоке <span class="md">300 г</span></span><span class="mp">390 ₽</span></div>
+  <div class="mi"><span class="mn">Куриный бульон с птитимом и яйцом <span class="md">340 г</span></span><span class="mp">320 ₽</span></div>
+  <div class="mi"><span class="mn">Сытная мясная солянка <span class="md">350 г</span></span><span class="mp">430 ₽</span></div>
+  <div class="mi"><span class="mn">Суп «Том-ям» с креветками и курой <span class="md">270 г</span></span><span class="mp">540 ₽</span></div>
+  <div class="mi"><span class="mn">Сливочный суп с форелью и судаком <span class="md">300 г</span></span><span class="mp">550 ₽</span></div>
+  <div class="mi"><span class="mn">Серые щи из крошева <span class="md">300 г</span></span><span class="mp">390 ₽</span></div>
+  <div class="mi"><span class="mn">Суп с говядиной и шампиньонами <span class="md">300 г</span></span><span class="mp">450 ₽</span></div>
+  <h4 class="mc">Паста</h4>
+  <div class="mi"><span class="mn">С форелью, маслинами и белым соусом <span class="md">400 г</span></span><span class="mp">890 ₽</span></div>
+  <div class="mi"><span class="mn">С уткой и сыром дор блю <span class="md">250 г</span></span><span class="mp">690 ₽</span></div>
+  <div class="mi"><span class="mn">Карбонара <span class="md">270 г</span></span><span class="mp">490 ₽</span></div>
+  <div class="mi"><span class="mn">С креветками и тыквой <span class="md">290 г</span></span><span class="mp">650 ₽</span></div>
+  <div class="mi"><span class="mn">С говядиной и шампиньонами <span class="md">290 г</span></span><span class="mp">690 ₽</span></div>
+  <div class="mi"><span class="mn">С курицей и шампиньонами <span class="md">290 г</span></span><span class="mp">580 ₽</span></div>
+  <h4 class="mc">Мясо и рыба</h4>
+  <div class="mi"><span class="mn">Хрустящая свинина в кисло-сладком соусе <span class="md">290 г</span></span><span class="mp">590 ₽</span></div>
+  <div class="mi"><span class="mn">Куриный шницель с капустным салатом <span class="md">210 г</span></span><span class="mp">590 ₽</span></div>
+  <div class="mi"><span class="mn">Судак с пюре и трюфельной сметаной <span class="md">240 г</span></span><span class="mp">690 ₽</span></div>
+  <div class="mi"><span class="mn">Утиная ножка томлёная с пюре <span class="md">350 г</span></span><span class="mp">890 ₽</span></div>
+  <div class="mi"><span class="mn">Маринованный тунец с зелёным салатом <span class="md">230 г</span></span><span class="mp">760 ₽</span></div>
+  <div class="mi"><span class="mn">Биточки из судака <span class="md">270 г</span></span><span class="mp">680 ₽</span></div>
+  <div class="mi"><span class="mn">Форель по-карельски <span class="md">220 г</span></span><span class="mp">1 170 ₽</span></div>
+  <div class="mi"><span class="mn">Куриная котлета с ветчиной и сыром <span class="md">250 г</span></span><span class="mp">670 ₽</span></div>
+  <div class="mi"><span class="mn">Бефстроганов <span class="md">260 г</span></span><span class="mp">860 ₽</span></div>
+  <div class="mi"><span class="mn">Стейк из говядины с грибным соусом <span class="md">250 г</span></span><span class="mp">1 190 ₽</span></div>
+  <h4 class="mc">Пицца 22 см</h4>
+  <div class="mi"><span class="mn">С форелью, маслинами и белым соусом <span class="md">400 г</span></span><span class="mp">890 ₽</span></div>
+  <div class="mi"><span class="mn">С сыровяленной колбаской и грушей <span class="md">300 г</span></span><span class="mp">480 ₽</span></div>
+  <div class="mi"><span class="mn">С пепперони и голубым сыром <span class="md">300 г</span></span><span class="mp">480 ₽</span></div>
+  <div class="mi"><span class="mn">Аджарская <span class="md">300 г</span></span><span class="mp">480 ₽</span></div>
+  <div class="mi"><span class="mn">С балыком, тыквой и сыром дор блю <span class="md">320 г</span></span><span class="mp">470 ₽</span></div>
+  <h4 class="mc">Пицца 30 см</h4>
+  <div class="mi"><span class="mn">Пепперони <span class="md">450 г</span></span><span class="mp">750 ₽</span></div>
+  <div class="mi"><span class="mn">Карбонара <span class="md">450 г</span></span><span class="mp">790 ₽</span></div>
+  <div class="mi"><span class="mn">С цыплёнком, шампиньонами и песто <span class="md">560 г</span></span><span class="mp">790 ₽</span></div>
+  <div class="mi"><span class="mn">Ветчина с грибами <span class="md">490 г</span></span><span class="mp">790 ₽</span></div>
+  <div class="mi"><span class="mn">Маргарита <span class="md">450 г</span></span><span class="mp">600 ₽</span></div>
+  <div class="mi"><span class="mn">Четыре мяса <span class="md">540 г</span></span><span class="mp">790 ₽</span></div>
+  <div class="mi"><span class="mn">Четыре сыра <span class="md">510 г</span></span><span class="mp">790 ₽</span></div>
+  <h4 class="mc">Хлеб</h4>
+  <div class="mi"><span class="mn">Фокачча с пармезаном <span class="md">180 г</span></span><span class="mp">290 ₽</span></div>
+  <div class="mi"><span class="mn">Фокачча с фетой и зеленью <span class="md">230 г</span></span><span class="mp">290 ₽</span></div>
+  <div class="mi"><span class="mn">Фокачча с вялеными томатами <span class="md">240 г</span></span><span class="mp">290 ₽</span></div>
+  <h4 class="mc">Десерты</h4>
+  <div class="mi"><span class="mn">Медовик с солёной карамелью <span class="md">160 г</span></span><span class="mp">390 ₽</span></div>
+  <div class="mi"><span class="mn">Наполеон <span class="md">140 г</span></span><span class="mp">330 ₽</span></div>
+</div>
+
+<div id="menu-pizza" style="display:none">
+  <p class="mn-note">Семейный ресторан · Бол. Санкт-Петербургская, 39к22 · <a href="tel:+78005500600">+7 800 550-06-00</a></p>
+  <p class="mn-note">Детская игровая зона, аниматоры, мастер-классы. Ежедневно 10:00–23:00.</p>
+  <h4 class="mc">Пицца 27 см — классика</h4>
+  <div class="mi"><span class="mn">Маргарита</span><span class="mp">600 ₽</span></div>
+  <div class="mi"><span class="mn">Пепперони</span><span class="mp">450 ₽</span></div>
+  <div class="mi"><span class="mn">4 сыра</span><span class="mp">390 ₽</span></div>
+  <h4 class="mc">Пицца 27 см — с мясом</h4>
+  <div class="mi"><span class="mn">Барбекю</span><span class="mp">680 ₽</span></div>
+  <div class="mi"><span class="mn">Дон Бекон</span><span class="mp">710 ₽</span></div>
+  <div class="mi"><span class="mn">Мясное плато</span><span class="mp">450 ₽</span></div>
+  <div class="mi"><span class="mn">Баварская</span><span class="mp">680 ₽</span></div>
+  <div class="mi"><span class="mn">С копчёностями</span><span class="mp">690 ₽</span></div>
+  <h4 class="mc">Пицца 27 см — с курицей</h4>
+  <div class="mi"><span class="mn">Чесночный цыпа</span><span class="mp">680 ₽</span></div>
+  <div class="mi"><span class="mn">Жар-птица</span><span class="mp">680 ₽</span></div>
+  <div class="mi"><span class="mn">Цезарь</span><span class="mp">680 ₽</span></div>
+  <div class="mi"><span class="mn">Индеано</span><span class="mp">550 ₽</span></div>
+  <h4 class="mc">Пицца 27 см — другие</h4>
+  <div class="mi"><span class="mn">Гавайская</span><span class="mp">680 ₽</span></div>
+  <div class="mi"><span class="mn">Пломбир</span><span class="mp">430 ₽</span></div>
+  <div class="mi"><span class="mn">Пиццбургер</span><span class="mp">560 ₽</span></div>
+  <div class="mi"><span class="mn">Таёжная</span><span class="mp">690 ₽</span></div>
+  <div class="mi"><span class="mn">Итальянцы в России</span><span class="mp">470 ₽</span></div>
+  <div class="mi"><span class="mn">Ветчина и грибы</span><span class="mp">470 ₽</span></div>
+  <div class="mi"><span class="mn">Итальянское ассорти</span><span class="mp">510 ₽</span></div>
+  <div class="mi"><span class="mn">По-домашнему</span><span class="mp">430 ₽</span></div>
+  <div class="mi"><span class="mn">Всё и сразу</span><span class="mp">490 ₽</span></div>
+  <div class="mi"><span class="mn">Жюльен</span><span class="mp">490 ₽</span></div>
+  <div class="mi"><span class="mn">Аль-копчоне</span><span class="mp">450 ₽</span></div>
+  <div class="mi"><span class="mn">Деревенская</span><span class="mp">490 ₽</span></div>
+  <div class="mi"><span class="mn">Золотая рыбка</span><span class="mp">780 ₽</span></div>
+  <div class="mi"><span class="mn">Песто ля Фиш</span><span class="mp">650 ₽</span></div>
+  <div class="mi"><span class="mn">Французская</span><span class="mp">630 ₽</span></div>
+  <div class="mi"><span class="mn">Праздничная</span><span class="mp">680 ₽</span></div>
+  <h4 class="mc">Роллы (8 шт.)</h4>
+  <div class="mi"><span class="mn">Император</span><span class="mp">330 ₽</span></div>
+  <div class="mi"><span class="mn">Филадельфия спайси</span><span class="mp">490 ₽</span></div>
+  <div class="mi"><span class="mn">Филадельфия микс</span><span class="mp">460 ₽</span></div>
+  <div class="mi"><span class="mn">Филадельфия Чиз</span><span class="mp">410 ₽</span></div>
+  <div class="mi"><span class="mn">Бонито</span><span class="mp">320 ₽</span></div>
+  <div class="mi"><span class="mn">Котацу</span><span class="mp">330 ₽</span></div>
+  <div class="mi"><span class="mn">Окинава</span><span class="mp">380 ₽</span></div>
+  <h4 class="mc">Закуски</h4>
+  <div class="mi"><span class="mn">Сырные палочки</span><span class="mp">380 ₽</span></div>
+  <div class="mi"><span class="mn">Картофель фри с беконом</span><span class="mp">240 ₽</span></div>
+  <div class="mi"><span class="mn">Жареный сыр с ягодным соусом</span><span class="mp">390 ₽</span></div>
+  <div class="mi"><span class="mn">Шаурма в пите</span><span class="mp">210–220 ₽</span></div>
+</div>
+
+<div id="menu-gourmetto" style="display:none">
+  <p class="mn-note">Пицца · суши · грузинская кухня · итальянское · <a href="tel:+78162926494">+7 8162 92-64-94</a></p>
+  <h4 class="mc">Пиццы</h4>
+  <div class="mi"><span class="mn">Биг Бен</span><span class="mp">1 050 ₽</span></div>
+  <div class="mi"><span class="mn">Вива Том Ям</span><span class="mp">970 ₽</span></div>
+  <div class="mi"><span class="mn">Карбонара</span><span class="mp">930 ₽</span></div>
+  <div class="mi"><span class="mn">Пепперони</span><span class="mp">870 ₽</span></div>
+  <div class="mi"><span class="mn">Сальчича</span><span class="mp">870 ₽</span></div>
+  <div class="mi"><span class="mn">Римини</span><span class="mp">860 ₽</span></div>
+  <div class="mi"><span class="mn">Песто Верде</span><span class="mp">910 ₽</span></div>
+  <div class="mi"><span class="mn">Равелло BBQ</span><span class="mp">920 ₽</span></div>
+  <div class="mi"><span class="mn">Поло Барбекю</span><span class="mp">910 ₽</span></div>
+  <div class="mi"><span class="mn">Квадро Формаджи</span><span class="mp">910 ₽</span></div>
+  <div class="mi"><span class="mn">Капри</span><span class="mp">1 320 ₽</span></div>
+  <div class="mi"><span class="mn">Детская с ветчиной и сыром</span><span class="mp">720 ₽</span></div>
+  <div class="mi"><span class="mn">Детская сырная</span><span class="mp">720 ₽</span></div>
+  <h4 class="mc">Грузинская кухня</h4>
+  <div class="mi"><span class="mn">Хинкали со свининой и говядиной (3 шт.)</span><span class="mp">530 ₽</span></div>
+  <div class="mi"><span class="mn">Хинкали с бараниной (3 шт.)</span><span class="mp">600 ₽</span></div>
+  <div class="mi"><span class="mn">Хинкали с томатами и сулугуни (3 шт.)</span><span class="mp">630 ₽</span></div>
+  <div class="mi"><span class="mn">Хинкали с грибами в трюфельном соусе (3 шт.)</span><span class="mp">580 ₽</span></div>
+  <div class="mi"><span class="mn">Свинина по-имеретински <span class="md">380 г</span></span><span class="mp">870 ₽</span></div>
+  <div class="mi"><span class="mn">Оджахури со свининой <span class="md">340 г</span></span><span class="mp">760 ₽</span></div>
+  <div class="mi"><span class="mn">Оджахури с куриным бедром <span class="md">340 г</span></span><span class="mp">680 ₽</span></div>
+  <div class="mi"><span class="mn">Чкмерули с куриным бедром</span><span class="mp">680 ₽</span></div>
+  <div class="mi"><span class="mn">Чкмерули с тигровыми креветками</span><span class="mp">860 ₽</span></div>
+  <div class="mi"><span class="mn">Хачапури по-Мегрельски <span class="md">430 г</span></span><span class="mp">650 ₽</span></div>
+  <div class="mi"><span class="mn">Хачапури по-Гурийски <span class="md">450 г</span></span><span class="mp">740 ₽</span></div>
+  <div class="mi"><span class="mn">Хачапури по-чкмерски</span><span class="mp">680 ₽</span></div>
+  <div class="mi"><span class="mn">Рулетики из баклажанов с сырной начинкой <span class="md">150 г</span></span><span class="mp">460 ₽</span></div>
+  <div class="mi"><span class="mn">Нави <span class="md">250 г</span></span><span class="mp">490 ₽</span></div>
+  <div class="mi"><span class="mn">Салат с баклажанами и сыром Фета <span class="md">200 г</span></span><span class="mp">640 ₽</span></div>
+  <div class="mi"><span class="mn">Салат по-Грузински <span class="md">280 г</span></span><span class="mp">650 ₽</span></div>
+  <div class="mi"><span class="mn">Салат «Иверия»</span><span class="mp">760 ₽</span></div>
+  <div class="mi"><span class="mn">Харчо <span class="md">350 г</span></span><span class="mp">540 ₽</span></div>
+  <div class="mi"><span class="mn">Солянка по-грузински со сметаной</span><span class="mp">570 ₽</span></div>
+  <div class="mi"><span class="mn">Сливочно-грибной суп с форелью и судаком <span class="md">280 г</span></span><span class="mp">760 ₽</span></div>
+  <div class="mi"><span class="mn">Форель по-имеретински <span class="md">340 г</span></span><span class="mp">980 ₽</span></div>
+  <div class="mi"><span class="mn">Долма</span><span class="mp">750 ₽</span></div>
+  <h4 class="mc">Роллы</h4>
+  <div class="mi"><span class="mn">Симба (8 шт.) <span class="md">230 г</span></span><span class="mp">760 ₽</span></div>
+  <div class="mi"><span class="mn">Симба лонг (10 шт.) <span class="md">280 г</span></span><span class="mp">830 ₽</span></div>
+  <div class="mi"><span class="mn">Симба Майо чили (8 шт.) <span class="md">340 г</span></span><span class="mp">870 ₽</span></div>
+  <div class="mi"><span class="mn">Осидзуси Лосось Спайси (5 шт.) <span class="md">170 г</span></span><span class="mp">760 ₽</span></div>
+  <div class="mi"><span class="mn">Осидзуси Курица Том Ям (5 шт.) <span class="md">170 г</span></span><span class="mp">430 ₽</span></div>
+  <div class="mi"><span class="mn">Осидзуси Креветка Майо чили (5 шт.) <span class="md">170 г</span></span><span class="mp">600 ₽</span></div>
+  <div class="mi"><span class="mn">Футомаки лосось (8 шт.) <span class="md">210 г</span></span><span class="mp">530 ₽</span></div>
+  <div class="mi"><span class="mn">Футомаки огурец (8 шт.) <span class="md">210 г</span></span><span class="mp">290 ₽</span></div>
+  <div class="mi"><span class="mn">Эби Ким Паб ролл (8 шт.) <span class="md">270 г</span></span><span class="mp">640 ₽</span></div>
+  <div class="mi"><span class="mn">Магуро Ким Паб ролл (8 шт.) <span class="md">270 г</span></span><span class="mp">620 ₽</span></div>
+  <div class="mi"><span class="mn">Цезарь ролл с курицей (8 шт.) <span class="md">270 г</span></span><span class="mp">540 ₽</span></div>
+  <h4 class="mc">Запечённые роллы</h4>
+  <div class="mi"><span class="mn">Пати абуру маки (8 шт.) <span class="md">240 г</span></span><span class="mp">760 ₽</span></div>
+  <div class="mi"><span class="mn">Эби абуру маки (8 шт.) <span class="md">210 г</span></span><span class="mp">640 ₽</span></div>
+  <div class="mi"><span class="mn">Запечённый с курицей (8 шт.) <span class="md">275 г</span></span><span class="mp">540 ₽</span></div>
+  <div class="mi"><span class="mn">Запечённый с лососем (8 шт.) <span class="md">270 г</span></span><span class="mp">750 ₽</span></div>
+  <div class="mi"><span class="mn">С тигровой креветкой темпура и гребешком (8 шт.) <span class="md">250 г</span></span><span class="mp">750 ₽</span></div>
+  <div class="mi"><span class="mn">Абуру Симба (8 шт.) <span class="md">250 г</span></span><span class="mp">830 ₽</span></div>
+  <div class="mi"><span class="mn">Темпура с лососем в майо чили (8 шт.) <span class="md">250 г</span></span><span class="mp">690 ₽</span></div>
+  <div class="mi"><span class="mn">С копчёным лососем и креветкой (8 шт.) <span class="md">270 г</span></span><span class="mp">810 ₽</span></div>
+  <h4 class="mc">Наборы</h4>
+  <div class="mi"><span class="mn">Абуру макси (20 шт.)</span><span class="mp">1 260 ₽</span></div>
+  <div class="mi"><span class="mn">Сет роллов на одного (12 шт.) <span class="md">395 г</span></span><span class="mp">950 ₽</span></div>
+  <div class="mi"><span class="mn">Абуру Сет на одного (12 шт.) <span class="md">730 г</span></span><span class="mp">930 ₽</span></div>
+  <div class="mi"><span class="mn">Сет роллов макси (24 шт.) <span class="md">770 г</span></span><span class="mp">1 930 ₽</span></div>
+  <h4 class="mc">WOK (лапша и рис)</h4>
+  <div class="mi"><span class="mn">Рис с курицей в сливочном соусе</span><span class="mp">540 ₽</span></div>
+  <div class="mi"><span class="mn">Рамен с курицей в сливочно-ореховом соусе</span><span class="mp">570 ₽</span></div>
+  <div class="mi"><span class="mn">Удон с курицей в соусе Якинику</span><span class="mp">570 ₽</span></div>
+  <div class="mi"><span class="mn">Удон с креветками в сливочном соусе</span><span class="mp">800 ₽</span></div>
+  <div class="mi"><span class="mn">Рис со свининой в соусе Терияки <span class="md">350 г</span></span><span class="mp">570 ₽</span></div>
+  <div class="mi"><span class="mn">Соба с говядиной в соусе Блэк Пеппер <span class="md">360 г</span></span><span class="mp">840 ₽</span></div>
+  <div class="mi"><span class="mn">Рамен Том Ям с креветками</span><span class="mp">920 ₽</span></div>
+  <h4 class="mc">Пасты и горячие блюда</h4>
+  <div class="mi"><span class="mn">Спагетти Карбонара <span class="md">310 г</span></span><span class="mp">650 ₽</span></div>
+  <div class="mi"><span class="mn">Спагетти Болоньезе <span class="md">290 г</span></span><span class="mp">530 ₽</span></div>
+  <div class="mi"><span class="mn">Сливочная паста с курицей и грибами <span class="md">360 г</span></span><span class="mp">720 ₽</span></div>
+  <div class="mi"><span class="mn">Паста с тигровыми креветками и цукини <span class="md">340 г</span></span><span class="mp">800 ₽</span></div>
+  <div class="mi"><span class="mn">Шницель куриный с картофельным пюре <span class="md">270 г</span></span><span class="mp">570 ₽</span></div>
+  <div class="mi"><span class="mn">Котлетка куриная с пюре <span class="md">240 г</span></span><span class="mp">420 ₽</span></div>
+  <div class="mi"><span class="mn">Котлетка из свинины и говядины с пюре <span class="md">240 г</span></span><span class="mp">420 ₽</span></div>
+  <h4 class="mc">Супы</h4>
+  <div class="mi"><span class="mn">Борщ с говядиной</span><span class="mp">470 ₽</span></div>
+  <div class="mi"><span class="mn">Суп куриный</span><span class="mp">350 ₽</span></div>
+  <div class="mi"><span class="mn">Том Ям с тигровыми креветками и кальмаром</span><span class="mp">750 ₽</span></div>
+  <div class="mi"><span class="mn">Окрошка на кефире <span class="md">380 г</span></span><span class="mp">390 ₽</span></div>
+  <div class="mi"><span class="mn">Окрошка на квасе <span class="md">380 г</span></span><span class="mp">390 ₽</span></div>
+  <h4 class="mc">Закуски</h4>
+  <div class="mi"><span class="mn">Креветки в кляре</span><span class="mp">680 ₽</span></div>
+  <div class="mi"><span class="mn">Луковые кольца</span><span class="mp">400 ₽</span></div>
+  <div class="mi"><span class="mn">Картофель фри с кетчупом</span><span class="mp">290 ₽</span></div>
+  <div class="mi"><span class="mn">Картофельные крокеты</span><span class="mp">370 ₽</span></div>
+  <div class="mi"><span class="mn">Картофель Айдахо</span><span class="mp">350 ₽</span></div>
+  <div class="mi"><span class="mn">Жареный сулугуни</span><span class="mp">500 ₽</span></div>
+  <div class="mi"><span class="mn">Куриные стрипсы</span><span class="mp">480 ₽</span></div>
+  <div class="mi"><span class="mn">Клаб-сэндвич с курицей и картофелем фри</span><span class="mp">640 ₽</span></div>
+  <div class="mi"><span class="mn">Сэндвич с ветчиной и сыром</span><span class="mp">370 ₽</span></div>
+  <div class="mi"><span class="mn">Фокачча с чесноком и сыром</span><span class="mp">430 ₽</span></div>
+  <div class="mi"><span class="mn">Фокачча с песто и кунжутом</span><span class="mp">430 ₽</span></div>
+  <div class="mi"><span class="mn">Мини-чебуреки с курицей и грибами</span><span class="mp">500 ₽</span></div>
+  <div class="mi"><span class="mn">Мини-чебуреки с креветкой и лососем</span><span class="mp">570 ₽</span></div>
+  <h4 class="mc">Салаты</h4>
+  <div class="mi"><span class="mn">Цезарь с курицей</span><span class="mp">720 ₽</span></div>
+  <div class="mi"><span class="mn">Цезарь с креветками</span><span class="mp">760 ₽</span></div>
+  <div class="mi"><span class="mn">Салат овощной</span><span class="mp">420 ₽</span></div>
+  <h4 class="mc">Десерты</h4>
+  <div class="mi"><span class="mn">Солёный медовик</span><span class="mp">420 ₽</span></div>
+  <div class="mi"><span class="mn">Медовик</span><span class="mp">400 ₽</span></div>
+  <div class="mi"><span class="mn">Торт Сникерс <span class="md">160 г</span></span><span class="mp">430 ₽</span></div>
+  <div class="mi"><span class="mn">Морковный торт</span><span class="mp">370 ₽</span></div>
+  <div class="mi"><span class="mn">Наполеон</span><span class="mp">370 ₽</span></div>
+  <div class="mi"><span class="mn">Шоколадный чизкейк <span class="md">145 г</span></span><span class="mp">490 ₽</span></div>
+  <div class="mi"><span class="mn">Чизкейк с вишней и белым шоколадом <span class="md">180 г</span></span><span class="mp">500 ₽</span></div>
+  <div class="mi"><span class="mn">Маковый торт с лимонным курдом <span class="md">160 г</span></span><span class="mp">420 ₽</span></div>
+  <div class="mi"><span class="mn">Макарон (1 шт., разные вкусы)</span><span class="mp">180 ₽</span></div>
+  <h4 class="mc">Детское меню</h4>
+  <div class="mi"><span class="mn">Котлетка куриная с пюре <span class="md">240 г</span></span><span class="mp">420 ₽</span></div>
+  <div class="mi"><span class="mn">Котлетка свинина+говядина с пюре <span class="md">240 г</span></span><span class="mp">420 ₽</span></div>
+  <div class="mi"><span class="mn">Наггетсы с картошкой фри <span class="md">170 г</span></span><span class="mp">460 ₽</span></div>
+  <div class="mi"><span class="mn">Макарошки с сосисками и сыром <span class="md">250 г</span></span><span class="mp">420 ₽</span></div>
+  <div class="mi"><span class="mn">Салат Крабик <span class="md">200 г</span></span><span class="mp">290 ₽</span></div>
+  <div class="mi"><span class="mn">Супчик Алфавит с курочкой <span class="md">220 г</span></span><span class="mp">240 ₽</span></div>
+  <div class="mi"><span class="mn">Картофельное пюре <span class="md">150 г</span></span><span class="mp">130 ₽</span></div>
+  <div class="mi"><span class="mn">Детская сырная пицца</span><span class="mp">720 ₽</span></div>
+  <div class="mi"><span class="mn">Детская пицца с ветчиной и сыром</span><span class="mp">720 ₽</span></div>
+  <h4 class="mc">Напитки</h4>
+  <div class="mi"><span class="mn">Лимонад классический 0,5 л</span><span class="mp">350 ₽</span></div>
+  <div class="mi"><span class="mn">Лимонад авторский 0,5 л (разные вкусы)</span><span class="mp">380 ₽</span></div>
+  <div class="mi"><span class="mn">Лимонад 0,33 л (разные вкусы)</span><span class="mp">290 ₽</span></div>
+  <div class="mi"><span class="mn">Морс клюквенный 0,5 л</span><span class="mp">350 ₽</span></div>
+  <div class="mi"><span class="mn">Холодный кофе 0,3 л</span><span class="mp">310–350 ₽</span></div>
+  <div class="mi"><span class="mn">Бон Аква 0,5 л</span><span class="mp">190 ₽</span></div>
+  <h4 class="mc">Соус к пицце (50 г)</h4>
+  <div class="mi"><span class="mn">Сырный / Чесночный / Трюфельный / Барбекю</span><span class="mp">100 ₽</span></div>
+</div>
+
+<div id="menu-bashnya" style="display:none">
+  <p class="mn-note">Лучшее кафе Старой Руссы · пл. Революции · <a href="tel:+79216061999">+7 921 606-19-99</a></p>
+  <p class="mn-note">Ежедневно 12:00–22:00. <strong style="color:var(--rust)">По выходным — бронь с предоплатой, звоните заранее.</strong></p>
+  <h4 class="mc">Пицца</h4>
+  <div class="mi"><span class="mn">Ветчина с грибами <span class="md">ветчина, шампиньоны, моцарелла, томатный соус · 620 г</span></span><span class="mp">620 ₽</span></div>
+  <div class="mi"><span class="mn">Чоризо <span class="md">колбаса чоризо, моцарелла, томатный соус · 590 г</span></span><span class="mp">690 ₽</span></div>
+  <div class="mi"><span class="mn">Гавайская <span class="md">курица, ветчина, ананас, болгарский перец, моцарелла · 490 г</span></span><span class="mp">660 ₽</span></div>
+  <div class="mi"><span class="mn">Дьябло <span class="md">пепперони, томаты, болгарский перец, халапеньо, моцарелла · 520 г</span></span><span class="mp">720 ₽</span></div>
+  <div class="mi"><span class="mn">Карбонара <span class="md">бекон, желток, пармезан, моцарелла, томатный соус · 460 г</span></span><span class="mp">630 ₽</span></div>
+  <div class="mi"><span class="mn">Двойная пепперони <span class="md">двойная порция пепперони, увеличенная моцарелла · 480 г</span></span><span class="mp">590 ₽</span></div>
+  <div class="mi"><span class="mn">Овощи и грибы <span class="md">шампиньоны, томаты, перец, красный лук, брынза, моцарелла · 510 г</span></span><span class="mp">590 ₽</span></div>
+  <p class="mn-note">Другие разделы (горячее, горячие блюда, напитки) — по телефону или на <a href="https://fooody.ru/staraya-russa/bashnya/" target="_blank">fooody.ru</a></p>
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -507,20 +823,44 @@ function toggleCard(head){ head.closest('.card').classList.toggle('open') }
 function toggleFood(head){ head.closest('.food-card').classList.toggle('open') }
 
 /* ── modal ── */
-var currentUrl = '';
-function openMenu(title, url) {
-  currentUrl = url;
+var inlineActive = false; /* true пока показываем встроенный текст меню — отключает проверку iframe */
+
+function openMenu(title, url, inlineId) {
   document.getElementById('modal-title').textContent = title;
   document.getElementById('modal-ext').href = url;
   document.getElementById('fallback-link').href = url;
   document.getElementById('modal-fallback').classList.remove('show');
-  document.getElementById('modal-iframe').src = url;
+
+  var mi = document.getElementById('modal-inline');
+  var fr = document.getElementById('modal-iframe');
+  var src = inlineId ? document.getElementById(inlineId) : null;
+
+  if (src) {
+    inlineActive = true;
+    fr.src = '';
+    fr.style.display = 'none';
+    mi.innerHTML = src.innerHTML;
+    mi.style.display = 'block';
+  } else {
+    inlineActive = false;
+    mi.style.display = 'none';
+    mi.innerHTML = '';
+    fr.style.display = 'block';
+    fr.src = url;
+  }
   document.getElementById('modal').classList.add('active');
   document.body.style.overflow = 'hidden';
 }
+
 function closeModal() {
   document.getElementById('modal').classList.remove('active');
-  document.getElementById('modal-iframe').src = '';
+  var fr = document.getElementById('modal-iframe');
+  var mi = document.getElementById('modal-inline');
+  inlineActive = false;
+  fr.src = '';
+  fr.style.display = 'block';
+  mi.innerHTML = '';
+  mi.style.display = 'none';
   document.body.style.overflow = '';
 }
 function closeModalOutside(e) {
@@ -529,15 +869,14 @@ function closeModalOutside(e) {
 document.addEventListener('keydown', function(e){ if(e.key==='Escape') closeModal(); });
 
 function checkFrameLoad(fr) {
-  /* если браузер заблокировал — contentDocument будет недоступен или пустым */
+  if (inlineActive) return; /* фрейм сейчас не используется — встроен текст меню, игнорируем его onload */
   try {
     var doc = fr.contentDocument || fr.contentWindow.document;
-    if (!doc || doc.body === null || doc.body.innerHTML === '') showFallback();
-  } catch(e) {
-    showFallback();
-  }
+    if (!doc || !doc.body || doc.body.innerHTML === '') showFallback();
+  } catch(e) { showFallback(); }
 }
 function showFallback() {
+  if (inlineActive) return;
   document.getElementById('modal-fallback').classList.add('show');
 }
 
@@ -572,7 +911,7 @@ function showFallback() {
   }
   [{ll:MOSCOW,color:'#c0392b',label:'М',title:'Москва'},
    {ll:NOVGOROD,color:'#8a4a1e',label:'ВН',title:'Великий Новгород'},
-   {ll:TROITSA,color:'#e67e22',label:'Тр',title:'Деревня Троица<br><small>58°26\'37\"N 31°15\'15\"E</small>'},
+   {ll:TROITSA,color:'#e67e22',label:'Тр',title:"Деревня Троица<br><small>58°26'37\"N 31°15'15\"E</small>"},
    {ll:ST_RUSSA,color:'#27ae60',label:'СР',title:'Старая Русса'},
    {ll:VALDAI,color:'#2980b9',label:'Вл',title:'Валдай'}
   ].forEach(function(p){
