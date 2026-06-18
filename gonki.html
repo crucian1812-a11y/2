@@ -197,6 +197,7 @@
   /* ===================== DOM / CANVAS ===================== */
   const $ui=document.getElementById('ui'), $stage=document.getElementById('stage');
   const cv=document.getElementById('game'); let ctx=cv.getContext('2d');
+  const mainCtx=ctx;   // permanent handle to the game canvas context
   const W=cv.width, H=cv.height;
   const isTouch=('ontouchstart' in window)||navigator.maxTouchPoints>0;
   if(!isTouch) document.body.classList.add('no-touch');
@@ -222,7 +223,7 @@
     for(let k=0;k<4;k++){ const s=segments[N-6+k]; if(s) s.finish=true; }
     trackLen=N*segLen;
   }
-  const findSeg=z=> segments[Math.floor(z/segLen)%segments.length];
+  const findSeg=z=>{ const n=segments.length; let i=Math.floor((z||0)/segLen)%n; if(i<0)i+=n; return segments[i]; };
   function project(p, camX, camY, camZ){
     p.camera.x=(p.world.x||0)-camX; p.camera.y=(p.world.y||0)-camY; p.camera.z=(p.world.z||0)-camZ;
     p.screen.scale=camDepth/p.camera.z;
@@ -260,10 +261,23 @@
     if(raf) cancelAnimationFrame(raf); raf=requestAnimationFrame(frame);
   }
 
-  function frame(ts){ let dt=(ts-last)/1000; last=ts; if(dt>0.05)dt=0.05;
-    if(G&&!G.paused&&!G.finished) update(dt);
-    if(G) render();
+  function frame(ts){ let dt=(ts-last)/1000; last=ts; if(dt>0.05)dt=0.05; if(dt<0)dt=0;
+    try{
+      if(G&&!G.paused&&!G.finished) update(dt);
+      if(G) render();
+    }catch(e){ showFatal(e); return; }
     raf=requestAnimationFrame(frame);
+  }
+  function showFatal(e){
+    ctx=mainCtx; ctx.setTransform(1,0,0,1,0,0);
+    ctx.fillStyle='#2a1622'; ctx.fillRect(0,0,W,H);
+    ctx.fillStyle='#ffd0c0'; ctx.font='14px monospace'; ctx.textAlign='center';
+    ctx.fillText('Ошибка въ игрѣ:', W/2, H/2-20);
+    const msg=String((e&&e.message)||e); ctx.font='11px monospace';
+    ctx.fillText(msg.slice(0,70), W/2, H/2+2);
+    if(msg.length>70) ctx.fillText(msg.slice(70,140), W/2, H/2+18);
+    ctx.textAlign='left';
+    if(typeof console!=='undefined') console.error(e);
   }
 
   function update(dt){
@@ -286,7 +300,7 @@
       if(Math.floor(G.t)%6===0) noise(0.04,0.06); }
     G.speed=Math.max(0,Math.min(G.maxSpeed,G.speed));
     G.playerX=Math.max(-1.6,Math.min(1.6,G.playerX));
-    G.pos+=G.speed*dt;
+    G.pos+=G.speed*dt; if(G.pos<0)G.pos=0;
 
     // hoofbeats
     G.hoofT-=dt; if(G.hoofT<=0 && G.speed>40){ sHoof(); G.hoofT=0.42-0.3*speedPct; }
@@ -349,6 +363,7 @@
 
   /* ===================== RENDER ===================== */
   function render(){
+    ctx=mainCtx;   // always draw the game to the main canvas, never a leaked preview ctx
     let ox=0,oy=0; if(G.shake>0){ ox=(Math.random()-0.5)*G.shake; oy=(Math.random()-0.5)*G.shake; }
     ctx.save(); ctx.translate(ox,oy);
     drawSky(G.M);
@@ -540,8 +555,8 @@
   }
   function drawHeroPreview(g,h,t){
     const real=ctx; ctx=g;   // redirect drawing helpers to the preview canvas
-    drawRider(75,128,128,{cloak:h.cloak,trim:h.trim,horse:h.horse,weapon:h.weapon},t,Math.sin(t*0.04)*0.4,false,false);
-    ctx=real;
+    try{ drawRider(75,128,128,{cloak:h.cloak,trim:h.trim,horse:h.horse,weapon:h.weapon},t,Math.sin(t*0.04)*0.4,false,false); }
+    finally{ ctx=real; }     // ALWAYS restore, even if drawing throws
   }
 
   function renderMap(){
