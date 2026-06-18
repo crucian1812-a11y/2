@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
+<title>Игра · Новгородская земля</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Ruslan+Display&family=Old+Standard+TT:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bark:#d9bd8e; --bark-lt:#e8d3a9; --bark-dk:#c6a570;
+    --ink:#2e2113; --sepia:#6b4423; --rust:#8a4a1e; --gold:#c79a3b;
+    --panel:#f2e7cd; --line:#7a512b; --good:#3f7d4e;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
+  html,body{margin:0; height:100%}
+  body{
+    color:var(--ink); font-family:"Old Standard TT",Georgia,serif;
+    background:
+      repeating-linear-gradient(0deg, rgba(70,44,22,.05) 0 2px, transparent 2px 9px),
+      linear-gradient(180deg, var(--bark-lt), var(--bark) 50%, var(--bark-dk));
+    background-attachment:fixed; overflow-x:hidden; user-select:none; touch-action:manipulation;
+  }
+  body::before{content:""; position:fixed; inset:0; pointer-events:none; z-index:0; opacity:.45; mix-blend-mode:multiply;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='400' height='400'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.012 0.16' numOctaves='2' seed='5'/><feColorMatrix type='saturate' values='0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='0.35'/></svg>");}
+  #app{position:relative; z-index:1; max-width:560px; margin:0 auto; padding:14px 16px 40px; min-height:100%}
+
+  .vyaz{font-family:"Ruslan Display",serif; font-weight:400}
+  h1{font-family:"Ruslan Display",serif; font-weight:400; text-align:center; line-height:1; margin:.3em 0 .1em;
+     font-size:clamp(2rem,9vw,3rem); text-shadow:1px 1px 0 rgba(245,232,205,.6)}
+  .eyebrow{text-align:center; font-variant:small-caps; letter-spacing:.28em; color:var(--sepia); margin:0; font-size:.8rem}
+  p.lead{text-align:center; font-style:italic; color:var(--sepia); margin:.4em auto 1em; max-width:34ch}
+
+  .topbar{display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:6px}
+  .btn{font-family:"Ruslan Display",serif; cursor:pointer; border:2px solid var(--line); border-radius:6px;
+    background:var(--panel); color:var(--ink); padding:10px 18px; font-size:1.05rem; box-shadow:0 3px 0 rgba(60,40,18,.25)}
+  .btn:active{transform:translateY(2px); box-shadow:0 1px 0 rgba(60,40,18,.25)}
+  .btn.big{display:block; width:100%; padding:16px; font-size:1.3rem; margin:10px 0}
+  .btn.rust{background:var(--rust); color:#fff; border-color:#5d3214}
+  .mini{padding:7px 12px; font-size:.95rem}
+  a.link{color:var(--rust); text-decoration:none; font-weight:700}
+
+  /* level map */
+  .map{position:relative; margin-top:8px}
+  .node{display:flex; align-items:center; gap:14px; margin:10px 0; padding:10px 12px; border-radius:12px;
+    background:var(--panel); border:2px solid var(--line); box-shadow:0 4px 12px rgba(60,40,18,.16)}
+  .node.right{flex-direction:row-reverse; text-align:right}
+  .node.locked{opacity:.5; filter:grayscale(.4)}
+  .node.playable{cursor:pointer}
+  .node.playable:active{transform:scale(.99)}
+  .seal{flex:0 0 auto; width:64px; height:64px; border-radius:50%; border:3px solid var(--rust); display:grid; place-items:center;
+    font-size:2rem; background:#f6ecd5; box-shadow:inset 0 0 0 3px rgba(138,74,30,.3)}
+  .node.done .seal{border-color:var(--good); background:#e9f3e6}
+  .node .t .nm{font-family:"Ruslan Display",serif; font-size:1.15rem; line-height:1.1}
+  .node .t .sm{font-size:.85rem; color:var(--sepia)}
+  .star{color:var(--gold)}
+
+  /* generic stage */
+  .stage{background:var(--panel); border:2px solid var(--line); border-radius:14px; padding:16px;
+    box-shadow:0 6px 18px rgba(60,40,18,.18); margin-top:10px; text-align:center; min-height:300px}
+  .hint{font-style:italic; color:var(--sepia); margin:.2em 0 1em}
+  .fact{background:#fbf4e0; border:1px dashed var(--line); border-radius:10px; padding:10px 12px; margin:10px 0;
+    font-size:.95rem; text-align:left}
+  .fact b{color:var(--rust)}
+  .bar{height:18px; background:#e0cda3; border:2px solid var(--line); border-radius:10px; overflow:hidden; margin:14px 0}
+  .bar > i{display:block; height:100%; width:0; background:linear-gradient(90deg,var(--rust),var(--gold)); transition:width .2s}
+
+  /* L1 stones */
+  .river{display:flex; align-items:center; justify-content:space-between; gap:6px; margin:26px 4px; flex-wrap:wrap}
+  .stone{width:58px; height:58px; border-radius:50%; border:3px solid var(--line); background:#cdb284; font-size:1.6rem;
+    cursor:pointer; display:grid; place-items:center; position:relative}
+  .stone.next{animation:pulse 1s infinite; border-color:var(--rust)}
+  .stone.lit{background:var(--gold); border-color:var(--rust)}
+  @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.12)}}
+  .boat{font-size:2rem; transition:transform .3s}
+
+  /* L2 bell */
+  .bell{font-size:6rem; cursor:pointer; display:inline-block; transform-origin:50% 0; line-height:1.1}
+  .bell.ring{animation:swing .5s}
+  @keyframes swing{0%{transform:rotate(0)}25%{transform:rotate(16deg)}55%{transform:rotate(-13deg)}80%{transform:rotate(7deg)}100%{transform:rotate(0)}}
+
+  /* L3 letters */
+  .slots{display:flex; gap:6px; justify-content:center; flex-wrap:wrap; margin:14px 0}
+  .slot{width:42px; height:52px; border-bottom:4px solid var(--line); font-family:"Ruslan Display",serif; font-size:1.8rem;
+    display:grid; place-items:center; color:var(--rust)}
+  .tray{display:flex; gap:8px; justify-content:center; flex-wrap:wrap; margin-top:18px}
+  .tile{width:52px; height:60px; border:2px solid var(--line); border-radius:8px; background:#f6ecd5; cursor:pointer;
+    font-family:"Ruslan Display",serif; font-size:1.7rem; display:grid; place-items:center; box-shadow:0 3px 0 rgba(60,40,18,.25)}
+  .tile:active{transform:translateY(2px)}
+  .tile.gone{visibility:hidden}
+  .shake{animation:shk .35s}
+  @keyframes shk{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+
+  /* L4 towers */
+  .towers{display:flex; gap:8px; justify-content:center; align-items:flex-end; margin:18px 0 8px; height:150px}
+  .tower{width:54px; display:flex; flex-direction:column; align-items:center; justify-content:flex-end}
+  .cupola-slot{width:46px; height:46px; border:2px dashed var(--line); border-radius:50% 50% 50% 50%/60% 60% 40% 40%; margin-bottom:2px; opacity:.6}
+  .cupola{width:46px; height:46px; border-radius:50% 50% 50% 50%/60% 60% 40% 40%; margin-bottom:2px; position:relative}
+  .cupola::after{content:""; position:absolute; left:50%; top:-10px; width:3px; height:10px; background:var(--gold); transform:translateX(-50%)}
+  .twbody{width:50px; height:64px; background:#e7d9bb; border:2px solid var(--line); border-bottom:none}
+  .domes{display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin-top:12px}
+  .dome{width:48px; height:48px; border-radius:50% 50% 50% 50%/60% 60% 40% 40%; border:2px solid var(--line); cursor:pointer; box-shadow:0 3px 0 rgba(60,40,18,.25)}
+  .dome:active{transform:translateY(2px)}
+  .dome.gone{visibility:hidden}
+
+  /* L5 gusli */
+  .strings{display:flex; gap:10px; justify-content:center; align-items:flex-end; height:170px; margin:16px 0}
+  .gstr{width:46px; border-radius:8px; border:2px solid var(--line); cursor:pointer; opacity:.85}
+  .gstr.on{opacity:1; box-shadow:0 0 18px 4px var(--gold); transform:scaleY(1.04)}
+
+  /* L6 mill */
+  .millwrap{position:relative; width:200px; height:200px; margin:8px auto}
+  .mill-sails{position:absolute; inset:0; transition:transform .12s}
+  .sack{font-size:2.2rem; margin-top:6px}
+
+  .overlay{position:fixed; inset:0; z-index:10; background:rgba(40,28,16,.72); display:grid; place-items:center; padding:20px}
+  .sheet{background:var(--panel); border:3px solid var(--rust); border-radius:16px; padding:24px; max-width:420px; text-align:center; box-shadow:0 10px 30px rgba(0,0,0,.4)}
+  .sheet h2{font-family:"Ruslan Display",serif; font-weight:400; margin:.2em 0; color:var(--ink)}
+  .big-seal{font-size:3.4rem; color:var(--gold)}
+  .seals-row{font-size:1.8rem; color:var(--gold); letter-spacing:4px; margin:6px 0}
+  .foot{text-align:center; color:var(--sepia); font-style:italic; margin-top:22px; font-size:.9rem}
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+(function(){
+  "use strict";
+  const $app = document.getElementById('app');
+
+  /* ---------- audio ---------- */
+  let actx=null, muted=false;
+  function audio(){ if(!actx){ try{ actx=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} } if(actx&&actx.state==='suspended'){ actx.resume(); } return actx; }
+  function tone(freq,dur,type,vol){ dur=dur||0.3; type=type||'sine'; vol=vol||0.2; const a=audio(); if(!a||muted) return;
+    const o=a.createOscillator(), g=a.createGain(); o.type=type; o.frequency.value=freq; o.connect(g); g.connect(a.destination);
+    const t=a.currentTime; g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(vol,t+0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001,t+dur); o.start(t); o.stop(t+dur+0.03); }
+  function bell(f){ f=f||320; tone(f,1.3,'sine',0.28); tone(f*2.01,1.0,'sine',0.12); tone(f*2.99,0.8,'sine',0.06); }
+  function pluck(f){ tone(f,0.5,'triangle',0.22); }
+  function fanfare(){ [523,659,784,1047].forEach(function(f,i){ setTimeout(function(){ tone(f,0.32,'triangle',0.2); }, i*120); }); }
+
+  /* ---------- progress ---------- */
+  const KEY='vn_game_v1', N=6;
+  function load(){ try{ const s=JSON.parse(localStorage.getItem(KEY)); if(s&&Array.isArray(s.done)) { while(s.done.length<N) s.done.push(false); return s; } }catch(e){} return {done:new Array(N).fill(false)}; }
+  function save(){ try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){} }
+  let state=load();
+  function playable(i){ return i===0 || state.done[i-1]===true; }
+  function allDone(){ return state.done.every(Boolean); }
+
+  /* ---------- levels meta ---------- */
+  const LEVELS=[
+    {ic:'⛵', nm:'Путь на Новгородъ', sm:'Призвание Рюрика',
+     fact:'<b>862 годъ.</b> Новгородцы позвали княжить варяга Рюрика. С этого, говорит летопись, и начинается Русь. Жил он на Рюриковом городище под Новгородом.',
+     task:'Веди ладью к Новгороду — нажимай камни по порядку.', game:gamePath},
+    {ic:'🔔', nm:'Вечевой колоколъ', sm:'Народное собрание',
+     fact:'Новгородом правило <b>вече</b> — собрание горожан. Чтобы всех созвать, звонили в большой вечевой колокол. Звони и ты!',
+     task:'Созывай вече — звони в колокол!', game:gameBell},
+    {ic:'🪶', nm:'Берестяная грамота', sm:'Письма на коре',
+     fact:'Новгородцы писали письма на <b>бересте</b> — берёзовой коре. Даже дети! Мальчик <b>Онфим</b> 800 лет назад рисовал на ней человечков. Сложи слово.',
+     task:'Нажимай буквы по порядку и сложи слово.', game:gameSpell},
+    {ic:'⛪', nm:'Соберём Софію', sm:'Главный собор',
+     fact:'<b>Софийский собор</b> стоит почти 1000 лет. У него пять глав-куполов, а средний — золотой. «Где София — там и Новгород», — говорили в старину.',
+     task:'Поставь пять куполов на собор.', game:gameSophia},
+    {ic:'🎵', nm:'Гусли Садко', sm:'Герой былин',
+     fact:'<b>Садко</b> — новгородский купец и гусляр из былины. Он так играл на гуслях, что заслушался даже Морской царь. Повтори напев!',
+     task:'Слушай напев и повтори его на гуслях.', game:gameGusli},
+    {ic:'🌬️', nm:'Мельница', sm:'Ветер мелет муку',
+     fact:'Ветряная <b>мельница</b> ловит ветер крыльями и мелет зерно в муку. Такую вы увидите в деревне Завал. Раскрути крылья!',
+     task:'Быстро нажимай — крути крылья и намели муки!', game:gameMill}
+  ];
+
+  /* ---------- screens ---------- */
+  function renderHome(){
+    $app.innerHTML =
+      '<div class="topbar"><span></span>'+muteBtn()+'</div>'+
+      '<p class="eyebrow">Игра-путешествіе</p>'+
+      '<h1>Машина<br>времени</h1>'+
+      '<p class="lead">Пройди шесть испытаний и стань героем Новгородской земли</p>'+
+      '<button class="btn big rust" id="play">Начать путь ▸</button>'+
+      ( state.done.some(Boolean) ? '<button class="btn big" id="reset">Сбросить прогресс</button>' : '')+
+      '<p class="foot">Великій Новгородъ · 26–29 июня</p>';
+    document.getElementById('play').onclick=function(){ audio(); renderMap(); };
+    const r=document.getElementById('reset'); if(r) r.onclick=function(){ state={done:new Array(N).fill(false)}; save(); renderHome(); };
+    bindMute();
+  }
+
+  function muteBtn(){ return '<button class="btn mini" id="mute">'+(muted?'🔕':'🔔')+'</button>'; }
+  function bindMute(){ const m=document.getElementById('mute'); if(m) m.onclick=function(){ muted=!muted; if(!muted) bell(360); m.textContent=muted?'🔕':'🔔'; }; }
+
+  function renderMap(){
+    let html='<div class="topbar"><button class="btn mini" id="home">⌂ Домой</button>'+muteBtn()+'</div>'+
+      '<p class="eyebrow">Карта похода</p><h1 style="font-size:2rem">Выбери уровень</h1><div class="map">';
+    for(let i=0;i<N;i++){
+      const L=LEVELS[i], done=state.done[i], play=playable(i);
+      const cls='node '+(i%2?'right':'')+' '+(done?'done ':'')+(play?'playable':'locked');
+      html+='<div class="'+cls+'" data-i="'+i+'">'+
+        '<div class="seal">'+(play?L.ic:'🔒')+'</div>'+
+        '<div class="t"><div class="nm">'+(i+1)+'. '+L.nm+'</div>'+
+        '<div class="sm">'+L.sm+' '+(done?'<span class="star">★</span>':'')+'</div></div></div>';
+    }
+    html+='</div>'+(allDone()?'<button class="btn big rust" id="win">Получить грамоту героя ▸</button>':'')+
+      '<p class="foot"><a class="link" href="index.html">← к плану поездки</a></p>';
+    $app.innerHTML=html;
+    document.getElementById('home').onclick=renderHome;
+    const w=document.getElementById('win'); if(w) w.onclick=renderWin;
+    Array.prototype.forEach.call(document.querySelectorAll('.node.playable'),function(n){
+      n.onclick=function(){ startLevel(parseInt(n.dataset.i,10)); };
+    });
+    bindMute();
+  }
+
+  function startLevel(i){
+    const L=LEVELS[i];
+    $app.innerHTML='<div class="topbar"><button class="btn mini" id="back">‹ Карта</button>'+muteBtn()+'</div>'+
+      '<p class="eyebrow">Уровень '+(i+1)+'</p><h1 style="font-size:1.9rem">'+L.nm+'</h1>'+
+      '<div class="stage" id="stage"><div class="fact">'+L.fact+'</div>'+
+      '<p class="hint">'+L.task+'</p><div id="play-area"></div></div>';
+    document.getElementById('back').onclick=renderMap;
+    bindMute();
+    L.game(document.getElementById('play-area'), function(){ finish(i); });
+  }
+
+  function finish(i){
+    state.done[i]=true; save(); fanfare();
+    const last=(i===N-1)||allDone();
+    const ov=document.createElement('div'); ov.className='overlay';
+    ov.innerHTML='<div class="sheet"><div class="big-seal">★</div><h2>Молодец!</h2>'+
+      '<p>Испытание пройдено. Печать твоя!</p>'+
+      '<button class="btn big rust" id="cont">'+(allDone()?'Грамота героя ▸':'Дальше ▸')+'</button>'+
+      '<button class="btn" id="map2">К карте</button></div>';
+    document.body.appendChild(ov);
+    document.getElementById('cont').onclick=function(){ ov.remove(); if(allDone()) renderWin(); else renderMap(); };
+    document.getElementById('map2').onclick=function(){ ov.remove(); renderMap(); };
+  }
+
+  function renderWin(){
+    $app.innerHTML='<p class="eyebrow">Слава!</p><h1>Грамота героя</h1>'+
+      '<div class="stage"><div class="big-seal">🏅</div>'+
+      '<div class="seals-row">★ ★ ★ ★ ★ ★</div>'+
+      '<p>Ты прошёл всю Новгородскую землю и теперь знаешь:</p>'+
+      '<div class="fact" style="text-align:left">'+
+      '• как Рюрика позвали княжить (862);<br>'+
+      '• что такое вече и вечевой колокол;<br>'+
+      '• что письма писали на бересте;<br>'+
+      '• что у Софии пять глав;<br>'+
+      '• кто такой гусляр Садко;<br>'+
+      '• как мельница мелет муку.</div>'+
+      '<button class="btn big rust" id="again">Пройти заново</button>'+
+      '<p class="foot"><a class="link" href="index.html">← к плану поездки</a></p></div>';
+    document.getElementById('again').onclick=function(){ state={done:new Array(N).fill(false)}; save(); renderMap(); };
+  }
+
+  /* ---------- mini-games ---------- */
+  function gamePath(area, win){
+    const n=5, ico=['🚩','⬤','⬤','⬤','🏰'];
+    let cur=0;
+    let html='<div class="boat" id="boat">⛵</div><div class="river" id="river">';
+    for(let k=0;k<n;k++) html+='<button class="stone'+(k===0?' next':'')+'" data-k="'+k+'">'+ico[k]+'</button>';
+    html+='</div>';
+    area.innerHTML=html;
+    Array.prototype.forEach.call(area.querySelectorAll('.stone'),function(s){
+      s.onclick=function(){
+        const k=parseInt(s.dataset.k,10);
+        if(k!==cur) return;
+        s.classList.remove('next'); s.classList.add('lit'); pluck(440+cur*60); cur++;
+        if(cur<n){ area.querySelector('.stone[data-k="'+cur+'"]').classList.add('next'); }
+        else { setTimeout(win,350); }
+      };
+    });
+  }
+
+  function gameBell(area, win){
+    const need=7; let cnt=0;
+    area.innerHTML='<div class="bell" id="bell">🔔</div><div class="bar"><i id="bf"></i></div><p id="bc" class="hint">Звони: 0 / '+need+'</p>';
+    const b=area.querySelector('#bell');
+    b.onclick=function(){
+      if(cnt>=need) return;
+      cnt++; bell(300+cnt*8); b.classList.remove('ring'); void b.offsetWidth; b.classList.add('ring');
+      area.querySelector('#bf').style.width=Math.round(cnt/need*100)+'%';
+      area.querySelector('#bc').textContent='Звони: '+cnt+' / '+need;
+      if(cnt>=need) setTimeout(win,500);
+    };
+  }
+
+  function gameSpell(area, win){
+    const word='НОВГОРОДЪ'.split('');
+    let idx=0;
+    const tray=word.slice(); for(let i=tray.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); const t=tray[i]; tray[i]=tray[j]; tray[j]=t; }
+    let html='<div class="slots" id="slots">';
+    for(let i=0;i<word.length;i++) html+='<div class="slot" data-s="'+i+'"></div>';
+    html+='</div><div class="tray" id="tray">';
+    tray.forEach(function(ch,i){ html+='<button class="tile" data-ch="'+ch+'" data-i="'+i+'">'+ch+'</button>'; });
+    html+='</div>';
+    area.innerHTML=html;
+    Array.prototype.forEach.call(area.querySelectorAll('.tile'),function(t){
+      t.onclick=function(){
+        if(t.classList.contains('gone')) return;
+        if(t.dataset.ch===word[idx]){
+          area.querySelector('.slot[data-s="'+idx+'"]').textContent=word[idx];
+          t.classList.add('gone'); pluck(392+idx*40); idx++;
+          if(idx>=word.length) setTimeout(win,400);
+        } else { t.classList.remove('shake'); void t.offsetWidth; t.classList.add('shake'); tone(160,0.18,'square',0.12); }
+      };
+    });
+  }
+
+  function gameSophia(area, win){
+    const cols=['#cdb9a0','#b9c4c9','#c79a3b','#b9c4c9','#cdb9a0']; // center gold
+    let placed=0;
+    let html='<div class="towers" id="tw">';
+    for(let i=0;i<5;i++) html+='<div class="tower"><div class="cupola-slot" data-slot="'+i+'"></div><div class="twbody"></div></div>';
+    html+='</div><div class="domes" id="domes">';
+    // shuffle dome order in tray but keep their target colors
+    const order=[0,1,2,3,4]; for(let i=order.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); const t=order[i]; order[i]=order[j]; order[j]=t; }
+    order.forEach(function(c){ html+='<button class="dome" data-c="'+cols[c]+'" style="background:'+cols[c]+'"></button>'; });
+    html+='</div>';
+    area.innerHTML=html;
+    Array.prototype.forEach.call(area.querySelectorAll('.dome'),function(d){
+      d.onclick=function(){
+        if(d.classList.contains('gone')||placed>=5) return;
+        const slot=area.querySelector('.cupola-slot[data-slot="'+placed+'"]');
+        slot.outerHTML='<div class="cupola" style="background:'+d.dataset.c+'"></div>';
+        d.classList.add('gone'); pluck(523+placed*50); placed++;
+        if(placed>=5) setTimeout(win,420);
+      };
+    });
+  }
+
+  function gameGusli(area, win){
+    const freqs=[262,330,392,523], cols=['#b35a3a','#c79a3b','#3f7d4e','#5a6d99'];
+    const heights=[120,135,150,165];
+    const rounds=[2,3,4]; let r=0;
+    let seq=[], inp=0, lock=true;
+    let html='<p id="gm" class="hint">Слушай…</p><div class="strings" id="str">';
+    for(let i=0;i<4;i++) html+='<div class="gstr" data-i="'+i+'" style="height:'+heights[i]+'px;background:'+cols[i]+'"></div>';
+    html+='</div>';
+    area.innerHTML=html;
+    const strs=area.querySelectorAll('.gstr');
+    function light(i){ strs[i].classList.add('on'); pluck(freqs[i]); setTimeout(function(){ strs[i].classList.remove('on'); },300); }
+    function playSeq(){
+      lock=true; area.querySelector('#gm').textContent='Слушай…';
+      seq.forEach(function(i,k){ setTimeout(function(){ light(i); },500+k*620); });
+      setTimeout(function(){ lock=false; inp=0; area.querySelector('#gm').textContent='Повтори!'; }, 500+seq.length*620+200);
+    }
+    function nextRound(){
+      seq=[]; for(let k=0;k<rounds[r];k++) seq.push(Math.floor(Math.random()*4));
+      playSeq();
+    }
+    Array.prototype.forEach.call(strs,function(s){
+      s.onclick=function(){
+        if(lock) return;
+        const i=parseInt(s.dataset.i,10); light(i);
+        if(i===seq[inp]){ inp++;
+          if(inp>=seq.length){ lock=true; r++;
+            if(r>=rounds.length){ setTimeout(win,500); }
+            else { area.querySelector('#gm').textContent='Верно! Дальше…'; setTimeout(nextRound,800); }
+          }
+        } else { area.querySelector('#gm').textContent='Ой! Слушай ещё раз…'; tone(140,0.25,'square',0.12); lock=true; setTimeout(playSeq,900); }
+      };
+    });
+    setTimeout(nextRound,600);
+  }
+
+  function gameMill(area, win){
+    let flour=0, ang=0;
+    area.innerHTML=
+      '<div class="millwrap"><svg viewBox="0 0 200 200" width="200" height="200">'+
+      '<rect x="78" y="92" width="44" height="96" fill="#caa46f" stroke="#7a512b" stroke-width="3"/>'+
+      '<polygon points="100,70 118,96 82,96" fill="#8a4a1e"/>'+
+      '<g id="sails" transform-origin="100 96">'+
+      '<g stroke="#7a512b" stroke-width="4"><line x1="100" y1="96" x2="100" y2="20"/><line x1="100" y1="96" x2="176" y2="96"/><line x1="100" y1="96" x2="100" y2="172"/><line x1="100" y1="96" x2="24" y2="96"/></g>'+
+      '<g fill="#e8d3a9" stroke="#7a512b" stroke-width="2">'+
+      '<rect x="92" y="20" width="16" height="60"/><rect x="116" y="88" width="60" height="16"/>'+
+      '<rect x="92" y="112" width="16" height="60"/><rect x="24" y="88" width="60" height="16"/></g>'+
+      '<circle cx="100" cy="96" r="7" fill="#8a4a1e"/></g></svg></div>'+
+      '<div class="bar"><i id="mf"></i></div><div class="sack" id="sack">🌾</div>'+
+      '<button class="btn big rust" id="spin">Крутить! 🌬️</button>';
+    const sails=area.querySelector('#sails'), mf=area.querySelector('#mf'), sack=area.querySelector('#sack');
+    area.querySelector('#spin').onclick=function(){
+      if(flour>=100) return;
+      ang+=42; sails.setAttribute('transform','rotate('+ang+' 100 96)');
+      flour=Math.min(100, flour+5); mf.style.width=flour+'%'; tone(180+ (ang%120),0.12,'sine',0.12);
+      if(flour>=60) sack.textContent='🥖';
+      if(flour>=100){ sack.textContent='🍞'; setTimeout(win,400); }
+    };
+  }
+
+  renderHome();
+})();
+</script>
+</body>
+</html>
