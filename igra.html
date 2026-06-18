@@ -160,58 +160,87 @@
   ];
 
   /* ====================== LEVELS ====================== */
+  function mkBlock(x,y,kind){ return {x,y,w:36,h:36,kind:kind||'brick',used:false,bump:0}; }
+
   function L1(){ // Ярославово дворище — торгъ на берегу Волхова
-    const P=[], C=[], E=[], CP=[];
-    const gy=460, gh=140;
-    [[0,560],[700,520],[1330,460],[1900,640],[2680,700]].forEach(s=>P.push({x:s[0],y:gy,w:s[1],h:gh}));
-    [[560,392,110,28],[1170,360,120,28],[1810,388,110,28],[2400,356,120,28],[2540,288,120,28]].forEach(p=>P.push({x:p[0],y:p[1],w:p[2],h:p[3],wood:true}));
-    [[300,400],[360,400],[420,400],[600,348],[640,348],[1190,316],[1230,316],[1430,400],[1490,400],
-     [1840,344],[2000,400],[2060,400],[2120,400],[2430,312],[2560,244],[2900,360],[2960,360],[3020,360]]
+    const P=[], C=[], E=[], CP=[], B=[], HZ=[];
+    const gy=460, gh=170;
+    [[0,620],[760,520],[1360,360],[1820,560],[2480,360],[2980,540],[3640,820]].forEach(s=>P.push({x:s[0],y:gy,w:s[1],h:gh}));
+    [[560,392,110,26],[1180,348,120,26],[2020,392,120,26],[2420,324,120,26],[2880,300,130,26],[3380,360,120,26]].forEach(p=>P.push({x:p[0],y:p[1],w:p[2],h:p[3],wood:true}));
+    [[680,300,'brick'],[716,300,'coinbox'],[752,300,'brick'],
+     [1220,288,'brick'],[1256,288,'powbox'],[1292,288,'brick'],
+     [2060,300,'coinbox'],
+     [2900,212,'brick'],[2936,212,'coinbox'],[2972,212,'brick'],
+     [3400,300,'brick'],[3436,300,'brick']].forEach(b=>B.push(mkBlock(b[0],b[1],b[2])));
+    [[1300,gy-22,110],[3070,gy-22,80]].forEach(s=>HZ.push({x:s[0],y:s[1],w:s[2],h:22}));
+    [[300,400],[360,400],[420,400],[600,348],[640,348],[1190,304],[1230,304],[1500,400],[1560,400],
+     [2060,348],[2160,400],[2220,400],[2440,280],[2900,168],[3140,400],[3200,400],[3460,316],[3760,400],[3820,400]]
       .forEach(c=>C.push({x:c[0],y:c[1]}));
-    E.push({x:760,y:gy,w:200,x0:760,x1:960,dir:1});
-    E.push({x:2050,y:gy,w:220,x0:1950,x1:2170,dir:1});
-    CP.push({x:1380,y:gy});
+    E.push({x:880,y:gy,type:'boar',x0:780,x1:1180,dir:1});
+    E.push({x:1700,y:gy-92,type:'raven',x0:1640,x1:1860,dir:1});
+    E.push({x:2600,y:gy,type:'hedgehog',x0:2500,x1:2760,dir:1});
+    E.push({x:3300,y:gy,type:'boar',x0:3120,x1:3540,dir:-1});
+    CP.push({x:1900,y:gy});
     return {name:'Ярославово дворище', sub:'Торгъ на берегу Волхова',
       fact:'<b>Ярославово дворище</b> — древній торгъ Новгорода. Сюда по рѣкѣ Волховъ приплывали ладьи купцовъ со всего свѣта.',
-      theme:'torg', platforms:P, coins:C, enemies:E, checkpoints:CP, goalX:3260, goalKind:'bell', width:3460, start:{x:60,y:380}};
+      theme:'torg', platforms:P, coins:C, enemies:E, checkpoints:CP, blocks:B, hazards:HZ,
+      goalX:4000, goalKind:'bell', width:4400, start:{x:60,y:380}};
   }
   function L2(){ // Новгородскій Детинецъ — крѣпость
-    const P=[], C=[], E=[], CP=[];
-    const gy=470, gh=120;
-    [[0,520],[640,420],[1180,360],[1640,520],[2300,760]].forEach(s=>P.push({x:s[0],y:gy,w:s[1],h:gh}));
-    [[520,410,120,30],[660,348,120,30],[800,286,120,30],[940,224,160,30],
-     [1300,360,120,28],[1720,372,120,28],[1860,300,120,28],[2000,228,160,28],
-     [2480,360,120,28],[2620,288,140,28]].forEach(p=>P.push({x:p[0],y:p[1],w:p[2],h:p[3],wall:true}));
-    [[300,410],[360,410],[560,360],[700,298],[840,236],[990,180],[1000,180],
-     [1340,310],[1400,310],[1760,322],[1900,250],[2050,178],[2110,178],
-     [2360,420],[2420,420],[2520,310],[2660,238],[2860,400],[2920,400]]
+    const P=[], C=[], E=[], CP=[], B=[], HZ=[];
+    const gy=470, gh=150;
+    [[0,560],[700,440],[1240,360],[1700,520],[2360,360],[2880,520],[3500,820]].forEach(s=>P.push({x:s[0],y:gy,w:s[1],h:gh}));
+    [[540,410,120,28],[700,348,120,28],[860,286,130,28],[1320,372,120,28],[1460,300,120,28],
+     [1980,372,120,28],[2480,360,120,28],[2620,288,120,28],[3060,372,120,28],[3200,300,130,28]]
+      .forEach(p=>P.push({x:p[0],y:p[1],w:p[2],h:p[3],wall:true}));
+    [[900,224,'brick'],[936,224,'coinbox'],[972,224,'brick'],
+     [1500,238,'powbox'],
+     [2020,300,'brick'],[2056,300,'coinbox'],[2092,300,'brick'],
+     [2660,226,'coinbox'],
+     [3240,238,'brick'],[3276,238,'brick'],[3312,238,'coinbox']].forEach(b=>B.push(mkBlock(b[0],b[1],b[2])));
+    [[1170,gy-22,100],[2300,gy-22,90],[3420,gy-22,70]].forEach(s=>HZ.push({x:s[0],y:s[1],w:s[2],h:22}));
+    [[300,410],[360,410],[560,360],[720,298],[890,236],[1340,322],[1480,250],
+     [1520,250],[2000,322],[2060,322],[2500,310],[2660,178],[2700,178],
+     [2980,420],[3040,420],[3260,250],[3360,400],[3420,400]]
       .forEach(c=>C.push({x:c[0],y:c[1]}));
-    E.push({x:1350,y:gy,w:160,x0:1190,x1:1500,dir:1});
-    E.push({x:2400,y:gy,w:200,x0:2320,x1:2520,dir:-1});
-    E.push({x:2700,y:gy,w:200,x0:2600,x1:2820,dir:1});
-    CP.push({x:1300,y:gy});
+    E.push({x:1000,y:gy,type:'boar',x0:760,x1:1180,dir:1});
+    E.push({x:1400,y:gy-96,type:'raven',x0:1280,x1:1560,dir:1});
+    E.push({x:2000,y:gy,type:'hedgehog',x0:1860,x1:2160,dir:-1});
+    E.push({x:2600,y:gy-96,type:'raven',x0:2500,x1:2760,dir:1});
+    E.push({x:3200,y:gy,type:'boar',x0:2980,x1:3420,dir:-1});
+    CP.push({x:1900,y:gy});
     return {name:'Новгородскій Детинецъ', sub:'Стѣны и башни Кремля',
       fact:'<b>Детинецъ</b> — Новгородскій Кремль. Его краснокирпичныя стѣны и башни берегли городъ много вѣковъ. Заберись на стѣну!',
-      theme:'kreml', platforms:P, coins:C, enemies:E, checkpoints:CP, goalX:2980, goalKind:'gate', width:3180, start:{x:60,y:390}};
+      theme:'kreml', platforms:P, coins:C, enemies:E, checkpoints:CP, blocks:B, hazards:HZ,
+      goalX:3820, goalKind:'gate', width:4320, start:{x:60,y:390}};
   }
   function L3(){ // Софійскій соборъ — къ золотому куполу
-    const P=[], C=[], E=[], CP=[];
-    const gy=470, gh=120;
-    [[0,600],[760,360],[1240,300],[1680,360],[2120,820]].forEach(s=>P.push({x:s[0],y:gy,w:s[1],h:gh}));
+    const P=[], C=[], E=[], CP=[], B=[], HZ=[];
+    const gy=470, gh=150;
+    [[0,600],[760,360],[1240,300],[1680,360],[2120,420],[2620,360],[3180,840]].forEach(s=>P.push({x:s[0],y:gy,w:s[1],h:gh}));
     [[600,392,120,28],[940,348,110,28],[1340,360,120,28],[1480,296,120,28],
      [1820,360,120,28],[1960,292,120,28],[2100,224,150,28],
-     [2520,372,120,28],[2660,300,120,28],[2800,228,150,28]].forEach(p=>P.push({x:p[0],y:p[1],w:p[2],h:p[3],stone:true}));
-    [[340,410],[400,410],[640,348],[700,348],[980,304],[1300,410],
+     [2520,372,120,28],[2660,300,120,28],[2860,228,150,28]].forEach(p=>P.push({x:p[0],y:p[1],w:p[2],h:p[3],stone:true}));
+    [[1000,256,'brick'],[1036,256,'coinbox'],[1072,256,'brick'],
+     [1520,200,'powbox'],
+     [1980,196,'brick'],[2016,196,'coinbox'],[2052,196,'brick'],
+     [2700,204,'coinbox'],
+     [2900,160,'brick'],[2936,160,'brick'],[2972,160,'coinbox']].forEach(b=>B.push(mkBlock(b[0],b[1],b[2])));
+    [[1160,gy-22,90],[1640,gy-22,90],[2560,gy-22,80]].forEach(s=>HZ.push({x:s[0],y:s[1],w:s[2],h:22}));
+    [[340,410],[400,410],[640,348],[700,348],[980,304],[1300,316],
      [1380,316],[1520,252],[1860,316],[2000,248],[2150,180],[2210,180],
-     [2360,410],[2560,328],[2700,256],[2850,184],[2910,184]]
+     [2560,328],[2700,256],[2900,116],[2960,116],[3220,400],[3280,400]]
       .forEach(c=>C.push({x:c[0],y:c[1]}));
-    E.push({x:900,y:gy,w:180,x0:780,x1:1080,dir:1});
-    E.push({x:1700,y:gy,w:200,x0:1690,x1:1980,dir:1});
-    E.push({x:2350,y:gy,w:180,x0:2160,x1:2420,dir:-1});
-    CP.push({x:1260,y:gy});
+    E.push({x:900,y:gy-96,type:'raven',x0:780,x1:1080,dir:1});
+    E.push({x:1400,y:gy,type:'hedgehog',x0:1280,x1:1560,dir:1});
+    E.push({x:1850,y:gy-96,type:'raven',x0:1700,x1:2000,dir:1});
+    E.push({x:2300,y:gy,type:'boar',x0:2140,x1:2560,dir:-1});
+    E.push({x:2740,y:gy,type:'hedgehog',x0:2640,x1:2900,dir:1});
+    CP.push({x:1900,y:gy});
     return {name:'Софійскій соборъ', sub:'Къ золотой главѣ',
       fact:'<b>Софійскій соборъ</b> стоитъ почти 1000 лѣтъ. У него пять главъ, а средняя — золотая. «Гдѣ Софія — тамъ и Новгородъ».',
-      theme:'sofia', platforms:P, coins:C, enemies:E, checkpoints:CP, goalX:2980, goalKind:'dome', width:3180, start:{x:60,y:400}};
+      theme:'sofia', platforms:P, coins:C, enemies:E, checkpoints:CP, blocks:B, hazards:HZ,
+      goalX:3760, goalKind:'dome', width:4260, start:{x:60,y:400}};
   }
   const LEVEL_FNS=[L1,L2,L3];
   const LEVEL_META=[
@@ -355,7 +384,7 @@
       '<p class="eyebrow">Земля '+(i+1)+'</p><h2>'+L.name+'</h2>'+
       '<p style="font-style:italic;color:var(--sepia);margin:.2em 0">'+L.sub+'</p>'+
       '<div class="fact">'+L.fact+'</div>'+
-      '<p style="font-size:.9rem">Собирай <b>златники</b>, прыгай на враговъ-вороновъ сверху, не упади въ воду.<br>'+
+      '<p style="font-size:.9rem">Собирай <b>златники</b>, прыгай на враговъ сверху (а ежа́ — обходи, онъ колючъ!), бей снизу <b>кирпичи</b> и <b>?-сундучки</b>. Найди <b>богатырскій шеломъ</b> ❖ — станешь больше, выдержишь ударъ и сможешь крушить кирпичи. Берегись шиповъ и не упади въ воду.<br>'+
       (isTouch?'Кнопки ◀ ▶ — идти, ⤴ — прыжокъ.':'<span class="kbd">←</span><span class="kbd">→</span> — идти, <span class="kbd">Пробѣлъ</span>/<span class="kbd">↑</span> — прыжокъ.')+'</p>'+
       '<button class="btn big rust" id="begin">Впередъ! ▸</button>'+
       '<button class="btn" id="cancel">Назадъ</button>');
@@ -367,18 +396,23 @@
   let G=null, raf=null;
   const keys={left:false,right:false,jump:false,_jumpHeld:false};
 
+  const BASE_H=52, BIG_H=74;
   function startLevel(idx){
     const data=LEVEL_FNS[idx]();
     const hero=HEROES[prog.hero];
+    const boxCoins=(data.blocks||[]).filter(b=>b.kind==='coinbox').length;
     G={
       idx, data, hero, cam:0,
-      coinsGot:0, totalCoins:data.coins.length,
-      hearts:3, inv:0, paused:false, finished:false, t:0,
+      coinsGot:0, totalCoins:data.coins.length+boxCoins,
+      hearts:3, inv:0, paused:false, finished:false, t:0, flash:0,
       respawn:{x:data.start.x, y:data.start.y},
       coins: data.coins.map(c=>({x:c.x,y:c.y,got:false})),
-      enemies: data.enemies.map(e=>({x:e.x,y:e.y,w:e.w||180,x0:e.x0,x1:e.x1,dir:e.dir||1,dead:false,wig:0})),
+      enemies: data.enemies.map(e=>({x:e.x,y:e.y,type:e.type||'raven',x0:e.x0,x1:e.x1,dir:e.dir||1,dead:false,wig:0})),
       checks: data.checkpoints.map(c=>({x:c.x,y:c.y,on:false})),
-      p:{ x:data.start.x, y:data.start.y, w:30, h:52, vx:0, vy:0, onGround:false, facing:1, state:'idle', anim:0 }
+      blocks: (data.blocks||[]).map(b=>({x:b.x,y:b.y,w:b.w,h:b.h,kind:b.kind,used:false,bump:0})),
+      hazards: data.hazards||[],
+      powerups: [], parts: [],
+      p:{ x:data.start.x, y:data.start.y, w:30, h:BASE_H, vx:0, vy:0, onGround:false, facing:1, state:'idle', anim:0, big:false }
     };
     showGame(); updateHUD(); last=performance.now();
     if(raf) cancelAnimationFrame(raf);
@@ -395,8 +429,39 @@
 
   function rectsOverlap(a,b){ return a.x < b.x+b.w && a.x+a.w > b.x && a.y < b.y+b.h && a.y+a.h > b.y; }
 
+  function enemyBox(e){
+    if(e.type==='boar') return {x:e.x-20,y:e.y-30,w:40,h:30};
+    if(e.type==='hedgehog') return {x:e.x-16,y:e.y-24,w:32,h:24};
+    return {x:e.x-16,y:e.y-26,w:32,h:26}; // raven
+  }
+  function addParts(x,y,col,n){ for(let i=0;i<n;i++){ const a=Math.random()*7, s=2+Math.random()*3.2;
+    G.parts.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s-2.4,col,life:18+Math.random()*10}); } }
+  function spawnPowerup(b){ G.powerups.push({x:b.x+b.w/2, y:b.y-2, vx:1.7, vy:-3, got:false}); }
+  function powerUp(){ const p=G.p; sCoin(); sBell(560);
+    if(!p.big){ p.big=true; p.y-=(BIG_H-BASE_H); p.h=BIG_H; }
+    addParts(p.x+p.w/2,p.y+10,'#ffe39a',12); G.flash=8; }
+  function hitBlock(b){
+    if(b.kind==='used') return;
+    if(b.kind==='brick'){
+      if(G.p.big){ b.broken=true; addParts(b.x+18,b.y+12,'#b8612f',12); sStomp(); }
+      else { b.bump=6; sStomp(); }
+    } else if(b.kind==='coinbox'){
+      b.kind='used'; b.bump=6; G.coinsGot++; sCoin(); updateHUD(); addParts(b.x+18,b.y,'#e6b93b',7);
+    } else if(b.kind==='powbox'){
+      b.kind='used'; b.bump=6; spawnPowerup(b); sBell(520);
+    }
+  }
+  function applyPlayerHit(){
+    if(G.finished || G.inv>0) return;
+    const p=G.p;
+    if(p.big){ p.big=false; p.y+=(BIG_H-BASE_H); p.h=BASE_H; G.inv=70; sHurt(); p.vy=Math.min(p.vy,-6); }
+    else hurt(false);
+  }
+
   function update(dt){
     G.t+=dt; const p=G.p, hero=G.hero, L=G.data;
+    if(G.flash>0) G.flash-=dt;
+    const solids=L.platforms.concat(G.blocks);
     const dir=(keys.left?-1:0)+(keys.right?1:0);
     const target=dir*hero.speed;
     p.vx += (target-p.vx)*Math.min(1,0.28*dt);
@@ -405,25 +470,44 @@
     if(!keys.jump && keys._jumpHeld){ if(p.vy<-4) p.vy=-4; keys._jumpHeld=false; }
     p.vy += 0.8*dt; if(p.vy>18) p.vy=18;
     p.x += p.vx*dt;
-    for(const pl of L.platforms){ if(rectsOverlap(p,pl)){ if(p.vx>0) p.x=pl.x-p.w; else if(p.vx<0) p.x=pl.x+pl.w; p.vx=0; } }
+    for(const pl of solids){ if(rectsOverlap(p,pl)){ if(p.vx>0) p.x=pl.x-p.w; else if(p.vx<0) p.x=pl.x+pl.w; p.vx=0; } }
     if(p.x<0) p.x=0;
     p.onGround=false;
     p.y += p.vy*dt;
-    for(const pl of L.platforms){ if(rectsOverlap(p,pl)){ if(p.vy>0){ p.y=pl.y-p.h; p.vy=0; p.onGround=true; } else if(p.vy<0){ p.y=pl.y+pl.h; p.vy=0; } } }
+    for(const pl of solids){ if(rectsOverlap(p,pl)){
+      if(p.vy>0){ p.y=pl.y-p.h; p.vy=0; p.onGround=true; }
+      else if(p.vy<0){ p.y=pl.y+pl.h; p.vy=0; if(pl.kind) hitBlock(pl); } } }
+    G.blocks=G.blocks.filter(b=>!b.broken);
+    for(const b of G.blocks){ if(b.bump>0) b.bump-=dt; }
     if(!p.onGround) p.state='jump';
     else if(Math.abs(p.vx)>0.6){ p.state='run'; p.anim+=Math.abs(p.vx)*0.16*dt; }
     else p.state='idle';
     if(p.y > H+40){ hurt(true); }
-    for(const c of G.coins){ if(!c.got){ if(Math.abs((p.x+p.w/2)-c.x)<26 && Math.abs((p.y+p.h/2)-(c.y))<28){ c.got=true; G.coinsGot++; sCoin(); updateHUD(); } } }
+    for(const c of G.coins){ if(!c.got){ if(Math.abs((p.x+p.w/2)-c.x)<26 && Math.abs((p.y+p.h/2)-(c.y))<30){ c.got=true; G.coinsGot++; sCoin(); updateHUD(); } } }
     for(const c of G.checks){ if(!c.on && p.x+p.w/2>c.x){ c.on=true; G.respawn={x:c.x-20,y:c.y-60}; sBell(420); } }
     if(G.inv>0) G.inv-=dt;
+    // hazards (spikes)
+    for(const hz of G.hazards){ if(G.inv<=0 && rectsOverlap(p,hz)){ applyPlayerHit(); break; } }
+    // power-ups
+    for(const u of G.powerups){ if(u.got) continue;
+      u.vy+=0.5*dt; if(u.vy>12)u.vy=12; u.x+=u.vx*dt; u.y+=u.vy*dt;
+      for(const pl of solids){ if(u.x>pl.x-14 && u.x<pl.x+pl.w+14 && u.y>=pl.y-16 && u.y<=pl.y+12 && u.vy>=0){ u.y=pl.y-12; u.vy=0; } }
+      if(u.x<16) u.vx=Math.abs(u.vx);
+      if(rectsOverlap(p,{x:u.x-12,y:u.y-12,w:24,h:24})){ u.got=true; powerUp(); } }
+    G.powerups=G.powerups.filter(u=>!u.got);
+    // particles
+    for(const pt of G.parts){ pt.vy+=0.5*dt; pt.x+=pt.vx*dt; pt.y+=pt.vy*dt; pt.life-=dt; }
+    G.parts=G.parts.filter(pt=>pt.life>0);
+    // enemies
     for(const e of G.enemies){ if(e.dead){ e.wig+=dt; continue; }
-      e.x += e.dir*1.4*dt;
+      const sp = e.type==='boar'?2.5 : e.type==='hedgehog'?1.1 : 1.5;
+      e.x += e.dir*sp*dt;
       if(e.x<e.x0){ e.x=e.x0; e.dir=1; } if(e.x>e.x1){ e.x=e.x1; e.dir=-1; }
-      const eb={x:e.x-16,y:e.y-26,w:32,h:26};
+      const eb=enemyBox(e);
       if(rectsOverlap(p,eb)){
-        if(p.vy>1.5 && (p.y+p.h) < e.y-6){ e.dead=true; e.wig=0; p.vy=-hero.jump*0.62; sStomp(); }
-        else if(G.inv<=0){ hurt(false); }
+        const stomp = p.vy>1.5 && (p.y+p.h) < eb.y+16;
+        if(stomp && e.type!=='hedgehog'){ e.dead=true; e.wig=0; p.vy=-hero.jump*0.62; sStomp(); addParts(e.x,eb.y,'#6a5238',6); }
+        else { applyPlayerHit(); }
       }
     }
     if(p.x+p.w/2 > L.goalX){ winLevel(); }
@@ -436,9 +520,12 @@
     if(G.finished) return;
     G.hearts--; sHurt(); updateHUD();
     if(G.hearts<=0){ loseLevel(); return; }
-    G.inv=60;
-    const p=G.p; p.x=G.respawn.x; p.y=G.respawn.y; p.vx=0; p.vy=0;
-    G.cam=Math.max(0,Math.min(G.data.width-W, p.x-W*0.36));
+    G.inv=70;
+    const p=G.p;
+    if(fell){ if(p.big){ p.big=false; p.y+=(BIG_H-BASE_H); p.h=BASE_H; }
+      p.x=G.respawn.x; p.y=G.respawn.y; p.vx=0; p.vy=0;
+      G.cam=Math.max(0,Math.min(G.data.width-W, p.x-W*0.36)); }
+    else { p.vy=-8; p.vx=-p.facing*6; }
   }
 
   function updateHUD(){
@@ -498,13 +585,18 @@
     drawBackground(L.theme, cam);
     ctx.save(); ctx.translate(-cam,0);
     for(const pl of L.platforms) drawPlatform(pl, L.theme);
+    for(const b of G.blocks) drawBlock(b);
+    for(const hz of G.hazards) drawHazard(hz);
     for(const c of G.checks) drawFlag(c);
     for(const c of G.coins){ if(!c.got) drawCoin(c.x,c.y); }
     drawGoal(L.goalKind, L.goalX);
-    for(const e of G.enemies) drawRaven(e);
+    for(const u of G.powerups) drawPowerup(u);
+    for(const e of G.enemies) drawEnemy(e);
+    for(const pt of G.parts){ ctx.globalAlpha=Math.max(0,Math.min(1,pt.life/12)); ctx.fillStyle=pt.col; ctx.fillRect(pt.x-2,pt.y-2,4,4); ctx.globalAlpha=1; }
     const p=G.p; const blink = G.inv>0 && (Math.floor(G.t*0.3)%2===0);
-    if(!blink) drawKnight(ctx, p.x+p.w/2, p.y+p.h, 1.55, G.hero, p.facing, p.state==='run'?p.anim*6:G.t, p.state);
+    if(!blink) drawKnight(ctx, p.x+p.w/2, p.y+p.h, p.big?2.05:1.55, G.hero, p.facing, p.state==='run'?p.anim*6:G.t, p.state);
     ctx.restore();
+    if(G.flash>0){ ctx.fillStyle='rgba(255,240,190,'+(G.flash/8*0.4)+')'; ctx.fillRect(0,0,W,H); }
     if(G.paused){ ctx.fillStyle='rgba(40,28,16,.55)'; ctx.fillRect(0,0,W,H);
       ctx.fillStyle='#fff'; ctx.font='32px "Ruslan Display",serif'; ctx.textAlign='center'; ctx.fillText('Пауза', W/2, H/2); ctx.textAlign='left'; }
   }
@@ -514,7 +606,13 @@
     if(theme==='sofia'){ g.addColorStop(0,'#fce8c0'); g.addColorStop(1,'#bfe0ef'); }
     else { g.addColorStop(0,'#aee0f2'); g.addColorStop(1,'#dff1f7'); }
     ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
-    ctx.fillStyle='rgba(255,236,180,.85)'; ctx.beginPath(); ctx.arc(W-110,86,40,0,7); ctx.fill();
+    // sun with soft halo
+    ctx.fillStyle='rgba(255,236,180,.35)'; ctx.beginPath(); ctx.arc(W-110,86,64,0,7); ctx.fill();
+    ctx.fillStyle='rgba(255,243,200,.95)'; ctx.beginPath(); ctx.arc(W-110,86,40,0,7); ctx.fill();
+    // far hill layer (deep parallax)
+    ctx.fillStyle = theme==='sofia'? 'rgba(190,170,120,.6)':'rgba(150,180,150,.55)';
+    const hx=cam*0.08; ctx.beginPath(); ctx.moveTo(0,H);
+    for(let x=-60;x<=W+60;x+=60){ ctx.lineTo(x, 330 + Math.sin((x+hx)*0.004)*40); } ctx.lineTo(W,H); ctx.closePath(); ctx.fill();
     ctx.fillStyle='rgba(255,255,255,.7)';
     const cx=cam*0.15;
     for(let i=0;i<6;i++){ const x=((i*260 - cx)% (W+260)+W+260)%(W+260)-130; cloud(x, 60+ (i%3)*26); }
@@ -584,6 +682,74 @@
     ctx.fillStyle='#e0a020'; ctx.beginPath(); ctx.moveTo(16,-6); ctx.lineTo(24,-4); ctx.lineTo(16,-2); ctx.closePath(); ctx.fill();
     ctx.fillStyle='#1c1c22'; ctx.beginPath(); ctx.moveTo(-2,-4); ctx.lineTo(-16,-12-fly); ctx.lineTo(-8,0); ctx.closePath(); ctx.fill();
     ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(12,-6,1.6,0,7); ctx.fill();
+    ctx.restore();
+  }
+  function drawEnemy(e){
+    if(e.dead && e.type!=='raven'){ drawDeadFoe(e); return; }
+    if(e.type==='boar') drawBoar(e);
+    else if(e.type==='hedgehog') drawHedgehog(e);
+    else drawRaven(e);
+  }
+  function drawDeadFoe(e){ ctx.save(); ctx.globalAlpha=Math.max(0,1-e.wig*0.04); ctx.translate(e.x,e.y-6+e.wig*1.4);
+    ctx.fillStyle='#4a3826'; ctx.beginPath(); ctx.ellipse(0,0,20,6,0,0,7); ctx.fill(); ctx.restore(); }
+  function drawBoar(e){ const trot=Math.sin(G.t*0.4)*2;
+    ctx.save(); ctx.translate(e.x,e.y-2); if(e.dir>0) ctx.scale(-1,1);
+    ctx.fillStyle='rgba(40,25,10,.18)'; ctx.beginPath(); ctx.ellipse(0,2,22,4,0,0,7); ctx.fill();
+    ctx.strokeStyle='#3a2c1c'; ctx.lineWidth=5; ctx.lineCap='round';
+    ctx.beginPath(); ctx.moveTo(-9,-6); ctx.lineTo(-9+trot,2); ctx.moveTo(9,-6); ctx.lineTo(9-trot,2); ctx.stroke();
+    ctx.fillStyle='#5a4632'; ctx.beginPath(); ctx.ellipse(0,-16,22,14,0,0,7); ctx.fill();
+    ctx.fillStyle='#473526'; ctx.beginPath(); ctx.moveTo(0,-28); ctx.lineTo(6,-36); ctx.lineTo(9,-26); ctx.lineTo(2,-22); ctx.closePath(); ctx.fill();
+    ctx.fillStyle='#5a4632'; ctx.beginPath(); ctx.ellipse(-19,-12,10,9,0,0,7); ctx.fill();
+    ctx.fillStyle='#3a2a1c'; ctx.beginPath(); ctx.ellipse(-27,-11,3.5,4,0,0,7); ctx.fill();
+    ctx.fillStyle='#2a1f14'; ctx.beginPath(); ctx.arc(-22,-15,1.8,0,7); ctx.fill();
+    ctx.fillStyle='#e8e0cf'; ctx.beginPath(); ctx.moveTo(-26,-8); ctx.lineTo(-31,-13); ctx.lineTo(-25,-12); ctx.closePath(); ctx.fill();
+    ctx.restore();
+  }
+  function drawHedgehog(e){
+    ctx.save(); ctx.translate(e.x,e.y-2); if(e.dir>0) ctx.scale(-1,1);
+    ctx.fillStyle='rgba(40,25,10,.18)'; ctx.beginPath(); ctx.ellipse(0,2,16,4,0,0,7); ctx.fill();
+    ctx.strokeStyle='#2a2018'; ctx.lineWidth=2.4; ctx.lineCap='round';
+    for(let i=-4;i<=4;i++){ const a=i*0.3; const sx=Math.sin(a)*11, sy=-12-Math.cos(a)*9;
+      ctx.beginPath(); ctx.moveTo(sx*0.6,sy*0.7-2); ctx.lineTo(sx*1.7,sy*1.25-2); ctx.stroke(); }
+    ctx.fillStyle='#6a5238'; ctx.beginPath(); ctx.ellipse(0,-11,15,12,0,0,7); ctx.fill();
+    ctx.fillStyle='#e8d9c0'; ctx.beginPath(); ctx.ellipse(-12,-7,6,5,0,0,7); ctx.fill();
+    ctx.fillStyle='#2a1f14'; ctx.beginPath(); ctx.arc(-15,-8,1.6,0,7); ctx.fill();
+    ctx.beginPath(); ctx.arc(-17,-5,1.3,0,7); ctx.fill();
+    ctx.restore();
+  }
+  function drawBlock(b){
+    const off=b.bump>0?Math.sin((1-b.bump/6)*Math.PI)*8:0; const yy=b.y-off;
+    if(b.kind==='used'){ ctx.fillStyle='#8a6a3a'; roundRect(ctx,b.x,yy,b.w,b.h,4); ctx.fill();
+      ctx.fillStyle='rgba(0,0,0,.2)'; ctx.fillRect(b.x+4,yy+4,b.w-8,b.h-8); return; }
+    if(b.kind==='brick'){ ctx.fillStyle='#b8612f'; roundRect(ctx,b.x,yy,b.w,b.h,3); ctx.fill();
+      ctx.fillStyle='rgba(255,210,160,.25)'; ctx.fillRect(b.x+2,yy+2,b.w-4,4);
+      ctx.strokeStyle='#7a3c18'; ctx.lineWidth=2; ctx.stroke();
+      ctx.strokeStyle='rgba(80,40,15,.55)'; ctx.lineWidth=1.4; ctx.beginPath();
+      ctx.moveTo(b.x,yy+b.h/2); ctx.lineTo(b.x+b.w,yy+b.h/2);
+      ctx.moveTo(b.x+b.w/2,yy); ctx.lineTo(b.x+b.w/2,yy+b.h/2);
+      ctx.moveTo(b.x+b.w*0.25,yy+b.h/2); ctx.lineTo(b.x+b.w*0.25,yy+b.h);
+      ctx.moveTo(b.x+b.w*0.75,yy+b.h/2); ctx.lineTo(b.x+b.w*0.75,yy+b.h); ctx.stroke(); return; }
+    const glow=0.5+0.5*Math.abs(Math.sin(G.t*0.1));
+    ctx.fillStyle=b.kind==='powbox'?'#9a52c4':'#d9a72b'; roundRect(ctx,b.x,yy,b.w,b.h,4); ctx.fill();
+    ctx.fillStyle='rgba(255,255,255,.18)'; ctx.fillRect(b.x+3,yy+3,b.w-6,5);
+    ctx.strokeStyle='#7a5a18'; ctx.lineWidth=2; ctx.stroke();
+    ctx.fillStyle='rgba(255,255,255,'+(0.4+0.4*glow)+')'; ctx.font='bold 22px serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText(b.kind==='powbox'?'❖':'?',b.x+b.w/2,yy+b.h/2+2); ctx.textAlign='left'; ctx.textBaseline='alphabetic';
+  }
+  function drawHazard(hz){ const n=Math.max(2,Math.floor(hz.w/13)); const sw=hz.w/n;
+    ctx.fillStyle='#5a5f66'; ctx.fillRect(hz.x,hz.y+hz.h-5,hz.w,5);
+    for(let i=0;i<n;i++){ const x=hz.x+i*sw;
+      ctx.fillStyle='#9aa0a6'; ctx.beginPath(); ctx.moveTo(x,hz.y+hz.h); ctx.lineTo(x+sw/2,hz.y); ctx.lineTo(x+sw,hz.y+hz.h); ctx.closePath(); ctx.fill();
+      ctx.fillStyle='rgba(255,255,255,.5)'; ctx.beginPath(); ctx.moveTo(x+sw/2,hz.y); ctx.lineTo(x+sw*0.62,hz.y+hz.h*0.5); ctx.lineTo(x+sw/2,hz.y+hz.h*0.5); ctx.closePath(); ctx.fill(); }
+  }
+  function drawPowerup(u){ const bob=Math.sin(G.t*0.2)*2;
+    ctx.save(); ctx.translate(u.x,u.y+bob);
+    ctx.fillStyle='rgba(255,228,150,.45)'; ctx.beginPath(); ctx.arc(0,0,16,0,7); ctx.fill();
+    ctx.fillStyle='#d9a72b'; ctx.beginPath(); ctx.moveTo(-11,7); ctx.quadraticCurveTo(-13,-12,0,-14); ctx.quadraticCurveTo(13,-12,11,7); ctx.closePath(); ctx.fill();
+    ctx.strokeStyle='#7a5a18'; ctx.lineWidth=2; ctx.stroke();
+    ctx.fillStyle='#caa258'; ctx.fillRect(-11,5,22,4);
+    ctx.fillStyle='#b6bbc0'; ctx.fillRect(-1.5,-21,3,8);
+    ctx.fillStyle='#fff4cc'; ctx.beginPath(); ctx.arc(0,-23,2.2,0,7); ctx.fill();
     ctx.restore();
   }
   function drawGoal(kind, gx){
