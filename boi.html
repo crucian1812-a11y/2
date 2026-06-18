@@ -41,11 +41,11 @@
   .foot{text-align:center; color:var(--sepia); font-style:italic; margin-top:18px; font-size:.9rem}
 
   .heroes{display:flex; gap:12px; justify-content:center; flex-wrap:wrap; margin:14px 0}
-  .hero-card{width:170px; background:var(--panel); border:2px solid var(--line); border-radius:14px; padding:12px 10px 14px;
+  .hero-card{width:190px; background:var(--panel); border:2px solid var(--line); border-radius:14px; padding:12px 10px 14px;
     text-align:center; cursor:pointer; box-shadow:0 4px 12px rgba(60,40,18,.16); transition:transform .12s}
   .hero-card:active{transform:scale(.98)}
   .hero-card.sel{border-color:var(--rust); box-shadow:0 0 0 3px rgba(138,74,30,.3),0 4px 12px rgba(60,40,18,.16)}
-  .hero-card canvas{width:120px; height:150px; display:block; margin:0 auto; image-rendering:pixelated}
+  .hero-card canvas{width:140px; height:166px; display:block; margin:0 auto; image-rendering:pixelated}
   .hero-card .hn{font-family:"Ruslan Display",serif; font-size:1.3rem; margin-top:4px}
   .hero-card .hd{font-size:.82rem; color:var(--sepia); min-height:2.4em}
   .pips{margin-top:4px; font-size:.78rem; color:var(--rust)}
@@ -67,6 +67,10 @@
   #stage{position:relative; margin:6px auto 0; max-width:960px}
   #game{display:block; width:100%; height:auto; background:#1a1626; border:3px solid var(--line);
     border-radius:10px; box-shadow:0 8px 22px rgba(60,40,18,.25); image-rendering:pixelated}
+  #stage.fs{position:fixed; inset:0; z-index:90; max-width:none; margin:0; display:flex;
+    align-items:center; justify-content:center; background:#000}
+  #stage.fs #game{width:auto; height:auto; border:0; border-radius:0; box-shadow:none}
+  #fsbtn{position:absolute; top:8px; right:54px; pointer-events:auto; z-index:3}
   /* HUD */
   #hud{position:absolute; top:8px; left:10px; right:10px; display:flex; justify-content:space-between; align-items:flex-start;
     font-family:"Ruslan Display",serif; pointer-events:none; color:#fff; text-shadow:1px 1px 0 #000, 0 2px 3px rgba(0,0,0,.6); font-size:.9rem}
@@ -125,6 +129,7 @@
       </div>
     </div>
     <button class="btn mini" id="pausebtn">II</button>
+    <button class="btn mini" id="fsbtn">⛶</button>
     <div id="pad">
       <div class="dpad">
         <button class="dbtn" id="d-up">▲</button>
@@ -303,7 +308,7 @@
     let html='<div class="topbar"><button class="btn mini" id="home">⌂ Домой</button>'+muteBtn()+'</div>'+
       '<p class="eyebrow">Дружина</p><h1 style="font-size:2rem">Выбери витязя</h1><div class="heroes">';
     HEROES.forEach((h,i)=>{ html+='<div class="hero-card'+(prog.hero===i?' sel':'')+'" data-i="'+i+'">'+
-      '<canvas width="60" height="75"></canvas><div class="hn">'+h.name+'</div><div class="hd">'+h.desc+'</div>'+
+      '<canvas width="110" height="130"></canvas><div class="hn">'+h.name+'</div><div class="hd">'+h.desc+'</div>'+
       '<div class="pips">ударъ '+'★'.repeat(Math.max(1,Math.round(h.dmg/5)))+' · здоровье '+'★'.repeat(Math.max(1,Math.round(h.hp/45)))+' · прыть '+'★'.repeat(Math.max(1,Math.round(h.speed*2)))+'</div></div>'; });
     html+='</div><button class="btn big rust" id="go">Дальше ▸</button>';
     $ui.innerHTML=html;
@@ -312,12 +317,12 @@
     document.getElementById('home').onclick=renderHome; document.getElementById('go').onclick=renderMap; bindMute();
     if(window._ha) cancelAnimationFrame(window._ha);
     const cs=Array.from(document.querySelectorAll('.hero-card canvas'));
-    (function loop(ts){ cs.forEach((c,i)=>{ const g=c.getContext('2d'); g.imageSmoothingEnabled=false; g.clearRect(0,0,60,75);
+    (function loop(ts){ cs.forEach((c,i)=>{ const g=c.getContext('2d'); g.imageSmoothingEnabled=false; g.clearRect(0,0,110,130);
       drawHeroPreview(g,HEROES[i],ts*0.05); }); window._ha=requestAnimationFrame(loop); })(0);
   }
   function drawHeroPreview(g, h, t){
     const real=ctx; ctx=g;   // swap pixel-helper target to the preview canvas
-    fighter(30, 70, 1.7, {cloak:h.cloak,cloak2:h.cloak2,trim:h.trim,beard:h.beard,emblem:h.emblem,helm:'#c2c7cc'}, 1, {state:'idle',t});
+    fighter(55, 104, 1.35, {cloak:h.cloak,cloak2:h.cloak2,trim:h.trim,beard:h.beard,emblem:h.emblem,helm:'#c2c7cc'}, 1, {state:'idle',t});
     ctx=real;
   }
 
@@ -625,6 +630,13 @@
     if(G.flash>0){ ctx.fillStyle='rgba(255,255,255,'+(G.flash/12*0.5)+')'; ctx.fillRect(0,0,IW,IH); }
     if(G.boss && G.boss.intro>0){ ctx.fillStyle='#000'; ctx.fillRect(0,IH/2-16,IW,24); ctx.fillStyle='#e0654f'; ctx.font='14px "Ruslan Display",serif'; ctx.textAlign='center'; ctx.fillText('БОССЪ: '+G.M.boss.name, IW/2, IH/2+1); ctx.textAlign='left'; }
     if(G.paused){ ctx.fillStyle='rgba(20,12,6,.6)'; ctx.fillRect(0,0,IW,IH); ctx.fillStyle='#fff'; ctx.font='20px "Ruslan Display",serif'; ctx.textAlign='center'; ctx.fillText('Пауза',IW/2,IH/2); ctx.textAlign='left'; }
+    drawVignette();
+  }
+  let _vg=null;
+  function drawVignette(){
+    if(!_vg){ _vg=ctx.createRadialGradient(IW/2,IH*0.55,IH*0.25,IW/2,IH*0.55,IW*0.72);
+      _vg.addColorStop(0,'rgba(0,0,0,0)'); _vg.addColorStop(1,'rgba(0,0,0,.38)'); }
+    ctx.fillStyle=_vg; ctx.fillRect(0,0,IW,IH);
   }
   function tri(x1,y1,x2,y2,x3,y3){ ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.lineTo(x3,y3); ctx.closePath(); ctx.fill(); }
   function drawPlayer(p){ const h=G.hero; const sx=p.wx-G.cam, sy=dY(p.d)-(p.z||0);
@@ -746,6 +758,33 @@
     const ov=mkOverlay('<h2>Пауза</h2><button class="btn big rust" id="resume">Продолжить ▸</button><button class="btn" id="toMap">Къ картѣ</button>');
     document.getElementById('resume').onclick=()=>{ ov.remove(); G.paused=false; last=performance.now(); };
     document.getElementById('toMap').onclick=()=>{ ov.remove(); stopGame(); renderMap(); }; } };
+
+  /* ===================== FULLSCREEN ===================== */
+  function fitStage(){
+    if(document.fullscreenElement || document.webkitFullscreenElement){
+      const ar=IW/IH; const ww=window.innerWidth, wh=window.innerHeight;
+      let w=ww, h=w/ar; if(h>wh){ h=wh; w=h*ar; }
+      cv.style.width=Math.floor(w)+'px'; cv.style.height=Math.floor(h)+'px';
+    } else { cv.style.width=''; cv.style.height=''; }
+  }
+  function toggleFullscreen(){
+    const fsEl=document.fullscreenElement||document.webkitFullscreenElement;
+    if(!fsEl){
+      const req=$stage.requestFullscreen||$stage.webkitRequestFullscreen;
+      if(req) req.call($stage);
+      $stage.classList.add('fs');
+      if(screen.orientation && screen.orientation.lock) screen.orientation.lock('landscape').catch(()=>{});
+    } else {
+      const ex=document.exitFullscreen||document.webkitExitFullscreen;
+      if(ex) ex.call(document);
+      $stage.classList.remove('fs');
+    }
+  }
+  document.getElementById('fsbtn').onclick=toggleFullscreen;
+  document.addEventListener('fullscreenchange',()=>{ if(!document.fullscreenElement) $stage.classList.remove('fs'); fitStage(); });
+  document.addEventListener('webkitfullscreenchange',fitStage);
+  window.addEventListener('resize',fitStage);
+  window.addEventListener('orientationchange',()=>setTimeout(fitStage,200));
 
   renderHome();
 })();

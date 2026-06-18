@@ -77,6 +77,10 @@
     text-shadow:0 2px 3px rgba(0,0,0,.5); font-size:1.05rem}
   #hud .right{text-align:right}
   #pausebtn{position:absolute; top:8px; right:10px}
+  #stage.fs{position:fixed; inset:0; z-index:90; max-width:none; margin:0; display:flex;
+    align-items:center; justify-content:center; background:#000}
+  #stage.fs #game{width:auto; height:auto; border:0; border-radius:0; box-shadow:none}
+  #fsbtn{position:absolute; top:8px; right:54px}
 
   /* touch controls */
   #pad{position:absolute; inset:0; pointer-events:none}
@@ -113,6 +117,7 @@
     <canvas id="game" width="960" height="540"></canvas>
     <div id="hud"><div class="left" id="hud-l"></div><div class="right" id="hud-r"></div></div>
     <button class="btn mini" id="pausebtn">II</button>
+    <button class="btn mini" id="fsbtn">⛶</button>
     <div id="pad">
       <button class="tbtn" id="b-left">◀</button>
       <button class="tbtn" id="b-right">▶</button>
@@ -629,6 +634,33 @@
       document.getElementById('toMap').onclick=()=>{ ov.remove(); stopGame(); renderMap(); };
     }
   };
+
+  /* ===================== FULLSCREEN ===================== */
+  function fitStage(){
+    if(document.fullscreenElement || document.webkitFullscreenElement){
+      const ar=W/H; const ww=window.innerWidth, wh=window.innerHeight;
+      let w=ww, h=w/ar; if(h>wh){ h=wh; w=h*ar; }
+      cv.style.width=Math.floor(w)+'px'; cv.style.height=Math.floor(h)+'px';
+    } else { cv.style.width=''; cv.style.height=''; }
+  }
+  function toggleFullscreen(){
+    const fsEl=document.fullscreenElement||document.webkitFullscreenElement;
+    if(!fsEl){
+      const req=$stage.requestFullscreen||$stage.webkitRequestFullscreen;
+      if(req) req.call($stage);
+      $stage.classList.add('fs');
+      if(screen.orientation && screen.orientation.lock) screen.orientation.lock('landscape').catch(()=>{});
+    } else {
+      const ex=document.exitFullscreen||document.webkitExitFullscreen;
+      if(ex) ex.call(document);
+      $stage.classList.remove('fs');
+    }
+  }
+  document.getElementById('fsbtn').onclick=toggleFullscreen;
+  document.addEventListener('fullscreenchange',()=>{ if(!document.fullscreenElement) $stage.classList.remove('fs'); fitStage(); });
+  document.addEventListener('webkitfullscreenchange',fitStage);
+  window.addEventListener('resize',fitStage);
+  window.addEventListener('orientationchange',()=>setTimeout(fitStage,200));
 
   /* ====================== GO ====================== */
   renderHome();
