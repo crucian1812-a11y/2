@@ -247,6 +247,7 @@
         pos:0, playerX:0, speed:0, maxSpeed:maxSpeed*h.vmax,
         accel:maxSpeed*h.accel*0.62, brakeA:maxSpeed*1.4, decel:maxSpeed*0.42, offDecel:maxSpeed*1.1,
         hp:100, atk:0, atkHitDone:false, shake:0, flash:0, hurt:0, steerLean:0,
+        down:0, stagger:0, staggerDir:0, bumpT:0,
         opps:[], place:1, hoofT:0, done:false, finishPos:trackLen-segLen*3, raceOver:false };
     // spawn opponents ahead, spread along track
     const cols=['#9a3b6e','#3a8a6a','#8a6a2a','#6a3a8a','#aa5a2a','#3a5a8a'];
@@ -255,7 +256,7 @@
         speed:G.maxSpeed*(M.oppV*0.86), targetV:G.maxSpeed*(M.oppV*(0.9+Math.random()*0.16)),
         hp:3, col:cols[i%cols.length], horse:['#5a3a22','#7a5230','#4a4038'][i%3],
         weapon:['sword','axe','mace'][i%3], pow:M.oppPow, atk:0, atkCd:60+Math.random()*120,
-        wob:Math.random()*6, crashed:0, name:'Соперникъ '+(i+1) });
+        wob:Math.random()*6, stagger:0, staggerDir:0, fall:null, knocked:false, name:'Соперникъ '+(i+1) });
     }
     showGame(); updateHUD(); last=performance.now();
     if(raf) cancelAnimationFrame(raf); raf=requestAnimationFrame(frame);
@@ -283,16 +284,29 @@
   function update(dt){
     G.t+=dt*60;
     if(G.shake>0) G.shake-=dt*60; if(G.flash>0) G.flash-=dt*60; if(G.hurt>0) G.hurt-=dt*60;
+    if(G.stagger>0) G.stagger-=dt*60; if(G.bumpT>0) G.bumpT-=dt*60;
     const seg=findSeg(G.pos);
     const speedPct=G.speed/G.maxSpeed;
+    const downed=G.down>0;
+    const stunned=G.stagger>0;
 
     // ---- input ----
     const hitEdge=keys.hit && !keys._hit; keys._hit=keys.hit;
-    if(keys.gas) G.speed+=G.accel*dt; else if(keys.brake) G.speed-=G.brakeA*dt; else G.speed-=G.decel*dt;
-    // steering
-    const steer = (keys.left?-1:0)+(keys.right?1:0);
-    G.playerX += steer * dt * 1.7 * (0.35+speedPct) * G.hero.grip;
-    G.steerLean += ((steer*1) - G.steerLean)*Math.min(1,dt*8);
+    if(downed){
+      // knocked off the horse: no control, sliding to a halt, then remount
+      G.down-=dt*60; G.speed-=G.maxSpeed*1.7*dt; G.steerLean+=(0-G.steerLean)*Math.min(1,dt*4);
+      if(G.down<=0){ G.hp=Math.max(G.hp,55); G.speed=Math.max(G.speed,G.maxSpeed*0.16); G.hurt=30; G.steerLean=0; }
+    } else {
+      if(keys.gas) G.speed+=G.accel*dt; else if(keys.brake) G.speed-=G.brakeA*dt; else G.speed-=G.decel*dt;
+      // steering — sluggish while staggered
+      const steer = ((keys.left?-1:0)+(keys.right?1:0)) * (stunned?0.4:1);
+      G.playerX += steer * dt * 1.7 * (0.35+speedPct) * G.hero.grip;
+      G.steerLean += ((steer*1) - G.steerLean)*Math.min(1,dt*8);
+      // attack (blocked while staggered)
+      if(hitEdge && G.atk<=0 && !stunned){ G.atk=18; G.atkHitDone=false; sSwing(); }
+      if(G.atk>0){ G.atk-=dt*60;
+        if(!G.atkHitDone && G.atk<11){ G.atkHitDone=true; playerStrike(); } }
+    }
     // centrifugal pull on curves
     G.playerX -= (seg.curve*0.00055) * speedPct * speedPct * dt * 60;
     // off-road
@@ -305,23 +319,32 @@
     // hoofbeats
     G.hoofT-=dt; if(G.hoofT<=0 && G.speed>40){ sHoof(); G.hoofT=0.42-0.3*speedPct; }
 
-    // ---- player attack ----
-    if(hitEdge && G.atk<=0){ G.atk=18; G.atkHitDone=false; sSwing(); }
-    if(G.atk>0){ G.atk-=dt*60;
-      if(!G.atkHitDone && G.atk<11){ G.atkHitDone=true; playerStrike(); } }
-
     // ---- opponents ----
     for(const o of G.opps){
-      if(o.crashed>0){ o.crashed-=dt*60; o.speed=Math.max(o.speed-G.maxSpeed*0.6*dt, G.maxSpeed*0.2); o.offset+= (o.offSign||1)*dt*0.4; }
-      else {
+      if(o.stagger>0) o.stagger-=dt*60;
+      if(o.knocked){
+        // knocked off — tumbling, sliding off the road, dropping far back
+        const f=o.fall; f.t+=dt*60; f.rot+=f.vrot*dt*60;
+        o.speed=Math.max(o.speed-G.maxSpeed*1.8*dt, G.maxSpeed*0.10);
+        o.offset+=f.slide*dt*1.1;            // skid toward the verge
+      } else {
         o.speed += (o.targetV-o.speed)*Math.min(1,dt*0.7);
-        // gentle weave + steer back toward racing line, dodge player a bit
         o.wob+=dt; o.offset += Math.sin(o.wob*1.3)*dt*0.18;
-        const dz=o.z-G.pos;
-        if(dz>0 && dz<segLen*3 && Math.abs(o.offset-G.playerX)<0.5){
-          // beside / just ahead of player -> maybe attack back
+        const dz=o.z-G.pos, doff=o.offset-G.playerX;
+        // close in to fight when player is near
+        if(dz>-segLen*2 && dz<segLen*4.5 && Math.abs(doff)<0.7){
+          o.offset += Math.sign(G.playerX-o.offset)*dt*0.22;
           o.atkCd-=dt*60;
-          if(o.atkCd<=0){ o.atk=14; o.atkCd=120+Math.random()*120; oppStrike(o); }
+          if(Math.abs(doff)<0.5 && dz>-segLen*1.5 && o.atkCd<=0 && o.stagger<=0){
+            o.atk=14; o.atkCd=110+Math.random()*120; oppStrike(o);
+          }
+        }
+        // side-by-side jostle: push each other apart
+        if(Math.abs(dz)<segLen*0.95 && Math.abs(doff)<0.20){
+          const dir=doff>=0?1:-1, push=(0.20-Math.abs(doff));
+          o.offset+=dir*push*dt*7; G.playerX-=dir*push*dt*5.5;
+          o.speed*=Math.pow(0.985,dt*60); G.speed*=Math.pow(0.99,dt*60);
+          if(G.bumpT<=0){ noise(0.05,0.07); tone(120,0.05,'square',0.08); G.bumpT=14; }
         }
         o.offset=Math.max(-0.95,Math.min(0.95,o.offset));
       }
@@ -342,21 +365,35 @@
   }
 
   function playerStrike(){
-    // hit nearest opponent just ahead / beside, on same side of road
+    // strike the nearest rider you're riding alongside
     let best=null, bestDz=1e9;
-    for(const o of G.opps){ if(o.crashed>0) continue; const dz=o.z-G.pos;
-      if(dz>-segLen*1.2 && dz<segLen*4 && Math.abs(o.offset-G.playerX)<0.55){ if(Math.abs(dz)<bestDz){ bestDz=Math.abs(dz); best=o; } } }
-    if(best){ best.hp-=1; best.speed*=0.6; best.offSign=(best.offset>G.playerX)?1:-1; best.offset+=best.offSign*0.22;
-      G.shake=5; sHit(); floater(best,'БАХ','#ffe27a');
-      if(best.hp<=0){ best.crashed=120; best.speed*=0.35; sCrash(); floater(best,'⤵ палъ!','#ff8c6e'); } }
-    else { sSwing(); }
+    for(const o of G.opps){ if(o.knocked) continue; const dz=o.z-G.pos;
+      if(dz>-segLen*1.4 && dz<segLen*4 && Math.abs(o.offset-G.playerX)<0.55){ if(Math.abs(dz)<bestDz){ bestDz=Math.abs(dz); best=o; } } }
+    if(best){
+      const dmg=Math.max(1,Math.round(G.hero.power+0.5));
+      best.hp-=dmg; best.speed*=0.62;
+      const dir=(best.offset>=G.playerX)?1:-1;
+      best.offset+=dir*0.26; best.stagger=26; best.staggerDir=dir;   // veer & reel
+      G.shake=5; sHit(); floater(best,'БАХ!','#ffe27a');
+      if(best.hp<=0) knockOffOpp(best, dir);
+    } else { sSwing(); }
+  }
+  function knockOffOpp(o, dir){
+    o.knocked=true; o.fall={ t:0, rot:0, vrot:(0.10+Math.random()*0.05), slide:(dir||(o.offset>=0?1:-1)) };
+    o.speed*=0.4; sCrash(); G.shake=7; floater(o,'⤵ выбитъ!','#ff8c6e');
   }
   function oppStrike(o){ sBig();
-    if(Math.abs(o.offset-G.playerX)<0.45 && G.hurt<=0){
-      G.hp-=Math.round(10*o.pow); G.speed*=0.7; G.shake=7; G.flash=8; G.hurt=40; sHurt();
-      G.playerX += (G.playerX>o.offset?1:-1)*0.18;
-      if(G.hp<0) G.hp=0;
+    if(G.down>0 || G.hurt>0) return;
+    if(Math.abs(o.offset-G.playerX)<0.46){
+      G.hp-=Math.round(9*o.pow); G.speed*=0.74; G.shake=7; G.flash=8; G.hurt=36;
+      G.stagger=22; G.staggerDir=(G.playerX>=o.offset)?1:-1;
+      G.playerX += G.staggerDir*0.16; sHurt(); floater(o,'ударъ!','#ff9a6e');
+      if(G.hp<=0){ G.hp=0; knockOffPlayer(o); }
     }
+  }
+  function knockOffPlayer(o){
+    G.down=72; G.flash=14; G.shake=13; G.atk=0; G.stagger=0; sCrash();
+    G.playerX += (o&&G.playerX>=o.offset?1:-1)*0.2;
   }
   const floaters=[];
   function floater(o,txt,col){ floaters.push({o, dz:o.z-G.pos, txt, col, life:40}); }
@@ -397,7 +434,8 @@
           const sy=s.p1.screen.y;
           if(sy>s.clip) continue;
           const size=sc*roadWidth*W/2*0.34;
-          drawRider(sx, sy, size, {cloak:o.col, trim:'#eee', horse:o.horse, weapon:o.weapon}, G.t+o.wob*30, o.offset*0.3, o.atk>0, o.crashed>0);
+          const oLean=o.offset*0.3 + (o.stagger>0?o.staggerDir*0.5:0);
+          drawRider(sx, sy, size, {cloak:o.col, trim:'#eee', horse:o.horse, weapon:o.weapon}, G.t+o.wob*30, oLean, o.atk>0, o.knocked?o.fall.rot:0, o.stagger>0);
         }
       }
     }
@@ -405,8 +443,9 @@
 
     // ---- player (always at bottom) ----
     const psize=H*0.34;
-    const lean=G.steerLean*0.5 + (G.shake>0?(Math.random()-0.5)*0.2:0);
-    drawRider(W/2+G.steerLean*22, H-24+(G.shake>0?oy:0), psize, {cloak:G.hero.cloak, trim:G.hero.trim, horse:G.hero.horse, weapon:G.hero.weapon}, G.t, lean, G.atk>0, false, G.hurt>0);
+    const pFall=G.down>0 ? Math.min(1.5,(72-G.down)*0.035) : 0;
+    const lean=G.steerLean*0.5 + (G.stagger>0?G.staggerDir*0.5:0) + (G.shake>0?(Math.random()-0.5)*0.2:0);
+    drawRider(W/2+G.steerLean*22, H-24+(G.shake>0?oy:0), psize, {cloak:G.hero.cloak, trim:G.hero.trim, horse:G.hero.horse, weapon:G.hero.weapon}, G.t, lean, G.atk>0, pFall, G.hurt>0);
 
     // floaters
     for(const f of floaters){ const dz=f.o.z-G.pos; const s=findSeg(f.o.z);
@@ -421,6 +460,7 @@
     if(G.speed>G.maxSpeed*0.75){ ctx.strokeStyle='rgba(255,255,255,.18)'; ctx.lineWidth=2;
       for(let i=0;i<6;i++){ const a=Math.random()*Math.PI*2, r=H*0.5+Math.random()*40; ctx.beginPath();
         ctx.moveTo(W/2+Math.cos(a)*r,H*0.55+Math.sin(a)*r*0.6); ctx.lineTo(W/2+Math.cos(a)*(r+30),H*0.55+Math.sin(a)*(r+30)*0.6); ctx.stroke(); } }
+    if(G.down>0){ ctx.fillStyle='#000'; ctx.fillRect(0,H/2-22,W,34); ctx.fillStyle='#ff7a5e'; ctx.font='24px "Ruslan Display",serif'; ctx.textAlign='center'; ctx.fillText('Сбили! Поднимайся…',W/2,H/2+2); ctx.textAlign='left'; }
     if(G.paused){ ctx.fillStyle='rgba(20,12,6,.6)'; ctx.fillRect(0,0,W,H); ctx.fillStyle='#fff'; ctx.font='30px "Ruslan Display",serif'; ctx.textAlign='center'; ctx.fillText('Пауза',W/2,H/2); ctx.textAlign='left'; }
   }
   const interp=(a,b,p)=> a+(b-a)*p;
@@ -461,7 +501,7 @@
     const u=s/100;   // unit
     // shadow
     ctx.fillStyle='rgba(0,0,0,.28)'; ctx.beginPath(); ctx.ellipse(0,0,46*u,12*u,0,0,7); ctx.fill();
-    if(crashed){ ctx.rotate(0.5); ctx.translate(-10*u,-6*u); }
+    if(crashed){ ctx.rotate(crashed); ctx.translate(-14*u,-4*u); }
     const gallop=Math.sin(t*0.45)*8*u;
     // hind legs
     ctx.strokeStyle='#1a120a'; ctx.lineWidth=8*u; ctx.lineCap='round';
