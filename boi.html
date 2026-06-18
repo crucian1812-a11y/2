@@ -510,6 +510,10 @@
         else if(b.hurtT>0){ b.hurtT-=dt; b.state='hurt'; if(b.hurtT<=0)b.state='idle'; }
         else updateBossAI(b,dt);
         updateAttack(b,dt,b.dmg,b.reach,false);
+        // charge attack actually lunges & homes onto the player's lane
+        if(b.atk && b.atk.charge){ const at=b.atk; if(at.clock<=at.hitTo){
+          b.wx += at.charge*3.3*dt;
+          const cdd=G.p.d-b.d; if(Math.abs(cdd)>0.04) b.d=Math.max(0,Math.min(1,b.d+Math.sign(cdd)*0.03*dt)); } }
         if(b.inv>0) b.inv-=dt;
         b.wx=Math.max(G.cam+24,Math.min(G.cam+IW-24,b.wx));
       }
@@ -619,27 +623,31 @@
       if(e.atkCd<=0 && Math.abs(dd)<0.16 && dist<200){ fireArrow(e); e.atkCd=80+Math.random()*70; }
       return;
     }
-    if(dist< e.reach+10 && Math.abs(dd)<0.18 && e.atkCd<=0){ startAttack(e,0); e.atkCd=60+Math.random()*60; return; }
-    // approach with slight depth matching, keep some spacing variety
-    const desired = (e.reach+6);
-    if(dist>desired){ e.wx += Math.sign(dx)*e.speed*dt; e.state='walk'; } else e.state='idle';
-    if(Math.abs(dd)>0.05){ e.d=Math.max(0,Math.min(1,e.d+Math.sign(dd)*0.01*dt)); }
+    if(dist< e.reach+10 && Math.abs(dd)<0.2 && e.atkCd<=0){ startAttack(e,0); e.atkCd=42+Math.random()*46; return; }
+    // approach with depth matching, keep some spacing variety
+    const desired = (e.reach+4);
+    if(dist>desired){ e.wx += Math.sign(dx)*e.speed*dt; e.state='walk'; }
+    else if(Math.abs(dd)>0.06){ e.state='walk'; }   // in X-range but wrong lane → keep closing depth
+    else e.state='idle';
+    // track the player's depth lane fast enough to actually line up a blow (player strafes at 0.014)
+    if(Math.abs(dd)>0.04){ const ds = dist<e.reach+24 ? 0.024 : 0.014; e.d=Math.max(0,Math.min(1,e.d+Math.sign(dd)*ds*dt)); }
   }
   function updateBossAI(b,dt){
     if(b.atk){ b.state='attack'; return; }
     const p=G.p, dx=p.wx-b.wx, dd=p.d-b.d, dist=Math.abs(dx);
     b.facing=dx<0?-1:1;
+    // always close depth toward the player so its blows can actually land
+    if(Math.abs(dd)>0.04){ const ds = dist<b.reach+40 ? 0.026 : 0.016; b.d=Math.max(0,Math.min(1,b.d+Math.sign(dd)*ds*dt)); }
     if(b.atkCd>0){ b.atkCd-=dt;
-      if(dist>b.reach+4){ b.wx+=Math.sign(dx)*1.5*dt; b.state='walk'; } else b.state='idle';
-      if(Math.abs(dd)>0.05) b.d=Math.max(0,Math.min(1,b.d+Math.sign(dd)*0.012*dt));
+      if(dist>b.reach+4){ b.wx+=Math.sign(dx)*1.7*dt; b.state='walk'; } else b.state='idle';
       return;
     }
     // choose attack
-    if(b.magic && Math.random()<0.3){ bossMagic(b); b.atkCd=120; return; }
-    if(dist<b.reach+8){ startAttack(b,0); b.atkCd=50+Math.random()*40; }
-    else { // charge
+    if(b.magic && Math.random()<0.28){ bossMagic(b); b.atkCd=95; return; }
+    if(dist<b.reach+8 && Math.abs(dd)<0.22){ startAttack(b,0); b.atkCd=40+Math.random()*32; }
+    else { // lunging charge that homes toward the player
       b.atk={clock:0,dur:30,hitFrom:8,hitTo:26,lock:true,hitDone:false,step:0,jump:false,finisher:true,charge:Math.sign(dx)};
-      b.state='attack'; b.atkCd=80;
+      b.state='attack'; b.atkCd=60;
     }
   }
   function bossMagic(b){ G.flash=8; sMagic();
