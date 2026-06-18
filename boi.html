@@ -250,8 +250,9 @@
     const st=a.state, t=a.t||0;
     const walk=st==='walk', atk=st==='attack', hurt=st==='hurt', down=st==='down', cast=st==='cast';
     ctx.save(); ctx.translate(fx, fy); ctx.scale(sc*(facing<0?-1:1), sc);
-    // shadow
-    ctx.fillStyle='rgba(0,0,0,.28)'; ellipse(0,0,11,3.4);
+    // soft contact shadow (blurred via gradient) — grounds the sprite in 3D space
+    let shg=ctx.createRadialGradient(0,0,0,0,0,12); shg.addColorStop(0,'rgba(0,0,0,.34)'); shg.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle=shg; ellipse(0,0,12,3.6);
     if(down){ ctx.rotate(-1.15); ctx.translate(-6,-2); }
     const ph=walk? Math.sin(t*0.32):0;
     const bob=walk? Math.abs(Math.sin(t*0.32))*1.4 : (st==='idle'? Math.sin(t*0.07)*0.8:0);
@@ -260,11 +261,12 @@
     // ---- legs ----
     leg(-4, ph*5, c, O); leg(4, -ph*5, c, O);
     // ---- shield (back, behind body when facing right) ----
-    // ---- torso ----
+    // ---- torso (volumetric shading: dark back rim, lit front face) ----
     px(-9,-44,18,26, c.cloak, O);
     px(-9,-44,18,8, c.cloak2, null);          // shoulder shade
     px(-9,-22,18,4, c.trim, null);            // belt
-    px(-9,-44,4,26, c.cloak2, null);          // back shade
+    px(-9,-44,4,26, c.cloak2, null);          // back shade (away from light)
+    px(4,-40,3,20,'rgba(255,255,255,.16)',null); // front rim-light (towards light source)
     // ---- sword arm ----
     let sw;
     if(atk){ const k=Math.min(1,(a.clock||0)/a.dur); sw=-1.9+k*2.6; }
@@ -303,6 +305,7 @@
     px(-7,2,14,5,c.beard,null);               // beard
     px(-8,-9,16,7,c.helm||'#c2c7cc',O);       // helmet dome
     px(-8,-3,16,3,'#9aa0a6',null);            // rim
+    px(3,-9,4,5,'rgba(255,255,255,.4)',null); // helmet sheen (light source highlight)
     px(-1.5,-15,3,7,c.helm||'#c2c7cc',O);     // шишакъ
     px(-1.4,-6,3,7,'#b6bbc0',null);           // noseguard
     px(-7,-3,3,3,'#fff',null); px(3,-3,3,3,'#fff',null);
@@ -769,6 +772,18 @@
     // near ground (1.0)
     ctx.fillStyle= theme==='sofia'?'#6a563f': theme==='kreml'?'#7a8f5a':'#8a7348';
     ctx.fillRect(0,FY0-4,IW,IH-(FY0-4));
+    // atmospheric haze where ground meets horizon (depth cue)
+    let hz=ctx.createLinearGradient(0,FY0-14,0,FY0+10);
+    hz.addColorStop(0,'rgba(255,255,255,.32)'); hz.addColorStop(1,'rgba(255,255,255,0)');
+    ctx.fillStyle=hz; ctx.fillRect(0,FY0-14,IW,24);
+    // perspective floor grid converging to a vanishing point — gives the ground real depth
+    const vpx=IW/2-cam*0.06, vpy=FY0-6;
+    ctx.strokeStyle='rgba(0,0,0,.16)'; ctx.lineWidth=1;
+    for(let i=-6;i<=6;i++){ const bx=IW/2+i*70-((cam*0.18)%70)*0;
+      ctx.beginPath(); ctx.moveTo(vpx,vpy); ctx.lineTo(bx,IH); ctx.stroke(); }
+    const rs=-(cam*1.15)%34;
+    for(let r=0;r<6;r++){ const ry=FY0+6+r*((IH-FY0-6)/6); const k=(ry-vpy)/(IH-vpy);
+      ctx.strokeStyle='rgba(0,0,0,'+(0.05+0.05*k)+')'; ctx.beginPath(); ctx.moveTo(0,ry); ctx.lineTo(IW,ry); ctx.stroke(); }
     // ground texture stripes scrolling
     ctx.fillStyle='rgba(0,0,0,.10)';
     const gs=-(cam)%26; for(let x=gs-26;x<IW;x+=26){ ctx.fillRect(x,FY0+6,13,IH); }
