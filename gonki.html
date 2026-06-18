@@ -79,6 +79,8 @@
   .hbar > i{display:block; height:100%; background:linear-gradient(90deg,#e0654f,#7bd987); width:100%}
   .progbar{width:160px; height:8px; border:2px solid #000; border-radius:3px; background:#2a2a3a; overflow:hidden; margin-top:4px}
   .progbar > i{display:block; height:100%; background:linear-gradient(90deg,#c79a3b,#ffe9a0); width:0%}
+  .nbar{width:150px; height:9px; border:2px solid #000; border-radius:3px; background:#241a10; overflow:hidden; margin-top:4px}
+  .nbar > i{display:block; height:100%; background:linear-gradient(90deg,#ff7a1e,#ffe27a); width:0%}
 
   #pad{position:absolute; inset:0; pointer-events:none}
   .dbtn,.abtn{position:absolute; display:grid; place-items:center; pointer-events:auto;
@@ -90,6 +92,7 @@
   #a-gas{right:6px; bottom:10px; width:80px; height:80px; background:rgba(63,125,78,.78); font-size:1rem}
   #a-brake{right:90px; bottom:14px; width:58px; height:58px; background:rgba(162,58,46,.78); font-size:.9rem}
   #a-hit{right:30px; bottom:96px; width:64px; height:64px; background:rgba(178,59,46,.82); font-size:1.6rem}
+#a-nitro{right:110px; bottom:96px; width:56px; height:56px; background:rgba(255,122,30,.82); font-size:1.4rem}
   body.no-touch #pad{display:none}
 
   .overlay{position:fixed; inset:0; z-index:20; background:rgba(40,28,16,.74); display:grid; place-items:center; padding:20px}
@@ -114,6 +117,7 @@
         <div id="hname">Витязь</div>
         <div class="hbar"><i id="hhp"></i></div>
         <div class="progbar"><i id="hprog"></i></div>
+        <div class="nbar"><i id="hnitro"></i></div>
       </div>
       <div class="panelbox" style="text-align:right">
         <div id="place">1/6</div>
@@ -128,6 +132,7 @@
       <button class="abtn" id="a-brake">тормозъ</button>
       <button class="abtn" id="a-gas">скачи</button>
       <button class="abtn" id="a-hit">⚔</button>
+      <button class="abtn" id="a-nitro">🔥</button>
     </div>
   </div>
 </div>
@@ -181,17 +186,17 @@
   /* ===================== LEVELS ===================== */
   const LEVELS=[
     {nm:'Лугами къ Ильменю', sm:'5 соперниковъ', ic:'🐎',
-     grass:'#4e8c3e', grass2:'#3f7a33', rumble:'#e7e2d2', road:'#7d7670', road2:'#736d68',
+     grass:'#4e8c3e', grass2:'#3f7a33', rumble:'#7a5a32', road:'#a9824f', road2:'#9a7444', rut:'#7c5c34',
      fact:'Витязи мчатъ заливными лугами вдоль Ильмень-озера. Обойди всѣхъ — и не вылети съ дороги!',
-     opps:5, oppV:0.86, oppPow:0.7, laps:1, length:900},
+     opps:5, oppV:0.86, oppPow:0.7, laps:1, length:1150},
     {nm:'Сквозь Перынскій боръ', sm:'5 соперниковъ', ic:'🌲',
-     grass:'#356b3a', grass2:'#2a5a30', rumble:'#d8cfc0', road:'#6f6b66', road2:'#65615c',
+     grass:'#356b3a', grass2:'#2a5a30', rumble:'#5e4226', road:'#8c6a40', road2:'#7d5d37', rut:'#5f4424',
      fact:'Тёмный сосновый боръ у Перыни. Дорога вьётся — держи поводья крѣпко да бей лихо!',
-     opps:5, oppV:0.93, oppPow:0.95, laps:1, length:1050},
+     opps:5, oppV:0.93, oppPow:0.95, laps:1, length:1350},
     {nm:'Къ стѣнамъ Детинца', sm:'Послѣдняя скачка', ic:'🏰',
-     grass:'#7a7048', grass2:'#6a6040', rumble:'#e0d6c2', road:'#74706b', road2:'#6a6660',
+     grass:'#7a7048', grass2:'#6a6040', rumble:'#6d5230', road:'#967249', road2:'#876640', rut:'#6c4f2c',
      fact:'Финальная скачка къ воротамъ Кремля. Соперники злы и быстры — победи и стань первымъ витяземъ!',
-     opps:5, oppV:1.0, oppPow:1.15, laps:1, length:1200}
+     opps:5, oppV:1.0, oppPow:1.15, laps:1, length:1550}
   ];
 
   /* ===================== DOM / CANVAS ===================== */
@@ -237,7 +242,7 @@
 
   /* ===================== GAME ===================== */
   let G=null, raf=null, last=0;
-  const keys={left:false,right:false,gas:false,brake:false,hit:false,_hit:false};
+  const keys={left:false,right:false,gas:false,brake:false,hit:false,_hit:false,nitro:false};
 
   function startLevel(idx){
     const M=LEVELS[idx], h=HEROES[prog.hero];
@@ -247,8 +252,9 @@
         pos:0, playerX:0, speed:0, maxSpeed:maxSpeed*h.vmax,
         accel:maxSpeed*h.accel*0.62, brakeA:maxSpeed*1.4, decel:maxSpeed*0.42, offDecel:maxSpeed*1.1,
         hp:100, atk:0, atkHitDone:false, shake:0, flash:0, hurt:0, steerLean:0,
-        down:0, stagger:0, staggerDir:0, bumpT:0,
-        opps:[], place:1, hoofT:0, done:false, finishPos:trackLen-segLen*3, raceOver:false };
+        down:0, stagger:0, staggerDir:0, bumpT:0, nitro:0, nitroOn:false,
+        opps:[], place:1, hoofT:0, done:false, finishPos:trackLen-segLen*3, raceOver:false,
+        countdown:5, lastTick:5 };
     // spawn opponents ahead, spread along track
     const cols=['#9a3b6e','#3a8a6a','#8a6a2a','#6a3a8a','#aa5a2a','#3a5a8a'];
     for(let i=0;i<M.opps;i++){
@@ -282,6 +288,12 @@
   }
 
   function update(dt){
+    if(G.countdown>0){
+      G.countdown-=dt; if(G.countdown<0) G.countdown=0;
+      const tick=Math.ceil(G.countdown);
+      if(tick!==G.lastTick){ G.lastTick=tick; if(tick>0) sBell(360+tick*30); else sBell(700); }
+      updateHUD(); return;
+    }
     G.t+=dt*60;
     if(G.shake>0) G.shake-=dt*60; if(G.flash>0) G.flash-=dt*60; if(G.hurt>0) G.hurt-=dt*60;
     if(G.stagger>0) G.stagger-=dt*60; if(G.bumpT>0) G.bumpT-=dt*60;
@@ -289,6 +301,7 @@
     const speedPct=G.speed/G.maxSpeed;
     const downed=G.down>0;
     const stunned=G.stagger>0;
+    let speedCap=G.maxSpeed;
 
     // ---- input ----
     const hitEdge=keys.hit && !keys._hit; keys._hit=keys.hit;
@@ -298,6 +311,14 @@
       if(G.down<=0){ G.hp=Math.max(G.hp,55); G.speed=Math.max(G.speed,G.maxSpeed*0.16); G.hurt=30; G.steerLean=0; }
     } else {
       if(keys.gas) G.speed+=G.accel*dt; else if(keys.brake) G.speed-=G.brakeA*dt; else G.speed-=G.decel*dt;
+      // nitro — builds up while riding, spent for a burst of speed
+      G.nitro=Math.min(100,G.nitro+dt*5.5);
+      G.nitroOn = keys.nitro && G.nitro>2 && !stunned;
+      if(G.nitroOn){
+        G.speed+=G.maxSpeed*1.7*dt; G.nitro=Math.max(0,G.nitro-38*dt);
+        if(Math.floor(G.t)%3===0) noise(0.03,0.05);
+      }
+      speedCap=G.nitroOn ? G.maxSpeed*1.4 : G.maxSpeed;
       // steering — sluggish while staggered
       const steer = ((keys.left?-1:0)+(keys.right?1:0)) * (stunned?0.4:1);
       G.playerX += steer * dt * 1.7 * (0.35+speedPct) * G.hero.grip;
@@ -312,7 +333,7 @@
     // off-road
     if((G.playerX<-1 || G.playerX>1) && G.speed>G.offDecel*0.3){ G.speed-=G.offDecel*dt; G.steerLean+=(Math.random()-0.5)*0.4;
       if(Math.floor(G.t)%6===0) noise(0.04,0.06); }
-    G.speed=Math.max(0,Math.min(G.maxSpeed,G.speed));
+    G.speed=Math.max(0,Math.min(speedCap,G.speed));
     G.playerX=Math.max(-1.6,Math.min(1.6,G.playerX));
     G.pos+=G.speed*dt; if(G.pos<0)G.pos=0;
 
@@ -374,13 +395,13 @@
       best.hp-=dmg; best.speed*=0.62;
       const dir=(best.offset>=G.playerX)?1:-1;
       best.offset+=dir*0.26; best.stagger=26; best.staggerDir=dir;   // veer & reel
-      G.shake=5; sHit(); floater(best,'БАХ!','#ffe27a');
+      G.shake=5; sHit(); floater(best,'БАХ!','#ffe27a'); G.nitro=Math.min(100,G.nitro+10);
       if(best.hp<=0) knockOffOpp(best, dir);
     } else { sSwing(); }
   }
   function knockOffOpp(o, dir){
     o.knocked=true; o.fall={ t:0, rot:0, vrot:(0.10+Math.random()*0.05), slide:(dir||(o.offset>=0?1:-1)) };
-    o.speed*=0.4; sCrash(); G.shake=7; floater(o,'⤵ выбитъ!','#ff8c6e');
+    o.speed*=0.4; sCrash(); G.shake=7; floater(o,'⤵ выбитъ!','#ff8c6e'); G.nitro=Math.min(100,G.nitro+20);
   }
   function oppStrike(o){ sBig();
     if(G.down>0 || G.hurt>0) return;
@@ -455,12 +476,26 @@
         ctx.fillStyle=f.col; ctx.fillText(f.txt,sx,sy); ctx.textAlign='left'; } f.life--; }
     for(let i=floaters.length-1;i>=0;i--) if(floaters[i].life<=0) floaters.splice(i,1);
 
+    if(G.nitroOn){ ctx.fillStyle='rgba(255,140,40,'+(0.10+Math.random()*0.06)+')'; ctx.fillRect(0,0,W,H);
+      for(let i=0;i<4;i++){ const fx=W/2+(Math.random()-0.5)*60, fy=H-10-Math.random()*20;
+        ctx.fillStyle='rgba(255,'+(140+Math.floor(Math.random()*80))+',40,.7)'; ctx.beginPath(); ctx.arc(fx,fy,4+Math.random()*5,0,7); ctx.fill(); } }
     if(G.flash>0){ ctx.fillStyle='rgba(255,80,60,'+(G.flash/8*0.4)+')'; ctx.fillRect(0,0,W,H); }
     // speed lines at high velocity
     if(G.speed>G.maxSpeed*0.75){ ctx.strokeStyle='rgba(255,255,255,.18)'; ctx.lineWidth=2;
       for(let i=0;i<6;i++){ const a=Math.random()*Math.PI*2, r=H*0.5+Math.random()*40; ctx.beginPath();
         ctx.moveTo(W/2+Math.cos(a)*r,H*0.55+Math.sin(a)*r*0.6); ctx.lineTo(W/2+Math.cos(a)*(r+30),H*0.55+Math.sin(a)*(r+30)*0.6); ctx.stroke(); } }
     if(G.down>0){ ctx.fillStyle='#000'; ctx.fillRect(0,H/2-22,W,34); ctx.fillStyle='#ff7a5e'; ctx.font='24px "Ruslan Display",serif'; ctx.textAlign='center'; ctx.fillText('Сбили! Поднимайся…',W/2,H/2+2); ctx.textAlign='left'; }
+    if(G.countdown>0){
+      ctx.fillStyle='rgba(20,12,6,.35)'; ctx.fillRect(0,0,W,H);
+      const n=Math.ceil(G.countdown);
+      ctx.textAlign='center';
+      ctx.fillStyle='rgba(0,0,0,.5)'; ctx.font='bold 70px "Ruslan Display",serif';
+      ctx.fillText(n>0?String(n):'Поскачи!',W/2+3,H/2+3+25);
+      ctx.fillStyle='#ffe27a'; ctx.fillText(n>0?String(n):'Поскачи!',W/2,H/2+25);
+      ctx.font='16px "Old Standard TT",serif'; ctx.fillStyle='#fff';
+      ctx.fillText('Готовься!',W/2,H/2-40);
+      ctx.textAlign='left';
+    }
     if(G.paused){ ctx.fillStyle='rgba(20,12,6,.6)'; ctx.fillRect(0,0,W,H); ctx.fillStyle='#fff'; ctx.font='30px "Ruslan Display",serif'; ctx.textAlign='center'; ctx.fillText('Пауза',W/2,H/2); ctx.textAlign='left'; }
   }
   const interp=(a,b,p)=> a+(b-a)*p;
@@ -489,8 +524,10 @@
     if(s.finish){ // checkered
       for(let c=-2;c<=2;c++){ if((c+Math.floor(s.index/1))%2===0){ const w1=p1.w/3, w2=p2.w/3;
         poly(p1.x+c*w1,p1.y, p1.x+(c+1)*w1,p1.y, p2.x+(c+1)*w2,p2.y, p2.x+c*w2,p2.y, '#1a1a1a'); } } }
-    if(dark){ // lane markers on light segments
-      poly(p1.x-l1,p1.y, p1.x+l1,p1.y, p2.x+l2,p2.y, p2.x-l2,p2.y, 'rgba(240,240,230,.5)'); }
+    // two worn dirt-wheel ruts instead of a painted highway lane line
+    const rt1=l1*1.4, rt2=l2*1.4;
+    poly(p1.x-rt1*1.6,p1.y, p1.x-rt1*0.9,p1.y, p2.x-rt2*0.9,p2.y, p2.x-rt2*1.6,p2.y, M.rut||'rgba(0,0,0,.18)');
+    poly(p1.x+rt1*0.9,p1.y, p1.x+rt1*1.6,p1.y, p2.x+rt2*1.6,p2.y, p2.x+rt2*0.9,p2.y, M.rut||'rgba(0,0,0,.18)');
     if(fog<1){ ctx.globalAlpha=1-fog; ctx.fillStyle=grass; ctx.fillRect(0,p2.y,W,p1.y-p2.y); ctx.globalAlpha=1; }
   }
 
@@ -553,6 +590,7 @@
     document.getElementById('hname').textContent=G.hero.name;
     document.getElementById('hhp').style.width=Math.max(0,G.hp)+'%';
     document.getElementById('hprog').style.width=Math.min(100,100*G.pos/G.finishPos)+'%';
+    document.getElementById('hnitro').style.width=Math.max(0,G.nitro)+'%';
     document.getElementById('place').textContent=G.place+'/'+(G.M.opps+1);
     document.getElementById('speed').textContent=Math.round(G.speed/segLen*4.6)+' вёрстъ/ч';
   }
@@ -621,8 +659,8 @@
       '<p style="font-style:italic;color:var(--sepia);margin:.2em 0">'+M.sm+'</p>'+
       '<div class="fact">'+M.fact+'</div>'+
       '<p style="font-size:.88rem">'+(isTouch
-        ? '◀▶ — поводья, «скачи» — газъ, «тормозъ» — сдержать, ⚔ — ударить соперника рядомъ. ⛶ — на весь экранъ.'
-        : '<span class="kbd">←→</span> — поводья, <span class="kbd">↑</span> — скакать, <span class="kbd">↓</span> — тормозъ, <span class="kbd">Space</span> — ударъ.')+'</p>'+
+        ? '◀▶ — поводья, «скачи» — газъ, «тормозъ» — сдержать, ⚔ — ударить соперника рядомъ, 🔥 — нитро-рывокъ (копится самъ). ⛶ — на весь экранъ.'
+        : '<span class="kbd">←→</span> — поводья, <span class="kbd">↑</span> — скакать, <span class="kbd">↓</span> — тормозъ, <span class="kbd">Space</span> — ударъ, <span class="kbd">Shift</span> — нитро.')+'</p>'+
       '<p style="font-size:.9rem"><b>Цѣль:</b> прискакать въ тройкѣ первыхъ.</p>'+
       '<button class="btn big rust" id="begin">На старт! ▸</button><button class="btn" id="cancel">Назадъ</button>');
     document.getElementById('begin').onclick=()=>{ ov.remove(); startLevel(i); };
@@ -662,7 +700,8 @@
   /* ===================== CONTROLS ===================== */
   const KMAP={ArrowLeft:'left',a:'left',A:'left',ArrowRight:'right',d:'right',D:'right',
     ArrowUp:'gas',w:'gas',W:'gas',ArrowDown:'brake',s:'brake',S:'brake',
-    ' ':'hit',j:'hit',J:'hit',k:'hit',K:'hit'};
+    ' ':'hit',j:'hit',J:'hit',k:'hit',K:'hit',
+    Shift:'nitro',n:'nitro',N:'nitro',l:'nitro',L:'nitro'};
   window.addEventListener('keydown',e=>{ if(e.key==='Escape'){ if(G&&!G.finished){ G.paused=!G.paused; if(!G.paused) last=performance.now(); } return; }
     const k=KMAP[e.key]; if(k){ keys[k]=true; if(e.key===' '||e.key.startsWith('Arrow')) e.preventDefault(); } });
   window.addEventListener('keyup',e=>{ const k=KMAP[e.key]; if(k) keys[k]=false; });
@@ -670,7 +709,7 @@
     const on=e=>{ e.preventDefault(); audio(); keys[prop]=true; }; const off=e=>{ e.preventDefault(); keys[prop]=false; };
     el.addEventListener('touchstart',on,{passive:false}); el.addEventListener('touchend',off); el.addEventListener('touchcancel',off);
     el.addEventListener('mousedown',on); el.addEventListener('mouseup',off); el.addEventListener('mouseleave',off); }
-  bindHold('d-left','left'); bindHold('d-right','right'); bindHold('a-gas','gas'); bindHold('a-brake','brake'); bindHold('a-hit','hit');
+  bindHold('d-left','left'); bindHold('d-right','right'); bindHold('a-gas','gas'); bindHold('a-brake','brake'); bindHold('a-hit','hit'); bindHold('a-nitro','nitro');
   document.getElementById('pausebtn').onclick=()=>{ if(!G||G.finished) return; if(!G.paused){ G.paused=true;
     const ov=mkOverlay('<h2>Пауза</h2><button class="btn big rust" id="resume">Продолжить ▸</button><button class="btn" id="toMap">Къ заставамъ</button>');
     document.getElementById('resume').onclick=()=>{ ov.remove(); G.paused=false; last=performance.now(); };
