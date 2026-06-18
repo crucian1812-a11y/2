@@ -285,7 +285,7 @@
   /* ====================== SCREENS ====================== */
   function muteBtn(){ return '<button class="btn mini" id="mute">'+(muted?'🔕':'🔔')+'</button>'; }
   function bindMute(){ const m=document.getElementById('mute'); if(m) m.onclick=()=>{ muted=!muted; if(!muted) sBell(360); m.textContent=muted?'🔕':'🔔'; }; }
-  function showUI(){ $stage.classList.add('hidden'); $ui.classList.remove('hidden'); }
+  function showUI(){ exitFS(); $stage.classList.add('hidden'); $ui.classList.remove('hidden'); }
   function showGame(){ $ui.classList.add('hidden'); $stage.classList.remove('hidden'); }
 
   function renderHome(){
@@ -488,7 +488,8 @@
     bindMute();
   }
 
-  function mkOverlay(inner){ const ov=document.createElement('div'); ov.className='overlay'; ov.innerHTML='<div class="sheet">'+inner+'</div>'; document.body.appendChild(ov); return ov; }
+  function mkOverlay(inner){ const ov=document.createElement('div'); ov.className='overlay'; ov.innerHTML='<div class="sheet">'+inner+'</div>';
+    const host=document.fullscreenElement||document.webkitFullscreenElement||document.body; host.appendChild(ov); return ov; }
 
   /* ====================== RENDER ====================== */
   function render(){
@@ -655,6 +656,12 @@
       if(ex) ex.call(document);
       $stage.classList.remove('fs');
     }
+  }
+  function exitFS(){
+    if(document.fullscreenElement||document.webkitFullscreenElement){
+      const ex=document.exitFullscreen||document.webkitExitFullscreen; if(ex) ex.call(document);
+    }
+    $stage.classList.remove('fs'); cv.style.width=''; cv.style.height='';
   }
   document.getElementById('fsbtn').onclick=toggleFullscreen;
   document.addEventListener('fullscreenchange',()=>{ if(!document.fullscreenElement) $stage.classList.remove('fs'); fitStage(); });
