@@ -208,28 +208,28 @@
   const LEVELS=[
     {nm:'Ярославово дворище', sm:'Разбойники на торгу', theme:'torg', ic:'⛵',
      fact:'На торгу у Волхова порой пошаливали лихіе люди. Прогони ихъ съ дворища!',
-     boss:{name:'Атаманъ Кривой', hp:300, dmg:14, scale:2.3, col:{cloak:'#6b4a2a',cloak2:'#4a3018',trim:'#f0cf4d',helm:'#7a5a2a',beard:'#2a1a0c',emblem:'skull',weapon:'axe'}},
+     boss:{name:'Атаманъ Кривой', hp:320, dmg:20, scale:2.3, col:{cloak:'#6b4a2a',cloak2:'#4a3018',trim:'#f0cf4d',helm:'#7a5a2a',beard:'#2a1a0c',emblem:'skull',weapon:'axe'}},
      rooms:[ {walk:true}, {spawn:[['raider',2]]}, {spawn:[['raider',2],['rogue',1]]}, {walk:true},
              {spawn:[['archer',1],['raider',1],['rogue',1]]}, {spawn:[['brute',1],['raider',2]]}, {boss:true} ]},
     {nm:'Новгородскій Детинецъ', sm:'Стража у воротъ', theme:'kreml', ic:'🏰',
      fact:'Стража Детинца строго бережётъ Кремль. Докажи право пройти въ бою!',
-     boss:{name:'Воевода Стѣнобой', hp:390, dmg:18, scale:2.45, col:{cloak:'#5a6b86',cloak2:'#3c4a60',trim:'#cfd3d8',helm:'#9aa0a6',beard:'#2a2a2a',emblem:'skull',weapon:'sword'}},
+     boss:{name:'Воевода Стѣнобой', hp:430, dmg:26, scale:2.45, col:{cloak:'#5a6b86',cloak2:'#3c4a60',trim:'#cfd3d8',helm:'#9aa0a6',beard:'#2a2a2a',emblem:'skull',weapon:'sword'}},
      rooms:[ {walk:true}, {spawn:[['raider',2],['skirm',1]]}, {spawn:[['shield',1],['raider',2]]}, {walk:true},
              {spawn:[['archer',2],['skirm',1]]}, {spawn:[['brute',2],['rogue',1]]}, {spawn:[['shield',1],['brute',1]]}, {boss:true} ]},
     {nm:'Софійскій соборъ', sm:'Послѣднее испытаніе', theme:'sofia', ic:'⛪',
      fact:'У стѣнъ Софіи витязя ждётъ послѣдній бой — тёмный колдунъ, насланный врагами Новгорода.',
-     boss:{name:'Чёрный Колдунъ', hp:480, dmg:22, scale:2.5, magic:true, col:{cloak:'#34243f',cloak2:'#221830',trim:'#b07ad0',helm:'#1c1c22',beard:'#0c0c0c',emblem:'skull',weapon:'staff'}},
+     boss:{name:'Чёрный Колдунъ', hp:520, dmg:30, scale:2.5, magic:true, col:{cloak:'#34243f',cloak2:'#221830',trim:'#b07ad0',helm:'#1c1c22',beard:'#0c0c0c',emblem:'skull',weapon:'staff'}},
      rooms:[ {walk:true}, {spawn:[['skirm',2],['brute',1]]}, {spawn:[['archer',2],['rogue',2]]}, {walk:true},
              {spawn:[['shield',2],['skirm',1]]}, {spawn:[['brute',2],['archer',1],['rogue',1]]},
              {spawn:[['shield',1],['brute',1],['skirm',2]]}, {boss:true} ]}
   ];
   const ENEMY={
-    raider:{hp:30, dmg:7,  speed:0.9,  scale:1.5,  reach:22, col:{cloak:'#6b5a3a',cloak2:'#4a3c24',trim:'#caa258',helm:'#7a7a7a',beard:'#3a2614',emblem:null,weapon:'sword'}},
-    skirm: {hp:22, dmg:6,  speed:1.45, scale:1.45, reach:24, col:{cloak:'#7a4a2a',cloak2:'#5a3418',trim:'#d8a050',helm:'#9a8a5a',beard:'#2a1a0c',emblem:null,weapon:'spear'}},
-    brute: {hp:60, dmg:12, speed:0.62, scale:1.85, reach:26, col:{cloak:'#5a5a5a',cloak2:'#3c3c3c',trim:'#aa6a3a',helm:'#888', beard:'#222',   emblem:null,weapon:'axe'}},
-    rogue: {hp:16, dmg:7,  speed:2.0,  scale:1.4,  reach:18, col:{cloak:'#3a2a3a',cloak2:'#241824',trim:'#a06a90',helm:'#5a4a5a',beard:'#1a0c14',emblem:null,weapon:'sword'}},
-    archer:{hp:18, dmg:8,  speed:1.0,  scale:1.42, reach:18, ranged:true, col:{cloak:'#5a6a3a',cloak2:'#3c4a24',trim:'#b8c87a',helm:'#7a7a5a',beard:'#2a2614',emblem:null,weapon:'none'}},
-    shield:{hp:72, dmg:9,  speed:0.6,  scale:1.7,  reach:22, armor:0.5, col:{cloak:'#46586e',cloak2:'#2e3c50',trim:'#b0bcc8',helm:'#8a96a2',beard:'#222',emblem:null,weapon:'sword',shield:true}}
+    raider:{hp:30, dmg:11, speed:0.95, scale:1.5,  reach:22, col:{cloak:'#6b5a3a',cloak2:'#4a3c24',trim:'#caa258',helm:'#7a7a7a',beard:'#3a2614',emblem:null,weapon:'sword'}},
+    skirm: {hp:22, dmg:10, speed:1.55, scale:1.45, reach:24, col:{cloak:'#7a4a2a',cloak2:'#5a3418',trim:'#d8a050',helm:'#9a8a5a',beard:'#2a1a0c',emblem:null,weapon:'spear'}},
+    brute: {hp:60, dmg:18, speed:0.66, scale:1.85, reach:26, col:{cloak:'#5a5a5a',cloak2:'#3c3c3c',trim:'#aa6a3a',helm:'#888', beard:'#222',   emblem:null,weapon:'axe'}},
+    rogue: {hp:16, dmg:11, speed:2.1,  scale:1.4,  reach:18, col:{cloak:'#3a2a3a',cloak2:'#241824',trim:'#a06a90',helm:'#5a4a5a',beard:'#1a0c14',emblem:null,weapon:'sword'}},
+    archer:{hp:18, dmg:12, speed:1.0,  scale:1.42, reach:18, ranged:true, col:{cloak:'#5a6a3a',cloak2:'#3c4a24',trim:'#b8c87a',helm:'#7a7a5a',beard:'#2a2614',emblem:null,weapon:'none'}},
+    shield:{hp:72, dmg:14, speed:0.64, scale:1.7,  reach:22, armor:0.5, col:{cloak:'#46586e',cloak2:'#2e3c50',trim:'#b0bcc8',helm:'#8a96a2',beard:'#222',emblem:null,weapon:'sword',shield:true}}
   };
 
   /* ===================== DOM / CANVAS ===================== */
@@ -693,8 +693,10 @@
 
   function playerDown(){ G.lives--; updateHUD();
     if(G.lives<0){ loseLevel(); return; }
-    // respawn
-    G.p.hp=G.p.maxhp; G.p.inv=80; G.p.wx=G.cam+30; G.p.state='idle'; G.p.atk=null; G.flash=8; sBell(220);
+    // respawn — clear the death flags or foes' melee would skip the player forever
+    const p=G.p; p.hp=p.maxhp; p.dead=false; p.deadT=0; p.inv=70; p.wx=G.cam+30; p.d=0.6;
+    p.state='idle'; p.atk=null; p.hurtT=0; p.knock=0; p.combo=0; p.comboBuf=false; p.z=0; p.vz=0;
+    G.flash=8; sBell(220);
   }
 
   /* ---------- render ---------- */
