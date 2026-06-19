@@ -44,11 +44,11 @@
 
   /* character select */
   .heroes{display:flex; gap:12px; justify-content:center; flex-wrap:wrap; margin:14px 0}
-  .hero-card{width:170px; background:var(--panel); border:2px solid var(--line); border-radius:14px; padding:12px 10px 14px;
+  .hero-card{width:178px; background:var(--panel); border:2px solid var(--line); border-radius:14px; padding:12px 10px 14px;
     text-align:center; cursor:pointer; box-shadow:0 4px 12px rgba(60,40,18,.16); transition:transform .12s}
   .hero-card:active{transform:scale(.98)}
   .hero-card.sel{border-color:var(--rust); box-shadow:0 0 0 3px rgba(138,74,30,.3),0 4px 12px rgba(60,40,18,.16)}
-  .hero-card canvas{width:120px; height:150px; display:block; margin:0 auto}
+  .hero-card canvas{width:146px; height:184px; display:block; margin:0 auto; border-radius:14px}
   .hero-card .hn{font-family:"Ruslan Display",serif; font-size:1.3rem; margin-top:4px}
   .hero-card .hd{font-size:.82rem; color:var(--sepia); min-height:2.4em}
   .pips{margin-top:4px; font-size:.78rem; color:var(--rust)}
@@ -168,10 +168,10 @@
     [[0,620],[760,520],[1360,360],[1820,560],[2480,360],[2980,540],[3640,820]].forEach(s=>P.push({x:s[0],y:gy,w:s[1],h:gh}));
     [[560,392,110,26],[1180,348,120,26],[2020,392,120,26],[2420,324,120,26],[2880,300,130,26],[3380,360,120,26]].forEach(p=>P.push({x:p[0],y:p[1],w:p[2],h:p[3],wood:true}));
     [[680,300,'brick'],[716,300,'coinbox'],[752,300,'brick'],
-     [1220,288,'brick'],[1256,288,'powbox'],[1292,288,'brick'],
-     [2060,300,'coinbox'],
-     [2900,212,'brick'],[2936,212,'coinbox'],[2972,212,'brick'],
-     [3400,300,'brick'],[3436,300,'brick']].forEach(b=>B.push(mkBlock(b[0],b[1],b[2])));
+     [1220,230,'brick'],[1256,230,'powbox'],[1292,230,'brick'],
+     [2060,274,'coinbox'],
+     [2900,182,'brick'],[2936,182,'coinbox'],[2972,182,'brick'],
+     [3400,242,'brick'],[3436,242,'brick']].forEach(b=>B.push(mkBlock(b[0],b[1],b[2])));
     [[1300,gy-22,110],[3070,gy-22,80]].forEach(s=>HZ.push({x:s[0],y:s[1],w:s[2],h:22}));
     [[300,400],[360,400],[420,400],[600,348],[640,348],[1190,304],[1230,304],[1500,400],[1560,400],
      [2060,348],[2160,400],[2220,400],[2440,280],[2900,168],[3140,400],[3200,400],[3460,316],[3760,400],[3820,400]]
@@ -193,11 +193,11 @@
     [[540,410,120,28],[700,348,120,28],[860,286,130,28],[1320,372,120,28],[1460,300,120,28],
      [1980,372,120,28],[2480,360,120,28],[2620,288,120,28],[3060,372,120,28],[3200,300,130,28]]
       .forEach(p=>P.push({x:p[0],y:p[1],w:p[2],h:p[3],wall:true}));
-    [[900,224,'brick'],[936,224,'coinbox'],[972,224,'brick'],
-     [1500,238,'powbox'],
-     [2020,300,'brick'],[2056,300,'coinbox'],[2092,300,'brick'],
-     [2660,226,'coinbox'],
-     [3240,238,'brick'],[3276,238,'brick'],[3312,238,'coinbox']].forEach(b=>B.push(mkBlock(b[0],b[1],b[2])));
+    [[900,168,'brick'],[936,168,'coinbox'],[972,168,'brick'],
+     [1500,182,'powbox'],
+     [2020,254,'brick'],[2056,254,'coinbox'],[2092,254,'brick'],
+     [2660,170,'coinbox'],
+     [3240,182,'brick'],[3276,182,'brick'],[3312,182,'coinbox']].forEach(b=>B.push(mkBlock(b[0],b[1],b[2])));
     [[1170,gy-22,100],[2300,gy-22,90],[3420,gy-22,70]].forEach(s=>HZ.push({x:s[0],y:s[1],w:s[2],h:22}));
     [[300,410],[360,410],[560,360],[720,298],[890,236],[1340,322],[1480,250],
      [1520,250],[2000,322],[2060,322],[2500,310],[2660,178],[2700,178],
@@ -221,11 +221,11 @@
     [[600,392,120,28],[940,348,110,28],[1340,360,120,28],[1480,296,120,28],
      [1820,360,120,28],[1960,292,120,28],[2100,224,150,28],
      [2520,372,120,28],[2660,300,120,28],[2860,228,150,28]].forEach(p=>P.push({x:p[0],y:p[1],w:p[2],h:p[3],stone:true}));
-    [[1000,256,'brick'],[1036,256,'coinbox'],[1072,256,'brick'],
-     [1520,200,'powbox'],
-     [1980,196,'brick'],[2016,196,'coinbox'],[2052,196,'brick'],
-     [2700,204,'coinbox'],
-     [2900,160,'brick'],[2936,160,'brick'],[2972,160,'coinbox']].forEach(b=>B.push(mkBlock(b[0],b[1],b[2])));
+    [[1000,230,'brick'],[1036,230,'coinbox'],[1072,230,'brick'],
+     [1520,178,'powbox'],
+     [1980,174,'brick'],[2016,174,'coinbox'],[2052,174,'brick'],
+     [2700,182,'coinbox'],
+     [2900,110,'brick'],[2936,110,'brick'],[2972,110,'coinbox']].forEach(b=>B.push(mkBlock(b[0],b[1],b[2])));
     [[1160,gy-22,90],[1640,gy-22,90],[2560,gy-22,80]].forEach(s=>HZ.push({x:s[0],y:s[1],w:s[2],h:22}));
     [[340,410],[400,410],[640,348],[700,348],[980,304],[1300,316],
      [1380,316],[1520,252],[1860,316],[2000,248],[2150,180],[2210,180],
@@ -311,6 +311,46 @@
   }
   function roundRect(g,x,y,w,h,r){ g.beginPath(); g.moveTo(x+r,y); g.arcTo(x+w,y,x+w,y+h,r); g.arcTo(x+w,y+h,x,y+h,r); g.arcTo(x,y+h,x,y,r); g.arcTo(x,y,x+w,y,r); g.closePath(); }
 
+  function drawHeroPortrait(g, W, H, hero, t){
+    g.clearRect(0,0,W,H);
+    g.save();
+    // rounded frame clip
+    roundRect(g,2,2,W-4,H-4,16); g.clip();
+    // sky
+    const sky=g.createLinearGradient(0,0,0,H);
+    sky.addColorStop(0,'#f3e6c4'); sky.addColorStop(0.55,'#e7d4a6'); sky.addColorStop(1,'#cdb887');
+    g.fillStyle=sky; g.fillRect(0,0,W,H);
+    // sun halo tinted by hero colour
+    const cx=W/2, sunY=H*0.30;
+    const halo=g.createRadialGradient(cx,sunY,4,cx,sunY,W*0.62);
+    halo.addColorStop(0, hero.trim); halo.addColorStop(0.25,'rgba(255,250,230,.55)'); halo.addColorStop(1,'rgba(255,250,230,0)');
+    g.globalAlpha=0.6; g.fillStyle=halo; g.fillRect(0,0,W,H); g.globalAlpha=1;
+    // rays
+    g.save(); g.translate(cx,sunY); g.strokeStyle='rgba(255,255,255,.35)'; g.lineWidth=2;
+    for(let i=0;i<12;i++){ g.save(); g.rotate(i*Math.PI/6 + t*0.004); g.beginPath(); g.moveTo(0,-W*0.30); g.lineTo(0,-W*0.42); g.stroke(); g.restore(); }
+    g.restore();
+    // distant hills
+    g.fillStyle='rgba(120,140,90,.45)'; g.beginPath();
+    g.moveTo(0,H*0.74); g.quadraticCurveTo(W*0.3,H*0.6,W*0.55,H*0.72); g.quadraticCurveTo(W*0.8,H*0.82,W,H*0.7); g.lineTo(W,H); g.lineTo(0,H); g.closePath(); g.fill();
+    // ground
+    const grd=g.createLinearGradient(0,H*0.78,0,H); grd.addColorStop(0,'#9a7b46'); grd.addColorStop(1,'#7c5f30');
+    g.fillStyle=grd; g.fillRect(0,H*0.82,W,H*0.18);
+    g.fillStyle='rgba(60,42,18,.25)'; g.fillRect(0,H*0.82,W,3);
+    // standard banner behind hero
+    g.save(); g.translate(cx+30, H*0.30);
+    g.strokeStyle='#6b4a2a'; g.lineWidth=3; g.beginPath(); g.moveTo(0,-6); g.lineTo(0,H*0.5); g.stroke();
+    g.fillStyle=hero.cloak; g.beginPath(); g.moveTo(0,-4); g.lineTo(30,-4); g.lineTo(24,12); g.lineTo(30,28); g.lineTo(0,28); g.closePath(); g.fill();
+    g.fillStyle=hero.trim; g.save(); g.translate(13,12); drawEmblem(g,hero.emblem); g.restore();
+    g.restore();
+    // full knight, scaled to fit without cropping the helmet plume
+    const sc=Math.min((H*0.82)/82, W/56);
+    drawKnight(g, cx-4, H*0.86, sc, hero, 1, t, 'idle');
+    g.restore();
+    // ornate frame
+    g.strokeStyle='rgba(90,60,28,.7)'; g.lineWidth=2.5; roundRect(g,2,2,W-4,H-4,16); g.stroke();
+    g.strokeStyle=hero.trim; g.lineWidth=1; roundRect(g,5,5,W-10,H-10,13); g.stroke();
+  }
+
   /* ====================== SCREENS ====================== */
   function muteBtn(){ return '<button class="btn mini" id="mute">'+(muted?'🔕':'🔔')+'</button>'; }
   function bindMute(){ const m=document.getElementById('mute'); if(m) m.onclick=()=>{ muted=!muted; if(!muted) sBell(360); m.textContent=muted?'🔕':'🔔'; }; }
@@ -338,7 +378,7 @@
       '<p class="eyebrow">Дружина</p><h1 style="font-size:2rem">Выбери витязя</h1><div class="heroes">';
     HEROES.forEach((h,i)=>{
       html+='<div class="hero-card'+(prog.hero===i?' sel':'')+'" data-i="'+i+'">'+
-        '<canvas width="120" height="150"></canvas>'+
+        '<canvas width="146" height="184"></canvas>'+
         '<div class="hn">'+h.name+'</div><div class="hd">'+h.desc+'</div>'+
         '<div class="pips">прыжокъ '+'★'.repeat(Math.max(1,Math.round((h.jump-14.5)*2.6)))+' · бѣгъ '+'★'.repeat(Math.max(1,Math.round((h.speed-5.4)*2.4)))+'</div>'+
         '</div>';
@@ -355,7 +395,7 @@
     bindMute();
     if(window._heroAnim) cancelAnimationFrame(window._heroAnim);
     const cans=Array.from(document.querySelectorAll('.hero-card canvas'));
-    (function loop(ts){ cans.forEach((c,i)=>{ const g=c.getContext('2d'); g.clearRect(0,0,120,150); drawKnight(g,60,132,2.5,HEROES[i],1,ts*0.06,'idle'); }); window._heroAnim=requestAnimationFrame(loop); })(0);
+    (function loop(ts){ cans.forEach((c,i)=>{ const g=c.getContext('2d'); drawHeroPortrait(g,146,184,HEROES[i],ts*0.9); }); window._heroAnim=requestAnimationFrame(loop); })(0);
   }
 
   function renderMap(){
