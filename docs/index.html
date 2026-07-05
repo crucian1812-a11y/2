@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>YTBrain — архив конспектов</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --paper: #FAF7F0;
+    --paper-raised: #FFFFFF;
+    --ink: #1C1B22;
+    --ink-soft: #55535E;
+    --ink-faint: #8B8894;
+    --line: #E4DFD3;
+    --indigo: #3A38F0;
+    --indigo-soft: #ECEBFE;
+    --ochre: #B8860B;
+    --ochre-soft: #F7EEDA;
+    --radius: 10px;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    *, *::before, *::after {
+      animation-duration: 0.001s !important;
+      transition-duration: 0.001s !important;
+    }
+  }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: "Inter", system-ui, sans-serif;
+    font-size: 15px;
+    line-height: 1.55;
+  }
+  a { color: var(--indigo); }
+  :focus-visible {
+    outline: 2px solid var(--indigo);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 0 20px 80px; }
+
+  header.site {
+    padding: 40px 0 8px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 8px 16px;
+  }
+  h1 {
+    font-family: "Space Grotesk", sans-serif;
+    font-weight: 700;
+    font-size: clamp(28px, 5vw, 40px);
+    letter-spacing: -0.02em;
+    margin: 0;
+  }
+  h1 .dot { color: var(--indigo); }
+  .generated {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 12px;
+    color: var(--ink-faint);
+  }
+
+  /* ---- метрики ---- */
+  .metrics {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 12px;
+    margin: 24px 0;
+  }
+  .metric {
+    background: var(--paper-raised);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+  }
+  .metric .num {
+    font-family: "JetBrains Mono", monospace;
+    font-weight: 600;
+    font-size: 26px;
+    font-variant-numeric: tabular-nums;
+    color: var(--indigo);
+  }
+  .metric .lbl {
+    font-size: 12px;
+    color: var(--ink-soft);
+    margin-top: 2px;
+  }
+  .metric.spark { grid-column: span 2; min-width: 0; }
+  .spark svg { display: block; width: 100%; height: 56px; margin-top: 6px; }
+  .spark .lbl abbr { text-decoration: none; }
+
+  /* ---- поиск и фильтры ---- */
+  .controls { margin: 8px 0 20px; }
+  .search {
+    width: 100%;
+    padding: 12px 16px;
+    font: inherit;
+    color: var(--ink);
+    background: var(--paper-raised);
+    border: 1.5px solid var(--line);
+    border-radius: var(--radius);
+  }
+  .search::placeholder { color: var(--ink-faint); }
+  .search:focus-visible { outline-offset: 0; border-color: var(--indigo); }
+
+  .chipgroups { margin-top: 14px; display: grid; gap: 10px; }
+  .chipgroup .gname {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--ink-faint);
+    margin-bottom: 6px;
+  }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip {
+    font: inherit;
+    font-size: 13px;
+    padding: 4px 12px;
+    border-radius: 999px;
+    border: 1px solid var(--line);
+    background: var(--paper-raised);
+    color: var(--ink-soft);
+    cursor: pointer;
+    transition: background 0.12s, border-color 0.12s;
+  }
+  .chip:hover { border-color: var(--ink-faint); }
+  .chip .n {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 11px;
+    color: var(--ink-faint);
+    margin-left: 4px;
+  }
+  .chip[aria-pressed="true"] {
+    background: var(--indigo);
+    border-color: var(--indigo);
+    color: #fff;
+  }
+  .chip[aria-pressed="true"] .n { color: #C9C8FB; }
+  .chipgroup[data-kind="topics"] .chip[aria-pressed="true"],
+  .chipgroup[data-kind="channels"] .chip[aria-pressed="true"] {
+    background: var(--ochre);
+    border-color: var(--ochre);
+    color: #fff;
+  }
+  .chipgroup[data-kind="topics"] .chip[aria-pressed="true"] .n,
+  .chipgroup[data-kind="channels"] .chip[aria-pressed="true"] .n { color: #F0DFB0; }
+
+  .resultline {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 12px;
+    color: var(--ink-faint);
+    margin: 14px 2px;
+  }
+  .resultline button {
+    font: inherit;
+    color: var(--indigo);
+    background: none;
+    border: none;
+    cursor: pointer;
+    text-decoration: underline;
+    padding: 0;
+  }
+
+  /* ---- карточки ---- */
+  .cards { display: grid; gap: 14px; }
+  .card {
+    background: var(--paper-raised);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 18px 20px;
+  }
+  .card .meta {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 12px;
+    color: var(--ink-faint);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 14px;
+    margin-bottom: 6px;
+  }
+  .card .meta .channel { color: var(--ochre); }
+  .card h2 {
+    font-family: "Space Grotesk", sans-serif;
+    font-size: 19px;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    margin: 0 0 6px;
+    line-height: 1.3;
+  }
+  .card h2 a { color: inherit; text-decoration: none; }
+  .card h2 a:hover { color: var(--indigo); }
+  .card .oneliner {
+    color: var(--ink-soft);
+    border-left: 3px solid var(--indigo);
+    padding-left: 12px;
+    margin: 10px 0;
+  }
+  .card ul.theses { margin: 10px 0; padding-left: 20px; }
+  .card ul.theses li { margin: 4px 0; }
+  .card details {
+    margin: 10px 0;
+    border: 1px dashed var(--line);
+    border-radius: 8px;
+    padding: 8px 12px;
+  }
+  .card details summary {
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ink-soft);
+  }
+  .card details ul { margin: 8px 0 2px; padding-left: 18px; font-size: 14px; }
+  .card .tagrow { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+  .tagbtn {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 12px;
+    padding: 2px 10px;
+    border-radius: 999px;
+    border: none;
+    cursor: pointer;
+    background: var(--indigo-soft);
+    color: var(--indigo);
+  }
+  .tagbtn.topic { background: var(--ochre-soft); color: var(--ochre); }
+  .tagbtn:hover { filter: brightness(0.95); }
+
+  /* ---- заглушки ---- */
+  .empty {
+    text-align: center;
+    border: 1.5px dashed var(--line);
+    border-radius: var(--radius);
+    padding: 60px 24px;
+    margin: 30px 0;
+    color: var(--ink-soft);
+  }
+  .empty h2 { font-family: "Space Grotesk", sans-serif; margin: 0 0 10px; }
+  .empty code {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 13px;
+    background: var(--indigo-soft);
+    color: var(--indigo);
+    padding: 2px 6px;
+    border-radius: 4px;
+  }
+
+  /* тултип спарклайна */
+  .tip {
+    position: fixed;
+    pointer-events: none;
+    background: var(--ink);
+    color: var(--paper);
+    font-family: "JetBrains Mono", monospace;
+    font-size: 12px;
+    padding: 4px 8px;
+    border-radius: 6px;
+    transform: translate(-50%, -130%);
+    white-space: nowrap;
+    z-index: 10;
+    display: none;
+  }
+
+  @media (max-width: 640px) {
+    .metric.spark { grid-column: 1 / -1; }
+    .card { padding: 14px 14px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="site">
+    <h1>YTBrain<span class="dot">.</span></h1>
+    <span class="generated" id="generated"></span>
+  </header>
+
+  <div id="app"></div>
+</div>
+<div class="tip" id="tip" role="status"></div>
+
+<script>
+"use strict";
+
+const state = {
+  q: "",
+  topics: new Set(),
+  channels: new Set(),
+  tags: new Set(),
+  data: null,
+};
+
+const app = document.getElementById("app");
+
+function esc(s) {
+  return String(s ?? "").replace(/[&<>"']/g, (c) => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
+  }[c]));
+}
+
+// ------------------------------------------------------------------ загрузка
+fetch("data.json?ts=" + Date.now())
+  .then((r) => { if (!r.ok) throw new Error(r.status); return r.json(); })
+  .then((data) => { state.data = data; renderShell(); renderCards(); })
+  .catch(() => renderPlaceholder());
+
+function renderPlaceholder() {
+  app.innerHTML = `
+    <div class="empty">
+      <h2>Данных пока нет</h2>
+      <p>Файл <code>data.json</code> ещё не собран. Положите
+      <code>watch-history.json</code> из Google Takeout или лог расширения в
+      <code>data/incoming/</code>, запустите workflow
+      <strong>Process watch history</strong> — и конспекты появятся здесь.</p>
+    </div>`;
+}
+
+// ------------------------------------------------------------------ каркас
+function renderShell() {
+  const { stats, generated_at } = state.data;
+  document.getElementById("generated").textContent =
+    "обновлено " + (generated_at || "").slice(0, 16).replace("T", " ") + " UTC";
+
+  app.innerHTML = `
+    <section class="metrics" aria-label="Метрики">
+      ${metric(stats.total_watched, "просмотров в логе")}
+      ${metric(stats.total_notes, "конспектов")}
+      ${metric(stats.no_transcript, "без субтитров")}
+      <div class="metric spark">
+        <div class="lbl">просмотры по месяцам</div>
+        ${sparkline(stats.by_month)}
+      </div>
+    </section>
+
+    <section class="controls" aria-label="Поиск и фильтры">
+      <input class="search" id="search" type="search"
+        placeholder="Поиск по названию, тезисам, фактам, тегам…"
+        aria-label="Поиск по конспектам" />
+      <div class="chipgroups">
+        ${chipGroup("темы", "topics", stats.top_topics)}
+        ${chipGroup("каналы", "channels", stats.top_channels)}
+        ${chipGroup("теги", "tags", stats.top_tags)}
+      </div>
+    </section>
+
+    <div class="resultline" id="resultline"></div>
+    <main class="cards" id="cards"></main>
+  `;
+
+  document.getElementById("search").addEventListener("input", (e) => {
+    state.q = e.target.value.trim().toLowerCase();
+    renderCards();
+  });
+  app.querySelectorAll(".chip").forEach((chip) => {
+    chip.addEventListener("click", () =>
+      toggleFilter(chip.dataset.kind, chip.dataset.value));
+  });
+  attachSparkTooltip();
+}
+
+function metric(num, label) {
+  return `<div class="metric"><div class="num">${num ?? 0}</div>
+    <div class="lbl">${label}</div></div>`;
+}
+
+function chipGroup(name, kind, pairs) {
+  if (!pairs || !pairs.length) return "";
+  const chips = pairs.map(([value, count]) => `
+    <button class="chip" data-kind="${kind}" data-value="${esc(value)}"
+      aria-pressed="false">${esc(value)}<span class="n">${count}</span></button>
+  `).join("");
+  return `<div class="chipgroup" data-kind="${kind}">
+    <div class="gname">${name}</div><div class="chips">${chips}</div></div>`;
+}
+
+// ------------------------------------------------------------------ спарклайн
+function sparkline(byMonth) {
+  if (!byMonth || byMonth.length < 2) {
+    return `<svg viewBox="0 0 100 40" aria-hidden="true"></svg>`;
+  }
+  const W = 600, H = 56, PAD = 4;
+  const max = Math.max(...byMonth.map(([, n]) => n), 1);
+  const pts = byMonth.map(([, n], i) => {
+    const x = PAD + (i * (W - 2 * PAD)) / (byMonth.length - 1);
+    const y = H - PAD - ((H - 2 * PAD) * n) / max;
+    return [x, y];
+  });
+  const line = pts.map(([x, y], i) =>
+    (i ? "L" : "M") + x.toFixed(1) + " " + y.toFixed(1)).join(" ");
+  const area = line +
+    ` L ${pts[pts.length - 1][0].toFixed(1)} ${H - PAD} L ${PAD} ${H - PAD} Z`;
+  const label = `Просмотры по месяцам: ` +
+    byMonth.map(([m, n]) => `${m} — ${n}`).join(", ");
+  return `<svg viewBox="0 0 ${W} ${H}" id="spark" role="img"
+      aria-label="${esc(label)}" preserveAspectRatio="none"
+      data-months='${esc(JSON.stringify(byMonth))}'>
+    <path d="${area}" fill="#ECEBFE"></path>
+    <path d="${line}" fill="none" stroke="#3A38F0" stroke-width="2"
+      vector-effect="non-scaling-stroke" stroke-linejoin="round"></path>
+  </svg>`;
+}
+
+function attachSparkTooltip() {
+  const svg = document.getElementById("spark");
+  const tip = document.getElementById("tip");
+  if (!svg || !svg.dataset.months) return;
+  const months = JSON.parse(svg.dataset.months);
+  svg.addEventListener("mousemove", (e) => {
+    const rect = svg.getBoundingClientRect();
+    const idx = Math.min(
+      months.length - 1,
+      Math.max(0, Math.round(((e.clientX - rect.left) / rect.width) *
+        (months.length - 1))));
+    const [m, n] = months[idx];
+    tip.textContent = `${m}: ${n}`;
+    tip.style.left = e.clientX + "px";
+    tip.style.top = e.clientY + "px";
+    tip.style.display = "block";
+  });
+  svg.addEventListener("mouseleave", () => { tip.style.display = "none"; });
+}
+
+// ------------------------------------------------------------------ фильтры
+function toggleFilter(kind, value) {
+  const set = state[kind];
+  if (set.has(value)) set.delete(value); else set.add(value);
+  app.querySelectorAll(
+    `.chip[data-kind="${kind}"]`).forEach((chip) => {
+    if (chip.dataset.value === value) {
+      chip.setAttribute("aria-pressed", set.has(value) ? "true" : "false");
+    }
+  });
+  renderCards();
+}
+
+function clearFilters() {
+  state.q = "";
+  state.topics.clear(); state.channels.clear(); state.tags.clear();
+  const search = document.getElementById("search");
+  if (search) search.value = "";
+  app.querySelectorAll('.chip[aria-pressed="true"]')
+    .forEach((c) => c.setAttribute("aria-pressed", "false"));
+  renderCards();
+}
+
+function matches(item) {
+  if (state.topics.size &&
+      ![...state.topics].every((t) => item.topics.includes(t))) return false;
+  if (state.channels.size && !state.channels.has(item.channel)) return false;
+  if (state.tags.size &&
+      ![...state.tags].every((t) => item.tags.includes(t))) return false;
+  if (state.q) {
+    const hay = [
+      item.title, item.one_liner,
+      ...(item.theses || []), ...(item.key_points || []),
+      ...(item.tags || []), ...(item.topics || []), item.channel,
+    ].join(" ").toLowerCase();
+    if (!hay.includes(state.q)) return false;
+  }
+  return true;
+}
+
+// ------------------------------------------------------------------ карточки
+function renderCards() {
+  const cardsEl = document.getElementById("cards");
+  const line = document.getElementById("resultline");
+  const items = (state.data.items || []).filter(matches);
+
+  const active = state.q || state.topics.size || state.channels.size ||
+    state.tags.size;
+  line.innerHTML = `${items.length} / ${state.data.items.length}` +
+    (active ? ` · <button id="reset">сбросить фильтры</button>` : "");
+  const reset = document.getElementById("reset");
+  if (reset) reset.addEventListener("click", clearFilters);
+
+  if (!state.data.items.length) {
+    cardsEl.innerHTML = `<div class="empty"><h2>Конспектов пока нет</h2>
+      <p>Workflow ещё не обработал ни одного видео с субтитрами.</p></div>`;
+    return;
+  }
+  if (!items.length) {
+    cardsEl.innerHTML = `<div class="empty"><h2>Ничего не найдено</h2>
+      <p>Попробуйте смягчить запрос или снять фильтры.</p></div>`;
+    return;
+  }
+
+  cardsEl.innerHTML = items.map(card).join("");
+  cardsEl.querySelectorAll(".tagbtn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const { kind, value } = btn.dataset;
+      if (!state[kind].has(value)) toggleFilter(kind, value);
+      document.getElementById("search")
+        .scrollIntoView({ block: "start" });
+    });
+  });
+}
+
+function card(item) {
+  const theses = (item.theses || [])
+    .map((t) => `<li>${esc(t)}</li>`).join("");
+  const facts = (item.key_points || []).length ? `
+    <details><summary>Ключевые факты (${item.key_points.length})</summary>
+      <ul>${item.key_points.map((k) => `<li>${esc(k)}</li>`).join("")}</ul>
+    </details>` : "";
+  const topicBtns = (item.topics || []).map((t) =>
+    `<button class="tagbtn topic" data-kind="topics"
+      data-value="${esc(t)}">${esc(t)}</button>`).join("");
+  const tagBtns = (item.tags || []).map((t) =>
+    `<button class="tagbtn" data-kind="tags"
+      data-value="${esc(t)}">#${esc(t)}</button>`).join("");
+  return `
+  <article class="card">
+    <div class="meta">
+      <span>${esc(item.watched_at)}</span>
+      <span class="channel">${esc(item.channel || "—")}</span>
+      <span>${esc(item.id)}</span>
+    </div>
+    <h2><a href="${esc(item.url)}" target="_blank"
+      rel="noopener">${esc(item.title)}</a></h2>
+    <p class="oneliner">${esc(item.one_liner)}</p>
+    <ul class="theses">${theses}</ul>
+    ${facts}
+    <div class="tagrow">${topicBtns}${tagBtns}</div>
+  </article>`;
+}
+</script>
+</body>
+</html>
