@@ -1,0 +1,22 @@
+{
+  "manifest_version": 3,
+  "name": "YTBrain Logger",
+  "version": "1.0.0",
+  "description": "Логирует просмотренные видео YouTube для YTBrain",
+  "permissions": ["storage", "tabs", "downloads"],
+  "host_permissions": ["https://www.youtube.com/*"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://www.youtube.com/watch*"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "YTBrain Logger"
+  }
+}

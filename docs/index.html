@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>YTBrain — архив конспектов</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #F6F2E9;
+    --paper-raised: #FFFDF7;
+    --ink: #1C1B17;
+    --ink-soft: #5C594F;
+    --indigo: #3A38F0;
+    --indigo-soft: #ECEBFE;
+    --ochre: #B4690E;
+    --ochre-soft: #F7E8D2;
+    --line: #DCD5C4;
+    --radius: 10px;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    *, *::before, *::after { transition: none !important; animation: none !important; }
+  }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: "Inter", system-ui, sans-serif;
+    font-size: 15px;
+    line-height: 1.55;
+  }
+  a { color: var(--indigo); }
+  :focus-visible { outline: 3px solid var(--indigo); outline-offset: 2px; border-radius: 3px; }
+
+  .wrap { max-width: 1060px; margin: 0 auto; padding: 28px 20px 80px; }
+
+  header.masthead {
+    display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap;
+    border-bottom: 3px solid var(--ink);
+    padding-bottom: 14px; margin-bottom: 22px;
+  }
+  h1 {
+    font-family: "Space Grotesk", sans-serif;
+    font-size: clamp(26px, 4.5vw, 38px);
+    font-weight: 700; margin: 0; letter-spacing: -0.02em;
+  }
+  h1 .dot { color: var(--indigo); }
+  .generated {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 12px; color: var(--ink-soft); margin-left: auto;
+  }
+
+  /* Метрики */
+  .metrics {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 12px; margin-bottom: 20px;
+  }
+  .metric {
+    background: var(--paper-raised);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+  }
+  .metric .num {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 26px; font-weight: 500; color: var(--indigo);
+  }
+  .metric .cap { font-size: 12px; color: var(--ink-soft); margin-top: 2px; }
+  .metric.spark { grid-column: span 2; min-width: 0; }
+  .metric.spark svg { width: 100%; height: 52px; display: block; }
+  @media (max-width: 560px) { .metric.spark { grid-column: 1 / -1; } }
+
+  /* Поиск */
+  .search {
+    width: 100%;
+    font: inherit;
+    padding: 12px 16px;
+    border: 2px solid var(--ink);
+    border-radius: var(--radius);
+    background: var(--paper-raised);
+    color: var(--ink);
+    margin-bottom: 16px;
+  }
+  .search::placeholder { color: var(--ink-soft); }
+
+  /* Фильтры */
+  .filters { margin-bottom: 24px; }
+  .filter-group { margin-bottom: 10px; }
+  .filter-group .fg-label {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em;
+    color: var(--ink-soft); margin-bottom: 6px;
+  }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip {
+    font: inherit; font-size: 13px;
+    padding: 4px 12px;
+    border-radius: 999px;
+    border: 1px solid var(--line);
+    background: var(--paper-raised);
+    color: var(--ink);
+    cursor: pointer;
+    transition: background .15s, border-color .15s;
+  }
+  .chip:hover { border-color: var(--ink); }
+  .chip[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--paper); }
+  .chip .n { color: var(--ink-soft); font-family: "JetBrains Mono", monospace; font-size: 11px; }
+  .chip[aria-pressed="true"] .n { color: var(--paper); opacity: .7; }
+  .chips.topics .chip[aria-pressed="true"],
+  .chips.channels .chip[aria-pressed="true"] { background: var(--ochre); border-color: var(--ochre); color: #fff; }
+  .chips.tags .chip[aria-pressed="true"] { background: var(--indigo); border-color: var(--indigo); color: #fff; }
+
+  .result-count {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 12px; color: var(--ink-soft); margin-bottom: 14px;
+  }
+  .reset {
+    font: inherit; font-size: 12px; background: none; border: none;
+    color: var(--indigo); cursor: pointer; text-decoration: underline; padding: 0; margin-left: 8px;
+  }
+
+  /* Карточки */
+  .cards { display: grid; gap: 16px; }
+  .card {
+    background: var(--paper-raised);
+    border: 1px solid var(--line);
+    border-left: 4px solid var(--indigo);
+    border-radius: var(--radius);
+    padding: 18px 20px;
+  }
+  .card h2 {
+    font-family: "Space Grotesk", sans-serif;
+    font-size: 19px; font-weight: 700; margin: 0 0 6px;
+    letter-spacing: -0.01em;
+  }
+  .card h2 a { color: var(--ink); text-decoration: none; }
+  .card h2 a:hover { color: var(--indigo); text-decoration: underline; }
+  .card .meta {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 12px; color: var(--ink-soft); margin-bottom: 10px;
+    display: flex; flex-wrap: wrap; gap: 4px 14px;
+  }
+  .card .meta .channel { color: var(--ochre); }
+  .card .one-liner {
+    border-left: 3px solid var(--ochre);
+    margin: 0 0 12px; padding: 4px 0 4px 12px;
+    font-style: italic; color: var(--ink);
+  }
+  .card ul.theses { margin: 0 0 10px; padding-left: 20px; }
+  .card ul.theses li { margin-bottom: 4px; }
+  .card details {
+    border-top: 1px dashed var(--line);
+    padding-top: 8px; margin-bottom: 10px;
+  }
+  .card details summary {
+    cursor: pointer; font-size: 13px; font-weight: 600; color: var(--ink-soft);
+  }
+  .card details summary:hover { color: var(--indigo); }
+  .card details ul { margin: 8px 0 0; padding-left: 20px; font-size: 14px; }
+  .card .tagrow { display: flex; flex-wrap: wrap; gap: 6px; }
+  .card .tag {
+    font: inherit; font-size: 12px;
+    font-family: "JetBrains Mono", monospace;
+    padding: 2px 10px; border-radius: 999px;
+    border: none; cursor: pointer;
+    background: var(--indigo-soft); color: var(--indigo);
+  }
+  .card .tag:hover { background: var(--indigo); color: #fff; }
+  .card .topic-pill {
+    font-size: 12px; padding: 2px 10px; border-radius: 999px;
+    background: var(--ochre-soft); color: var(--ochre); border: none; cursor: pointer;
+  }
+  .card .topic-pill:hover { background: var(--ochre); color: #fff; }
+
+  .empty, .placeholder {
+    background: var(--paper-raised);
+    border: 2px dashed var(--line);
+    border-radius: var(--radius);
+    padding: 44px 24px; text-align: center; color: var(--ink-soft);
+  }
+  .placeholder h2 { font-family: "Space Grotesk", sans-serif; color: var(--ink); margin-top: 0; }
+  .placeholder code {
+    font-family: "JetBrains Mono", monospace; font-size: 13px;
+    background: var(--indigo-soft); color: var(--indigo);
+    padding: 1px 6px; border-radius: 4px;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="masthead">
+    <h1>YTBrain<span class="dot">.</span></h1>
+    <span class="generated" id="generated"></span>
+  </header>
+  <main id="app" aria-live="polite">
+    <div class="placeholder"><h2>Загрузка…</h2></div>
+  </main>
+</div>
+
+<script>
+(function () {
+  const app = document.getElementById("app");
+  const state = { q: "", topics: new Set(), channels: new Set(), tags: new Set() };
+  let DATA = null;
+
+  const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) =>
+    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+  function placeholder() {
+    app.innerHTML = `
+      <div class="placeholder">
+        <h2>Данных пока нет</h2>
+        <p>Файл <code>data.json</code> ещё не собран. Закиньте выгрузку истории в
+        <code>data/incoming/</code>, дождитесь прогона GitHub Actions — и дашборд оживёт.</p>
+      </div>`;
+  }
+
+  function matchesSearch(item, q) {
+    if (!q) return true;
+    const hay = [
+      item.title, item.one_liner,
+      ...(item.theses || []), ...(item.key_points || []), ...(item.tags || []),
+    ].join(" ").toLowerCase();
+    return q.toLowerCase().split(/\s+/).every((w) => hay.includes(w));
+  }
+
+  function filtered() {
+    return DATA.items.filter((it) =>
+      matchesSearch(it, state.q) &&
+      [...state.topics].every((t) => (it.topics || []).includes(t)) &&
+      (state.channels.size === 0 || state.channels.has(it.channel)) &&
+      [...state.tags].every((t) => (it.tags || []).includes(t))
+    );
+  }
+
+  function sparkline(byMonth) {
+    if (!byMonth || byMonth.length < 2) return "";
+    const vals = byMonth.map(([, n]) => n);
+    const max = Math.max(...vals, 1);
+    const W = 260, H = 48, P = 4;
+    const pts = vals.map((v, i) => {
+      const x = P + (i * (W - 2 * P)) / (vals.length - 1);
+      const y = H - P - ((v / max) * (H - 2 * P));
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    });
+    const first = byMonth[0][0], last = byMonth[byMonth.length - 1][0];
+    return `
+      <svg viewBox="0 0 ${W} ${H}" role="img"
+           aria-label="Просмотры по месяцам, ${esc(first)} — ${esc(last)}, максимум ${max}">
+        <polyline points="${pts.join(" ")}" fill="none" stroke="#3A38F0"
+                  stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+        <circle cx="${pts[pts.length-1].split(",")[0]}" cy="${pts[pts.length-1].split(",")[1]}"
+                r="3" fill="#3A38F0"/>
+      </svg>`;
+  }
+
+  function chip(kind, name, count, pressed) {
+    return `<button class="chip" data-kind="${kind}" data-value="${esc(name)}"
+      aria-pressed="${pressed}">${esc(name)} <span class="n">${count}</span></button>`;
+  }
+
+  function chipGroup(label, kind, entries, active) {
+    if (!entries || !entries.length) return "";
+    return `
+      <div class="filter-group">
+        <div class="fg-label">${label}</div>
+        <div class="chips ${kind}">
+          ${entries.map(([name, n]) => chip(kind, name, n, active.has(name))).join("")}
+        </div>
+      </div>`;
+  }
+
+  function card(it) {
+    return `
+    <article class="card">
+      <h2><a href="${esc(it.url)}" target="_blank" rel="noopener">${esc(it.title)}</a></h2>
+      <div class="meta">
+        <span class="channel">${esc(it.channel || "—")}</span>
+        <span>${esc(it.watched_at || "")}</span>
+        <span>${(it.topics || []).map((t) =>
+          `<button class="topic-pill" data-kind="topics" data-value="${esc(t)}">${esc(t)}</button>`
+        ).join(" ")}</span>
+      </div>
+      <blockquote class="one-liner">${esc(it.one_liner)}</blockquote>
+      <ul class="theses">${(it.theses || []).map((t) => `<li>${esc(t)}</li>`).join("")}</ul>
+      ${(it.key_points || []).length ? `
+      <details>
+        <summary>Ключевые факты (${it.key_points.length})</summary>
+        <ul>${it.key_points.map((p) => `<li>${esc(p)}</li>`).join("")}</ul>
+      </details>` : ""}
+      <div class="tagrow">${(it.tags || []).map((t) =>
+        `<button class="tag" data-kind="tags" data-value="${esc(t)}">#${esc(t)}</button>`
+      ).join("")}</div>
+    </article>`;
+  }
+
+  function render() {
+    const s = DATA.stats;
+    const items = filtered();
+    const hasFilters = state.q || state.topics.size || state.channels.size || state.tags.size;
+
+    app.innerHTML = `
+      <section class="metrics" aria-label="Статистика">
+        <div class="metric"><div class="num">${s.total_watched}</div><div class="cap">просмотров в логе</div></div>
+        <div class="metric"><div class="num">${s.total_notes}</div><div class="cap">конспектов</div></div>
+        <div class="metric"><div class="num">${s.no_transcript}</div><div class="cap">без субтитров</div></div>
+        <div class="metric spark">${sparkline(s.by_month)}<div class="cap">просмотры по месяцам</div></div>
+      </section>
+
+      <input class="search" type="search" id="q"
+        placeholder="Поиск по названию, тезисам, тегам…"
+        value="${esc(state.q)}" aria-label="Поиск по конспектам">
+
+      <section class="filters" aria-label="Фильтры">
+        ${chipGroup("Темы", "topics", s.top_topics, state.topics)}
+        ${chipGroup("Каналы", "channels", s.top_channels, state.channels)}
+        ${chipGroup("Теги", "tags", s.top_tags, state.tags)}
+      </section>
+
+      <div class="result-count">
+        показано ${items.length} из ${DATA.items.length}
+        ${hasFilters ? `<button class="reset" id="reset">сбросить фильтры</button>` : ""}
+      </div>
+
+      <section class="cards">
+        ${items.length ? items.map(card).join("")
+          : `<div class="empty">Ничего не найдено. Попробуйте ослабить фильтры.</div>`}
+      </section>`;
+
+    const q = document.getElementById("q");
+    q.addEventListener("input", (e) => {
+      state.q = e.target.value;
+      const pos = e.target.selectionStart;
+      render();
+      const nq = document.getElementById("q");
+      nq.focus();
+      nq.setSelectionRange(pos, pos);
+    });
+
+    app.querySelectorAll("[data-kind]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const set = state[btn.dataset.kind];
+        const v = btn.dataset.value;
+        set.has(v) ? set.delete(v) : set.add(v);
+        render();
+      });
+    });
+
+    const reset = document.getElementById("reset");
+    if (reset) reset.addEventListener("click", () => {
+      state.q = ""; state.topics.clear(); state.channels.clear(); state.tags.clear();
+      render();
+    });
+  }
+
+  fetch(`data.json?t=${Date.now()}`)
+    .then((r) => { if (!r.ok) throw new Error(r.status); return r.json(); })
+    .then((data) => {
+      DATA = data;
+      const gen = document.getElementById("generated");
+      if (data.generated_at) gen.textContent = "обновлено " + data.generated_at.slice(0, 16).replace("T", " ") + " UTC";
+      render();
+    })
+    .catch(placeholder);
+})();
+</script>
+</body>
+</html>
