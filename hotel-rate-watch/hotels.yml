@@ -1,0 +1,28 @@
+# Конфигурация проверки тарифов отелей.
+#
+# Параметры поиска — общие для всех целей.
+search:
+  check_in_offset_days: 14   # заезд через N дней от даты запуска workflow
+  nights: 1                  # число ночей
+  adults: 2                  # гостей в номере
+  currency: EUR              # валюта тарифов
+  max_hotels_per_city: 8     # сколько отелей брать по каждому городу (для cityCode)
+
+# Что проверяем ("список отелей").
+# Каждая цель — это либо cityCode (IATA-код города: берём топ отелей по городу),
+# либо явный список hotelIds (коды объектов в Amadeus, например MCLONGHM).
+targets:
+  - city: "Париж"
+    cityCode: PAR
+
+  - city: "Барселона"
+    cityCode: BCN
+
+  - city: "Тбилиси"
+    cityCode: TBS
+
+  # Пример точечной проверки конкретных отелей по их Amadeus hotelId:
+  # - name: "Избранные отели"
+  #   hotelIds:
+  #     - MCLONGHM
+  #     - RTPAR001

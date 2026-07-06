@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hotel Rate Watch — тарифы отелей по списку</title>
+<style>
+  :root {
+    --bg: #0f1115; --card: #171a21; --line: #262b36; --fg: #e8eaed;
+    --muted: #9aa4b2; --accent: #4f9cf9; --good: #37c46b; --warn: #f5a623;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 15px/1.5 system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+         background: var(--bg); color: var(--fg); }
+  header { padding: 28px 20px 8px; max-width: 1100px; margin: 0 auto; }
+  h1 { margin: 0 0 4px; font-size: 22px; }
+  .sub { color: var(--muted); font-size: 13px; }
+  main { max-width: 1100px; margin: 0 auto; padding: 16px 20px 60px; }
+  .meta { display: flex; flex-wrap: wrap; gap: 10px; margin: 14px 0 22px; }
+  .chip { background: var(--card); border: 1px solid var(--line); border-radius: 999px;
+          padding: 5px 12px; font-size: 13px; color: var(--muted); }
+  .chip b { color: var(--fg); font-weight: 600; }
+  .group { margin: 26px 0 8px; font-size: 16px; }
+  table { width: 100%; border-collapse: collapse; background: var(--card);
+          border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); }
+  th { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+  tr:last-child td { border-bottom: none; }
+  .price { font-variant-numeric: tabular-nums; font-weight: 700; white-space: nowrap; }
+  .tag { font-size: 12px; padding: 2px 8px; border-radius: 6px; border: 1px solid var(--line); }
+  .ref-yes { color: var(--good); border-color: #244; }
+  .ref-no { color: var(--warn); border-color: #443; }
+  .spark { display: inline-block; vertical-align: middle; }
+  .empty { color: var(--muted); padding: 40px 0; text-align: center; }
+  a { color: var(--accent); }
+  @media (max-width: 640px) { .hide-sm { display: none; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>🏨 Hotel Rate Watch</h1>
+  <div class="sub">Тарифы отелей по списку · данные Amadeus · автообновление через GitHub Actions</div>
+</header>
+<main>
+  <div class="meta" id="meta"></div>
+  <div id="content"><div class="empty">Загрузка данных…</div></div>
+</main>
+<script>
+const fmt = (n, cur) => n == null ? "—" :
+  new Intl.NumberFormat("ru-RU", { style: "currency", currency: cur || "EUR",
+    maximumFractionDigits: 0 }).format(n);
+
+function sparkline(points, cur) {
+  if (!points || points.length < 2) return "";
+  const w = 90, h = 24, pad = 2;
+  const ys = points.map(p => p.price);
+  const min = Math.min(...ys), max = Math.max(...ys), span = (max - min) || 1;
+  const step = (w - pad * 2) / (points.length - 1);
+  const d = points.map((p, i) => {
+    const x = pad + i * step;
+    const y = h - pad - ((p.price - min) / span) * (h - pad * 2);
+    return `${i ? "L" : "M"}${x.toFixed(1)} ${y.toFixed(1)}`;
+  }).join(" ");
+  const last = ys[ys.length - 1], first = ys[0];
+  const color = last > first ? "#f5a623" : last < first ? "#37c46b" : "#4f9cf9";
+  return `<svg class="spark" width="${w}" height="${h}" title="мин ${fmt(min,cur)} · макс ${fmt(max,cur)}">
+    <path d="${d}" fill="none" stroke="${color}" stroke-width="1.6"/></svg>`;
+}
+
+function refTag(v) {
+  if (v === true) return '<span class="tag ref-yes">возврат</span>';
+  if (v === false) return '<span class="tag ref-no">невозврат</span>';
+  return '<span class="tag">—</span>';
+}
+
+fetch("data.json").then(r => r.json()).then(d => {
+  const meta = document.getElementById("meta");
+  const content = document.getElementById("content");
+  const L = d.latest;
+  if (!L || !L.rows || !L.rows.length) {
+    content.innerHTML = '<div class="empty">Пока нет данных. Запустите workflow «Check hotel rates» — таблица появится после первого сбора.</div>';
+    return;
+  }
+  meta.innerHTML = [
+    `<span class="chip">Заезд <b>${L.check_in}</b></span>`,
+    `<span class="chip">Ночей <b>${L.nights}</b></span>`,
+    `<span class="chip">Гостей <b>${L.adults}</b></span>`,
+    `<span class="chip">Отелей <b>${L.rows.length}</b></span>`,
+    `<span class="chip">Срезов в истории <b>${d.snapshots}</b></span>`,
+    `<span class="chip">Обновлено <b>${new Date(d.generated_at).toLocaleString("ru-RU")}</b></span>`,
+  ].join("");
+
+  const byTarget = {};
+  for (const row of L.rows) (byTarget[row.target] ||= []).push(row);
+
+  let html = "";
+  for (const [target, rows] of Object.entries(byTarget)) {
+    html += `<h2 class="group">${target}</h2><table><thead><tr>
+      <th>Отель</th><th>Тариф</th><th class="hide-sm">Номер</th>
+      <th class="hide-sm">Условия</th><th>Динамика</th></tr></thead><tbody>`;
+    for (const row of rows) {
+      const tr = (d.trends[row.hotel_id] || {}).points || [];
+      html += `<tr>
+        <td>${row.hotel}</td>
+        <td class="price">${fmt(row.price, row.currency)}</td>
+        <td class="hide-sm">${row.room || "—"}${row.board ? " · " + row.board : ""}</td>
+        <td class="hide-sm">${refTag(row.refundable)}</td>
+        <td>${sparkline(tr, row.currency)}</td>
+      </tr>`;
+    }
+    html += "</tbody></table>";
+  }
+  content.innerHTML = html;
+}).catch(e => {
+  document.getElementById("content").innerHTML =
+    '<div class="empty">Не удалось загрузить data.json.</div>';
+  console.error(e);
+});
+</script>
+</body>
+</html>
