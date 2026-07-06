@@ -40,23 +40,29 @@ CYRILLIC_RE = re.compile(r"[а-яА-ЯёЁ]")
 # Transcript fetching
 # --------------------------------------------------------------------------
 
-def fetch_transcript(video_id: str) -> list[str] | None:
-    """Return transcript segments (list of text chunks) or None."""
+BLOCKED_ERRORS = {"RequestBlocked", "IpBlocked", "YouTubeRequestFailed"}
+
+
+def fetch_transcript(video_id: str) -> tuple[list[str] | None, str]:
+    """Return (segments, error_name). error_name is "" on success."""
     from youtube_transcript_api import YouTubeTranscriptApi
 
     api = YouTubeTranscriptApi()
     try:
         try:
             fetched = api.fetch(video_id, languages=["ru", "en"])
-        except Exception:
+        except Exception as first_exc:
+            if type(first_exc).__name__ in BLOCKED_ERRORS:
+                raise
             # Fall back to whatever language is available.
             transcript_list = api.list(video_id)
             transcript = next(iter(transcript_list))
             fetched = transcript.fetch()
-        return [snippet.text for snippet in fetched if snippet.text.strip()]
+        return ([s.text for s in fetched if s.text.strip()], "")
     except Exception as exc:
-        print(f"    no transcript ({type(exc).__name__})")
-        return None
+        name = type(exc).__name__
+        print(f"    no transcript ({name})")
+        return None, name
 
 
 def segments_to_text(segments: list[str]) -> str:
@@ -262,12 +268,25 @@ def main() -> None:
         except json.JSONDecodeError:
             print("  ! notes.json is corrupt, starting fresh", file=sys.stderr)
 
-    # Newest first; one attempt per video_id.
+    # Drop legacy no_transcript marks that were actually IP blocks
+    # (written before the "reason" field existed) so they get retried.
+    stale = [vid for vid, n in notes.items()
+             if n.get("status") == "no_transcript" and "reason" not in n]
+    if stale:
+        print(f"  retrying {len(stale)} entries marked before "
+              f"block detection existed")
+        for vid in stale:
+            del notes[vid]
+
+    # Newest first; one attempt per video_id; summaries only make sense
+    # for real videos (not posts/ads/deleted).
     pending = []
     seen_ids = set()
     for record in watch_log:
         vid = record["video_id"]
-        if vid in notes or vid in seen_ids:
+        if record.get("kind", "video") not in ("video", "short"):
+            continue
+        if not vid or vid in notes or vid in seen_ids:
             continue
         seen_ids.add(vid)
         pending.append(record)
@@ -276,19 +295,32 @@ def main() -> None:
           f"limit={MAX_PER_RUN}")
 
     processed = 0
+    consecutive_blocks = 0
     for record in pending:
         if processed >= MAX_PER_RUN:
+            break
+        if consecutive_blocks >= 5:
+            print("  ! YouTube is blocking this IP (cloud runner?) — "
+                  "aborting; run summarize.py locally instead")
             break
         vid = record["video_id"]
         print(f"  [{processed + 1}/{MAX_PER_RUN}] {vid} — "
               f"{record['title'][:60]}")
 
-        segments = fetch_transcript(vid)
+        segments, err = fetch_transcript(vid)
         if not segments:
-            notes[vid] = {**record, "status": "no_transcript"}
+            if err in BLOCKED_ERRORS:
+                # Transient/IP-level failure — leave the video pending.
+                consecutive_blocks += 1
+                processed += 1
+                continue
+            consecutive_blocks = 0
+            notes[vid] = {**record, "status": "no_transcript",
+                          "reason": err}
             processed += 1
             save_notes(notes)
             continue
+        consecutive_blocks = 0
 
         text = segments_to_text(segments)
         try:
@@ -306,6 +338,7 @@ def main() -> None:
         processed += 1
         save_notes(notes)
 
+    save_notes(notes)
     ok = sum(1 for n in notes.values() if n.get("status") == "ok")
     missing = sum(1 for n in notes.values()
                   if n.get("status") == "no_transcript")

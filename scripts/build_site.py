@@ -1,5 +1,12 @@
 #!/usr/bin/env python3
-"""Build docs/data.json for the dashboard from data/watch_log.json + notes."""
+"""Build docs/data.json for the dashboard.
+
+Besides the notes list and headline stats, exports the full watch log as
+compact records ([id, title, channel, watched_at, kind]) and the search
+log ([query, searched_at]) so the dashboard can compute detailed
+statistics client-side — the same engine also powers files uploaded
+directly in the browser.
+"""
 from __future__ import annotations
 
 import json
@@ -9,6 +16,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 WATCH_LOG = ROOT / "data" / "watch_log.json"
+SEARCH_LOG = ROOT / "data" / "search_log.json"
 NOTES_JSON = ROOT / "data" / "notes.json"
 OUTPUT = ROOT / "docs" / "data.json"
 
@@ -24,6 +32,7 @@ def load_json(path: Path, default):
 
 def main() -> None:
     watch_log: list = load_json(WATCH_LOG, [])
+    search_log: list = load_json(SEARCH_LOG, [])
     notes: dict = load_json(NOTES_JSON, {})
 
     items = []
@@ -44,15 +53,27 @@ def main() -> None:
         })
     items.sort(key=lambda it: it["watched_at"], reverse=True)
 
-    channels = Counter(
-        r.get("channel") for r in watch_log if r.get("channel")
-    )
+    def short_title(t: str) -> str:
+        # Post "titles" are whole post bodies — keep the payload lean.
+        t = " ".join(t.split())
+        return t[:157] + "…" if len(t) > 160 else t
+
+    records = [
+        [
+            r.get("video_id", ""),
+            short_title(r.get("title", "")),
+            r.get("channel", ""),
+            r.get("watched_at", ""),
+            r.get("kind", "video"),
+        ]
+        for r in watch_log
+    ]
+    searches = [
+        [s.get("query", ""), s.get("searched_at", "")] for s in search_log
+    ]
+
     topics = Counter(t for it in items for t in it["topics"] if t)
     tags = Counter(t for it in items for t in it["tags"] if t)
-    months = Counter(
-        r["watched_at"][:7] for r in watch_log
-        if r.get("watched_at") and len(r["watched_at"]) >= 7
-    )
 
     stats = {
         "total_watched": len(watch_log),
@@ -60,26 +81,26 @@ def main() -> None:
         "no_transcript": sum(
             1 for n in notes.values() if n.get("status") == "no_transcript"
         ),
-        "top_channels": channels.most_common(15),
         "top_topics": topics.most_common(20),
         "top_tags": tags.most_common(30),
-        "by_month": sorted(months.items()),
     }
 
     payload = {
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "stats": stats,
         "items": items,
+        "records": records,
+        "searches": searches,
     }
 
     OUTPUT.parent.mkdir(parents=True, exist_ok=True)
     OUTPUT.write_text(
-        json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
+        json.dumps(payload, ensure_ascii=False, separators=(",", ":")) + "\n",
         encoding="utf-8",
     )
-    print(f"data.json: {len(items)} notes, "
-          f"{stats['total_watched']} watched, "
-          f"{stats['no_transcript']} without transcript")
+    size_mb = OUTPUT.stat().st_size / 1e6
+    print(f"data.json: {len(items)} notes, {len(records)} records, "
+          f"{len(searches)} searches, {size_mb:.1f} MB")
 
 
 if __name__ == "__main__":

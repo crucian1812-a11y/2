@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>YTBrain — архив конспектов</title>
+<title>YTBrain — статистика и конспекты</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
@@ -17,14 +17,17 @@
     --line: #E4DFD3;
     --indigo: #3A38F0;
     --indigo-soft: #ECEBFE;
+    --indigo-deep: #201E9E;
     --ochre: #B8860B;
     --ochre-soft: #F7EEDA;
+    --c-video: #3A38F0;
+    --c-post: #B8860B;
+    --c-ad: #C2417A;
+    --c-deleted: #0E8A62;
     --radius: 10px;
   }
   * { box-sizing: border-box; }
-  html { scroll-behavior: smooth; }
   @media (prefers-reduced-motion: reduce) {
-    html { scroll-behavior: auto; }
     *, *::before, *::after {
       animation-duration: 0.001s !important;
       transition-duration: 0.001s !important;
@@ -44,11 +47,11 @@
     outline-offset: 2px;
     border-radius: 4px;
   }
-
-  .wrap { max-width: 1080px; margin: 0 auto; padding: 0 20px 80px; }
+  .mono { font-family: "JetBrains Mono", monospace; }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 0 20px 80px; }
 
   header.site {
-    padding: 40px 0 8px;
+    padding: 36px 0 4px;
     display: flex;
     flex-wrap: wrap;
     align-items: baseline;
@@ -62,216 +65,209 @@
     margin: 0;
   }
   h1 .dot { color: var(--indigo); }
-  .generated {
-    font-family: "JetBrains Mono", monospace;
-    font-size: 12px;
-    color: var(--ink-faint);
-  }
+  .generated { font-family: "JetBrains Mono", monospace; font-size: 12px; color: var(--ink-faint); }
 
-  /* ---- метрики ---- */
+  h2.sec {
+    font-family: "Space Grotesk", sans-serif;
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    margin: 40px 0 4px;
+  }
+  h2.sec::before { content: "§ "; color: var(--indigo); }
+  .sec-note { font-size: 13px; color: var(--ink-faint); margin: 0 0 14px; }
+
+  /* ---- tabs ---- */
+  .tabs { display: flex; gap: 8px; margin: 18px 0 8px; border-bottom: 1.5px solid var(--line); }
+  .tab {
+    font: inherit; font-weight: 600; font-size: 15px;
+    background: none; border: none; cursor: pointer;
+    color: var(--ink-soft);
+    padding: 10px 16px 8px;
+    border-bottom: 3px solid transparent;
+    margin-bottom: -1.5px;
+  }
+  .tab[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--indigo); }
+
+  /* ---- upload ---- */
+  .upload {
+    border: 2px dashed var(--line);
+    border-radius: var(--radius);
+    background: var(--paper-raised);
+    padding: 16px 18px;
+    margin: 18px 0 6px;
+    display: flex; flex-wrap: wrap; align-items: center; gap: 10px 18px;
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .upload.drag { border-color: var(--indigo); background: var(--indigo-soft); }
+  .upload .u-text { flex: 1 1 320px; font-size: 13.5px; color: var(--ink-soft); }
+  .upload .u-text strong { color: var(--ink); }
+  .upload .u-priv { display: block; font-size: 12px; color: var(--ink-faint); margin-top: 2px; }
+  .btn {
+    font: inherit; font-size: 13.5px; font-weight: 600;
+    padding: 8px 16px; border-radius: 8px; cursor: pointer;
+    border: 1.5px solid var(--indigo); background: var(--indigo); color: #fff;
+  }
+  .btn.ghost { background: transparent; color: var(--indigo); }
+  .btn:hover { filter: brightness(1.08); }
+  .databadge {
+    display: none; margin: 10px 0 0; padding: 10px 14px;
+    border-radius: 8px; background: var(--ochre-soft);
+    border: 1px solid var(--ochre);
+    font-size: 13.5px;
+    align-items: center; gap: 12px; flex-wrap: wrap;
+  }
+  .databadge.on { display: flex; }
+
+  /* ---- metrics ---- */
   .metrics {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: 12px;
-    margin: 24px 0;
+    grid-template-columns: repeat(auto-fit, minmax(148px, 1fr));
+    gap: 12px; margin: 20px 0;
   }
   .metric {
     background: var(--paper-raised);
     border: 1px solid var(--line);
     border-radius: var(--radius);
-    padding: 14px 16px;
+    padding: 13px 15px;
   }
   .metric .num {
     font-family: "JetBrains Mono", monospace;
-    font-weight: 600;
-    font-size: 26px;
+    font-weight: 600; font-size: 24px;
     font-variant-numeric: tabular-nums;
-    color: var(--indigo);
+    color: var(--indigo); white-space: nowrap;
   }
-  .metric .lbl {
-    font-size: 12px;
-    color: var(--ink-soft);
-    margin-top: 2px;
-  }
-  .metric.spark { grid-column: span 2; min-width: 0; }
-  .spark svg { display: block; width: 100%; height: 56px; margin-top: 6px; }
-  .spark .lbl abbr { text-decoration: none; }
+  .metric .lbl { font-size: 12px; color: var(--ink-soft); margin-top: 2px; }
+  .metric .sub { font-size: 11px; color: var(--ink-faint); }
 
-  /* ---- поиск и фильтры ---- */
-  .controls { margin: 8px 0 20px; }
-  .search {
-    width: 100%;
-    padding: 12px 16px;
-    font: inherit;
-    color: var(--ink);
+  .approx { color: var(--ink-faint); font-size: 12px; }
+
+  /* ---- charts ---- */
+  .panel {
     background: var(--paper-raised);
-    border: 1.5px solid var(--line);
+    border: 1px solid var(--line);
     border-radius: var(--radius);
+    padding: 16px 18px;
+    margin: 0 0 14px;
   }
-  .search::placeholder { color: var(--ink-faint); }
-  .search:focus-visible { outline-offset: 0; border-color: var(--indigo); }
+  .panel h3 {
+    font-family: "Space Grotesk", sans-serif;
+    font-size: 15px; font-weight: 500; margin: 0 0 10px;
+    color: var(--ink);
+  }
+  .panel h3 small { color: var(--ink-faint); font-weight: 400; font-size: 12px; }
+  .cols2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  @media (max-width: 760px) { .cols2 { grid-template-columns: 1fr; } }
 
-  .chipgroups { margin-top: 14px; display: grid; gap: 10px; }
-  .chipgroup .gname {
-    font-family: "JetBrains Mono", monospace;
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: var(--ink-faint);
-    margin-bottom: 6px;
+  svg.chart { display: block; width: 100%; }
+  .axis { font-family: "JetBrains Mono", monospace; font-size: 10px; fill: var(--ink-faint); }
+
+  /* horizontal bars */
+  .hbar-row { display: grid; grid-template-columns: minmax(90px, 200px) 1fr 70px; gap: 10px; align-items: center; margin: 5px 0; font-size: 13.5px; }
+  .hbar-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .hbar-name button { font: inherit; background: none; border: none; padding: 0; cursor: pointer; color: var(--ink); text-align: left; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .hbar-name button:hover { color: var(--indigo); }
+  .hbar-track { background: var(--paper); border-radius: 4px; height: 16px; position: relative; }
+  .hbar-fill { position: absolute; inset: 0 auto 0 0; border-radius: 4px; background: var(--indigo); min-width: 2px; }
+  .hbar-val { font-family: "JetBrains Mono", monospace; font-size: 12px; color: var(--ink-soft); text-align: right; white-space: nowrap; }
+
+  /* heatmap */
+  .heat { display: grid; grid-template-columns: 34px repeat(24, 1fr); gap: 2px; }
+  .heat .hcell { aspect-ratio: 1 / 1; border-radius: 3px; min-width: 0; }
+  .heat .hlbl { font-family: "JetBrains Mono", monospace; font-size: 10px; color: var(--ink-faint); align-self: center; }
+  .heat .htop { font-family: "JetBrains Mono", monospace; font-size: 9px; color: var(--ink-faint); text-align: center; }
+
+  /* tables */
+  .tblwrap { overflow-x: auto; }
+  table.data { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  table.data th, table.data td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--line); }
+  table.data th {
+    font-family: "JetBrains Mono", monospace; font-size: 11px;
+    text-transform: uppercase; letter-spacing: 0.06em;
+    color: var(--ink-faint); font-weight: 600;
+    cursor: pointer; user-select: none; white-space: nowrap;
   }
+  table.data th .arr { color: var(--indigo); }
+  table.data td.num { font-family: "JetBrains Mono", monospace; font-size: 12.5px; white-space: nowrap; }
+  table.data td a { color: inherit; text-decoration: none; }
+  table.data td a:hover { color: var(--indigo); }
+  table.data tr:hover td { background: var(--paper); }
+  .cellbar { display: inline-block; height: 8px; border-radius: 3px; background: var(--indigo-soft); vertical-align: middle; margin-right: 6px; }
+  .cellbar i { display: block; height: 100%; border-radius: 3px; background: var(--indigo); }
+
+  .minisearch {
+    width: 100%; max-width: 340px; padding: 8px 12px; font: inherit; font-size: 13.5px;
+    color: var(--ink); background: var(--paper);
+    border: 1.5px solid var(--line); border-radius: 8px; margin-bottom: 10px;
+  }
+  .minisearch:focus-visible { outline-offset: 0; border-color: var(--indigo); }
+  .morebtn {
+    font: inherit; font-size: 13px; font-weight: 600;
+    background: none; border: 1.5px solid var(--line); border-radius: 8px;
+    padding: 7px 16px; cursor: pointer; color: var(--ink-soft); margin-top: 10px;
+  }
+  .morebtn:hover { border-color: var(--indigo); color: var(--indigo); }
+
+  /* search queries chips */
+  .qchips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .qchip {
+    font-size: 13px; padding: 4px 12px; border-radius: 999px;
+    background: var(--indigo-soft); color: var(--indigo-deep);
+  }
+  .qchip .n { font-family: "JetBrains Mono", monospace; font-size: 11px; opacity: 0.7; margin-left: 4px; }
+
+  /* ---- notes tab (архив конспектов) ---- */
+  .search {
+    width: 100%; padding: 12px 16px; font: inherit; color: var(--ink);
+    background: var(--paper-raised); border: 1.5px solid var(--line); border-radius: var(--radius);
+  }
+  .search:focus-visible { outline-offset: 0; border-color: var(--indigo); }
+  .chipgroups { margin-top: 14px; display: grid; gap: 10px; }
+  .gname { font-family: "JetBrains Mono", monospace; font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-faint); margin-bottom: 6px; }
   .chips { display: flex; flex-wrap: wrap; gap: 6px; }
   .chip {
-    font: inherit;
-    font-size: 13px;
-    padding: 4px 12px;
-    border-radius: 999px;
-    border: 1px solid var(--line);
-    background: var(--paper-raised);
-    color: var(--ink-soft);
-    cursor: pointer;
-    transition: background 0.12s, border-color 0.12s;
+    font: inherit; font-size: 13px; padding: 4px 12px; border-radius: 999px;
+    border: 1px solid var(--line); background: var(--paper-raised);
+    color: var(--ink-soft); cursor: pointer;
   }
   .chip:hover { border-color: var(--ink-faint); }
-  .chip .n {
-    font-family: "JetBrains Mono", monospace;
-    font-size: 11px;
-    color: var(--ink-faint);
-    margin-left: 4px;
-  }
-  .chip[aria-pressed="true"] {
-    background: var(--indigo);
-    border-color: var(--indigo);
-    color: #fff;
-  }
+  .chip .n { font-family: "JetBrains Mono", monospace; font-size: 11px; color: var(--ink-faint); margin-left: 4px; }
+  .chip[aria-pressed="true"] { background: var(--indigo); border-color: var(--indigo); color: #fff; }
   .chip[aria-pressed="true"] .n { color: #C9C8FB; }
-  .chipgroup[data-kind="topics"] .chip[aria-pressed="true"],
-  .chipgroup[data-kind="channels"] .chip[aria-pressed="true"] {
-    background: var(--ochre);
-    border-color: var(--ochre);
-    color: #fff;
-  }
-  .chipgroup[data-kind="topics"] .chip[aria-pressed="true"] .n,
-  .chipgroup[data-kind="channels"] .chip[aria-pressed="true"] .n { color: #F0DFB0; }
-
-  .resultline {
-    font-family: "JetBrains Mono", monospace;
-    font-size: 12px;
-    color: var(--ink-faint);
-    margin: 14px 2px;
-  }
-  .resultline button {
-    font: inherit;
-    color: var(--indigo);
-    background: none;
-    border: none;
-    cursor: pointer;
-    text-decoration: underline;
-    padding: 0;
-  }
-
-  /* ---- карточки ---- */
+  .resultline { font-family: "JetBrains Mono", monospace; font-size: 12px; color: var(--ink-faint); margin: 14px 2px; }
+  .resultline button { font: inherit; color: var(--indigo); background: none; border: none; cursor: pointer; text-decoration: underline; padding: 0; }
   .cards { display: grid; gap: 14px; }
-  .card {
-    background: var(--paper-raised);
-    border: 1px solid var(--line);
-    border-radius: var(--radius);
-    padding: 18px 20px;
-  }
-  .card .meta {
-    font-family: "JetBrains Mono", monospace;
-    font-size: 12px;
-    color: var(--ink-faint);
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px 14px;
-    margin-bottom: 6px;
-  }
+  .card { background: var(--paper-raised); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px 20px; }
+  .card .meta { font-family: "JetBrains Mono", monospace; font-size: 12px; color: var(--ink-faint); display: flex; flex-wrap: wrap; gap: 4px 14px; margin-bottom: 6px; }
   .card .meta .channel { color: var(--ochre); }
-  .card h2 {
-    font-family: "Space Grotesk", sans-serif;
-    font-size: 19px;
-    font-weight: 500;
-    letter-spacing: -0.01em;
-    margin: 0 0 6px;
-    line-height: 1.3;
-  }
+  .card h2 { font-family: "Space Grotesk", sans-serif; font-size: 19px; font-weight: 500; margin: 0 0 6px; line-height: 1.3; }
   .card h2 a { color: inherit; text-decoration: none; }
   .card h2 a:hover { color: var(--indigo); }
-  .card .oneliner {
-    color: var(--ink-soft);
-    border-left: 3px solid var(--indigo);
-    padding-left: 12px;
-    margin: 10px 0;
-  }
+  .card .oneliner { color: var(--ink-soft); border-left: 3px solid var(--indigo); padding-left: 12px; margin: 10px 0; }
   .card ul.theses { margin: 10px 0; padding-left: 20px; }
-  .card ul.theses li { margin: 4px 0; }
-  .card details {
-    margin: 10px 0;
-    border: 1px dashed var(--line);
-    border-radius: 8px;
-    padding: 8px 12px;
-  }
-  .card details summary {
-    cursor: pointer;
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--ink-soft);
-  }
-  .card details ul { margin: 8px 0 2px; padding-left: 18px; font-size: 14px; }
+  .card details { margin: 10px 0; border: 1px dashed var(--line); border-radius: 8px; padding: 8px 12px; }
+  .card details summary { cursor: pointer; font-size: 13px; font-weight: 600; color: var(--ink-soft); }
   .card .tagrow { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
-  .tagbtn {
-    font-family: "JetBrains Mono", monospace;
-    font-size: 12px;
-    padding: 2px 10px;
-    border-radius: 999px;
-    border: none;
-    cursor: pointer;
-    background: var(--indigo-soft);
-    color: var(--indigo);
-  }
+  .tagbtn { font-family: "JetBrains Mono", monospace; font-size: 12px; padding: 2px 10px; border-radius: 999px; border: none; cursor: pointer; background: var(--indigo-soft); color: var(--indigo); }
   .tagbtn.topic { background: var(--ochre-soft); color: var(--ochre); }
-  .tagbtn:hover { filter: brightness(0.95); }
 
-  /* ---- заглушки ---- */
   .empty {
-    text-align: center;
-    border: 1.5px dashed var(--line);
-    border-radius: var(--radius);
-    padding: 60px 24px;
-    margin: 30px 0;
-    color: var(--ink-soft);
+    text-align: center; border: 1.5px dashed var(--line); border-radius: var(--radius);
+    padding: 48px 24px; margin: 24px 0; color: var(--ink-soft);
   }
   .empty h2 { font-family: "Space Grotesk", sans-serif; margin: 0 0 10px; }
-  .empty code {
-    font-family: "JetBrains Mono", monospace;
-    font-size: 13px;
-    background: var(--indigo-soft);
-    color: var(--indigo);
-    padding: 2px 6px;
-    border-radius: 4px;
-  }
+  .empty code { font-family: "JetBrains Mono", monospace; font-size: 13px; background: var(--indigo-soft); color: var(--indigo); padding: 2px 6px; border-radius: 4px; }
 
-  /* тултип спарклайна */
   .tip {
-    position: fixed;
-    pointer-events: none;
-    background: var(--ink);
-    color: var(--paper);
-    font-family: "JetBrains Mono", monospace;
-    font-size: 12px;
-    padding: 4px 8px;
-    border-radius: 6px;
+    position: fixed; pointer-events: none;
+    background: var(--ink); color: var(--paper);
+    font-family: "JetBrains Mono", monospace; font-size: 12px;
+    padding: 4px 8px; border-radius: 6px;
     transform: translate(-50%, -130%);
-    white-space: nowrap;
-    z-index: 10;
-    display: none;
+    white-space: nowrap; z-index: 10; display: none;
   }
-
-  @media (max-width: 640px) {
-    .metric.spark { grid-column: 1 / -1; }
-    .card { padding: 14px 14px; }
-  }
+  .legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 12.5px; color: var(--ink-soft); margin-top: 8px; }
+  .legend .sw { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; }
 </style>
 </head>
 <body>
@@ -281,254 +277,714 @@
     <span class="generated" id="generated"></span>
   </header>
 
-  <div id="app"></div>
+  <div class="tabs" role="tablist">
+    <button class="tab" id="tab-stats" role="tab" aria-selected="true" aria-controls="pane-stats">Статистика</button>
+    <button class="tab" id="tab-notes" role="tab" aria-selected="false" aria-controls="pane-notes">Конспекты</button>
+  </div>
+
+  <section id="pane-stats" role="tabpanel" aria-labelledby="tab-stats">
+    <div class="upload" id="dropzone">
+      <div class="u-text">
+        <strong>Загрузите файл истории прямо сюда</strong> — перетащите или выберите
+        <span class="mono">watch-history.json</span> / <span class="mono">история-просмотров.json</span>,
+        файл истории поиска или лог расширения (можно несколько сразу).
+        <span class="u-priv">Файлы анализируются локально в вашем браузере и никуда не отправляются.</span>
+      </div>
+      <input type="file" id="fileinput" accept=".json,application/json" multiple hidden />
+      <button class="btn" id="pickfile">Выбрать файлы</button>
+    </div>
+    <div class="databadge" id="databadge">
+      <span id="badgetext"></span>
+      <button class="btn ghost" id="resetdata">Вернуться к данным сайта</button>
+    </div>
+    <div id="statsroot"></div>
+  </section>
+
+  <section id="pane-notes" role="tabpanel" aria-labelledby="tab-notes" hidden>
+    <div id="notesroot"></div>
+  </section>
 </div>
 <div class="tip" id="tip" role="status"></div>
 
 <script>
 "use strict";
 
-const state = {
-  q: "",
-  topics: new Set(),
-  channels: new Set(),
-  tags: new Set(),
-  data: null,
+/* ================= helpers ================= */
+const $ = (sel, el) => (el || document).querySelector(sel);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g,
+  (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const fmtN = (n) => (n ?? 0).toLocaleString("ru-RU");
+const KIND_META = {
+  video:   { name: "Видео",      color: "var(--c-video)" },
+  short:   { name: "Shorts",     color: "var(--c-video)" },
+  post:    { name: "Посты",      color: "var(--c-post)" },
+  ad:      { name: "Реклама",    color: "var(--c-ad)" },
+  deleted: { name: "Удалённые",  color: "var(--c-deleted)" },
 };
+const WEEKDAYS = ["пн","вт","ср","чт","пт","сб","вс"];
+const MIN = 60000, SESSION_GAP = 30 * MIN, DUR_CAP = 40 * MIN, DUR_DEFAULT = 5 * MIN;
 
-const app = document.getElementById("app");
-
-function esc(s) {
-  return String(s ?? "").replace(/[&<>"']/g, (c) => ({
-    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
-  }[c]));
+function fmtDur(ms) {
+  const m = Math.round(ms / MIN);
+  if (m < 60) return m + " мин";
+  const h = Math.floor(m / 60);
+  if (h < 100) return h + " ч " + (m % 60) + " м";
+  return fmtN(h) + " ч";
+}
+function fmtDate(d) {
+  return d.toLocaleDateString("ru-RU", { day: "numeric", month: "short", year: "numeric" });
 }
 
-// ------------------------------------------------------------------ загрузка
-fetch("data.json?ts=" + Date.now())
-  .then((r) => { if (!r.ok) throw new Error(r.status); return r.json(); })
-  .then((data) => { state.data = data; renderShell(); renderCards(); })
-  .catch(() => renderPlaceholder());
+/* ================= dataset & stats engine ================= */
+// view: {id, title, channel, ts:Date, kind}
+function buildStats(views, searches) {
+  const S = {};
+  const valid = views.filter((v) => v.ts && !isNaN(v.ts));
+  valid.sort((a, b) => a.ts - b.ts);
+  S.total = valid.length;
+  S.byKind = {};
+  for (const v of valid) S.byKind[v.kind] = (S.byKind[v.kind] || 0) + 1;
 
-function renderPlaceholder() {
-  app.innerHTML = `
-    <div class="empty">
-      <h2>Данных пока нет</h2>
-      <p>Файл <code>data.json</code> ещё не собран. Положите
-      <code>watch-history.json</code> из Google Takeout или лог расширения в
-      <code>data/incoming/</code>, запустите workflow
-      <strong>Process watch history</strong> — и конспекты появятся здесь.</p>
-    </div>`;
+  const contentViews = valid.filter((v) => v.kind === "video" || v.kind === "short");
+  S.contentTotal = contentViews.length;
+  S.uniqueVideos = new Set(contentViews.map((v) => v.id)).size;
+
+  const channelMap = new Map();
+  const dayset = new Set();
+  const byMonth = new Map(), byHour = new Array(24).fill(0),
+        byWeekday = new Array(7).fill(0);
+  const heat = Array.from({ length: 7 }, () => new Array(24).fill(0));
+  const videoAgg = new Map();
+
+  // estimated durations via gaps to the next event of any kind
+  let totalEst = 0;
+  const sessions = [];
+  let cur = null;
+  for (let i = 0; i < valid.length; i++) {
+    const v = valid[i];
+    const next = valid[i + 1];
+    const gap = next ? next.ts - v.ts : Infinity;
+    const isContent = v.kind === "video" || v.kind === "short";
+    const dur = isContent ? (gap <= DUR_CAP ? gap : DUR_DEFAULT) : 0;
+    v._dur = dur;
+    if (isContent) totalEst += dur;
+
+    // sessions over content+posts (ads ride along)
+    if (!cur || v.ts - cur.end > SESSION_GAP) {
+      cur = { start: v.ts, end: v.ts, count: 0, est: 0 };
+      sessions.push(cur);
+    }
+    cur.end = v.ts;
+    cur.count += 1;
+    cur.est += dur;
+
+    const d = v.ts;
+    dayset.add(d.toLocaleDateString("sv"));
+    const mk = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0");
+    byMonth.set(mk, (byMonth.get(mk) || 0) + 1);
+    byHour[d.getHours()] += 1;
+    const wd = (d.getDay() + 6) % 7;
+    byWeekday[wd] += 1;
+    heat[wd][d.getHours()] += 1;
+
+    if (isContent) {
+      if (v.channel) {
+        let c = channelMap.get(v.channel);
+        if (!c) channelMap.set(v.channel, c = { name: v.channel, views: 0, est: 0, last: d, first: d });
+        c.views += 1; c.est += dur;
+        if (d > c.last) c.last = d;
+        if (d < c.first) c.first = d;
+      }
+      let a = videoAgg.get(v.id);
+      if (!a) videoAgg.set(v.id, a = { id: v.id, title: v.title, channel: v.channel, views: 0, est: 0, last: d });
+      a.views += 1; a.est += dur;
+      if (d > a.last) { a.last = d; if (v.title) a.title = v.title; }
+      if (!a.title && v.title) a.title = v.title;
+    }
+  }
+
+  S.estTotal = totalEst;
+  S.activeDays = dayset.size;
+  S.first = valid.length ? valid[0].ts : null;
+  S.last = valid.length ? valid[valid.length - 1].ts : null;
+  S.avgPerDay = S.activeDays ? S.total / S.activeDays : 0;
+  S.byMonth = [...byMonth.entries()].sort((a, b) => a[0] < b[0] ? -1 : 1);
+  S.byHour = byHour;
+  S.byWeekday = byWeekday;
+  S.heat = heat;
+
+  S.channels = [...channelMap.values()].sort((a, b) => b.views - a.views);
+  const vids = [...videoAgg.values()];
+  S.rewatched = vids.filter((v) => v.views > 1).sort((a, b) => b.views - a.views).slice(0, 15);
+  S.longest = vids.sort((a, b) => b.est - a.est).slice(0, 15);
+
+  S.sessions = sessions;
+  S.sessionCount = sessions.length;
+  S.avgSession = sessions.length
+    ? sessions.reduce((s, x) => s + (x.end - x.start), 0) / sessions.length : 0;
+  S.marathons = [...sessions].sort((a, b) => (b.end - b.start) - (a.end - a.start)).slice(0, 10);
+
+  // searches
+  const qmap = new Map();
+  for (const s of searches) {
+    const q = s.q.trim().toLowerCase();
+    if (q) qmap.set(q, (qmap.get(q) || 0) + 1);
+  }
+  S.searchTotal = searches.length;
+  S.searchUnique = qmap.size;
+  S.topQueries = [...qmap.entries()].sort((a, b) => b[1] - a[1]).slice(0, 40);
+  return S;
 }
 
-// ------------------------------------------------------------------ каркас
-function renderShell() {
-  const { stats, generated_at } = state.data;
-  document.getElementById("generated").textContent =
-    "обновлено " + (generated_at || "").slice(0, 16).replace("T", " ") + " UTC";
+/* ================= takeout / extension parsing (JS port) ================= */
+const VIDEO_ID_RE = /(?:v=|youtu\.be\/|\/shorts\/|\/live\/)([A-Za-z0-9_-]{11})/;
+const POST_ID_RE = /\/post\/([A-Za-z0-9_-]+)/;
+const WATCH_PREF = ["Watched ", "Просмотрено видео ", "Вы посмотрели "];
+const POST_PREF = ["Viewed ", "Просмотрена запись "];
+const SEARCH_PREF = ["Searched for ", "Выполнен поиск "];
+const AD_DETAILS = new Set(["From Google Ads", "Из рекламы Google"]);
+const stripPref = (t, ps) => { for (const p of ps) if (t.startsWith(p)) return t.slice(p.length); return t; };
 
-  app.innerHTML = `
-    <section class="metrics" aria-label="Метрики">
-      ${metric(stats.total_watched, "просмотров в логе")}
-      ${metric(stats.total_notes, "конспектов")}
-      ${metric(stats.no_transcript, "без субтитров")}
-      <div class="metric spark">
-        <div class="lbl">просмотры по месяцам</div>
-        ${sparkline(stats.by_month)}
-      </div>
+function parseTakeoutItem(item, out) {
+  const title = item.title || "", url = item.titleUrl || "", time = item.time || "";
+  for (const p of SEARCH_PREF) {
+    if (title.startsWith(p)) {
+      const q = title.slice(p.length).trim();
+      if (q) out.searches.push({ q, ts: new Date(time) });
+      return;
+    }
+  }
+  const subs = item.subtitles || [];
+  const channel = subs.length ? (subs[0].name || "") : "";
+  const ad = (item.details || []).some((d) => AD_DETAILS.has(d.name));
+  const postM = url.match(POST_ID_RE);
+  if (postM || POST_PREF.some((p) => title.startsWith(p))) {
+    out.views.push({ id: postM ? "post:" + postM[1] : "", title: stripPref(title, POST_PREF),
+      channel, ts: new Date(time), kind: ad ? "ad" : "post" });
+    return;
+  }
+  const vm = url.match(VIDEO_ID_RE);
+  let clean = stripPref(title, WATCH_PREF);
+  if (ad) {
+    out.views.push({ id: vm ? vm[1] : "", title: clean.startsWith("http") ? "" : clean,
+      channel, ts: new Date(time), kind: "ad" });
+    return;
+  }
+  if (!vm) return;
+  if (clean.startsWith("http") || !clean) {
+    out.views.push({ id: vm[1], title: "", channel, ts: new Date(time), kind: "deleted" });
+    return;
+  }
+  out.views.push({ id: vm[1], title: clean, channel, ts: new Date(time),
+    kind: url.includes("/shorts/") ? "short" : "video" });
+}
+
+function parseUploadedJson(arr, out) {
+  if (!Array.isArray(arr)) return 0;
+  const before = out.views.length + out.searches.length;
+  for (const item of arr) {
+    if (!item || typeof item !== "object") continue;
+    if (item.videoId) {
+      out.views.push({ id: item.videoId, title: item.title || "", channel: item.channel || "",
+        ts: new Date(item.watchedAt || 0),
+        kind: (item.url || "").includes("/shorts/") ? "short" : "video" });
+    } else if ("titleUrl" in item || "time" in item || "header" in item) {
+      parseTakeoutItem(item, out);
+    }
+  }
+  return out.views.length + out.searches.length - before;
+}
+
+function dedupDataset(ds) {
+  const seenV = new Set(), seenS = new Set();
+  ds.views = ds.views.filter((v) => {
+    const day = isNaN(v.ts) ? "" : v.ts.toISOString().slice(0, 10);
+    const k = v.kind === "ad" && !v.id ? "ad|" + v.ts.getTime()
+      : v.kind + "|" + v.id + "|" + day;
+    if (seenV.has(k)) return false;
+    seenV.add(k); return true;
+  });
+  ds.searches = ds.searches.filter((s) => {
+    const k = s.q + "|" + s.ts.getTime();
+    if (seenS.has(k)) return false;
+    seenS.add(k); return true;
+  });
+}
+
+/* ================= rendering: stats ================= */
+const statsroot = $("#statsroot");
+let repoDataset = null;   // {views, searches}
+let repoPayload = null;   // full data.json
+
+function metric(num, label, sub) {
+  return `<div class="metric"><div class="num">${num}</div>
+    <div class="lbl">${label}</div>${sub ? `<div class="sub">${sub}</div>` : ""}</div>`;
+}
+
+function hbars(pairs, max, color, fmt, clickKind) {
+  return pairs.map(([name, val]) => `
+    <div class="hbar-row">
+      <div class="hbar-name" title="${esc(name)}">${
+        clickKind ? `<button data-open="${clickKind}" data-v="${esc(name)}">${esc(name)}</button>` : esc(name)
+      }</div>
+      <div class="hbar-track"><div class="hbar-fill" style="width:${max ? (100 * val / max).toFixed(1) : 0}%;background:${color}"></div></div>
+      <div class="hbar-val">${fmt ? fmt(val) : fmtN(val)}</div>
+    </div>`).join("");
+}
+
+function columnChart(values, labels, ariaLabel) {
+  const W = 560, H = 150, PAD = 6, LBL = 16;
+  const max = Math.max(...values, 1);
+  const bw = (W - 2 * PAD) / values.length;
+  let bars = "", axis = "";
+  values.forEach((v, i) => {
+    const h = (H - LBL - 8) * v / max;
+    const x = PAD + i * bw;
+    bars += `<rect x="${(x + 1).toFixed(1)}" y="${(H - LBL - h).toFixed(1)}" width="${(bw - 2).toFixed(1)}" height="${h.toFixed(1)}" rx="3" fill="var(--indigo)" data-i="${i}"></rect>`;
+    if (labels[i] !== "") axis += `<text class="axis" x="${(x + bw / 2).toFixed(1)}" y="${H - 3}" text-anchor="middle">${labels[i]}</text>`;
+  });
+  return `<svg class="chart colchart" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(ariaLabel)}" data-vals='${JSON.stringify(values)}' data-lbls='${JSON.stringify(labels)}'>${bars}${axis}</svg>`;
+}
+
+function monthChart(byMonth) {
+  if (byMonth.length < 2) return "<p class='sec-note'>Мало данных для графика.</p>";
+  const W = 1080, H = 190, PAD = 8, LBL = 18;
+  const max = Math.max(...byMonth.map(([, n]) => n), 1);
+  const pts = byMonth.map(([, n], i) => [
+    PAD + i * (W - 2 * PAD) / (byMonth.length - 1),
+    H - LBL - (H - LBL - 12) * n / max,
+  ]);
+  const line = pts.map(([x, y], i) => (i ? "L" : "M") + x.toFixed(1) + " " + y.toFixed(1)).join(" ");
+  const area = line + ` L ${pts[pts.length - 1][0].toFixed(1)} ${H - LBL} L ${PAD} ${H - LBL} Z`;
+  const ticks = byMonth.map(([m], i) => {
+    if (i % Math.ceil(byMonth.length / 10) !== 0) return "";
+    const anchor = i === 0 ? "start" : (i > byMonth.length - 3 ? "end" : "middle");
+    return `<text class="axis" x="${pts[i][0].toFixed(1)}" y="${H - 4}" text-anchor="${anchor}">${m}</text>`;
+  }).join("");
+  const peak = byMonth.reduce((b, p) => p[1] > b[1] ? p : b);
+  const pi = byMonth.indexOf(peak);
+  return `<svg class="chart" id="monthchart" viewBox="0 0 ${W} ${H}" role="img"
+      aria-label="Просмотры по месяцам" data-months='${esc(JSON.stringify(byMonth))}'>
+    <path d="${area}" fill="var(--indigo-soft)"></path>
+    <path d="${line}" fill="none" stroke="var(--indigo)" stroke-width="2" stroke-linejoin="round" vector-effect="non-scaling-stroke"></path>
+    <circle cx="${pts[pi][0].toFixed(1)}" cy="${pts[pi][1].toFixed(1)}" r="4" fill="var(--indigo)"></circle>
+    <text class="axis" x="${pts[pi][0].toFixed(1)}" y="${Math.max(pts[pi][1] - 8, 10).toFixed(1)}" text-anchor="middle" font-weight="600">${peak[0]}: ${peak[1]}</text>
+    ${ticks}
+  </svg>`;
+}
+
+function heatColor(t) {
+  // sequential: paper-indigo ramp, light → dark
+  const a = [236, 235, 254], b = [32, 30, 158];
+  const c = a.map((av, i) => Math.round(av + (b[i] - av) * t));
+  return `rgb(${c[0]},${c[1]},${c[2]})`;
+}
+
+function heatmap(heat) {
+  const max = Math.max(...heat.flat(), 1);
+  let html = `<div class="heat" role="img" aria-label="Тепловая карта: день недели × час">`;
+  html += `<span></span>` + Array.from({ length: 24 }, (_, h) =>
+    `<span class="htop">${h % 3 === 0 ? h : ""}</span>`).join("");
+  heat.forEach((row, wd) => {
+    html += `<span class="hlbl">${WEEKDAYS[wd]}</span>`;
+    row.forEach((v, h) => {
+      html += `<div class="hcell" style="background:${v ? heatColor(Math.pow(v / max, 0.6)) : "var(--paper)"}"
+        data-tip="${WEEKDAYS[wd]} ${h}:00 — ${fmtN(v)}"></div>`;
+    });
+  });
+  return html + `</div>`;
+}
+
+let channelSort = { key: "views", dir: -1 };
+let channelQuery = "";
+let channelLimit = 25;
+
+function channelTable(S) {
+  let rows = S.channels;
+  if (channelQuery) {
+    const q = channelQuery.toLowerCase();
+    rows = rows.filter((c) => c.name.toLowerCase().includes(q));
+  }
+  const sorted = [...rows].sort((a, b) => {
+    const k = channelSort.key;
+    const av = k === "name" ? a.name.toLowerCase() : (k === "last" ? a.last : a[k]);
+    const bv = k === "name" ? b.name.toLowerCase() : (k === "last" ? b.last : b[k]);
+    return (av < bv ? -1 : av > bv ? 1 : 0) * channelSort.dir;
+  });
+  const shown = sorted.slice(0, channelLimit);
+  const maxV = S.channels[0] ? S.channels[0].views : 1;
+  const arr = (k) => channelSort.key === k ? `<span class="arr">${channelSort.dir < 0 ? "▼" : "▲"}</span>` : "";
+  const trs = shown.map((c) => `
+    <tr>
+      <td><a href="https://www.youtube.com/results?search_query=${encodeURIComponent(c.name)}" target="_blank" rel="noopener">${esc(c.name)}</a></td>
+      <td class="num"><span class="cellbar" style="width:60px"><i style="width:${(100 * c.views / maxV).toFixed(1)}%"></i></span>${fmtN(c.views)}</td>
+      <td class="num">${(100 * c.views / (S.contentTotal || 1)).toFixed(1)}%</td>
+      <td class="num">≈ ${fmtDur(c.est)}</td>
+      <td class="num">${fmtDate(c.last)}</td>
+    </tr>`).join("");
+  return `
+    <input class="minisearch" id="chsearch" type="search" placeholder="Найти канал…" value="${esc(channelQuery)}" aria-label="Поиск канала" />
+    <div class="tblwrap"><table class="data" id="chtable">
+      <thead><tr>
+        <th data-k="name">Канал ${arr("name")}</th>
+        <th data-k="views">Просмотров ${arr("views")}</th>
+        <th data-k="views">Доля</th>
+        <th data-k="est">≈ Время ${arr("est")}</th>
+        <th data-k="last">Последний ${arr("last")}</th>
+      </tr></thead><tbody>${trs}</tbody>
+    </table></div>
+    ${sorted.length > channelLimit
+      ? `<button class="morebtn" id="chmore">Показать ещё (${fmtN(sorted.length - channelLimit)})</button>`
+      : ""}`;
+}
+
+function videoTable(list, valKey, valFmt) {
+  const rows = list.map((v) => `
+    <tr>
+      <td><a href="https://www.youtube.com/watch?v=${esc(v.id)}" target="_blank" rel="noopener">${esc(v.title || "[без названия]")}</a></td>
+      <td>${esc(v.channel || "—")}</td>
+      <td class="num">${valFmt(v[valKey])}</td>
+      <td class="num">${fmtDate(v.last)}</td>
+    </tr>`).join("");
+  return `<div class="tblwrap"><table class="data">
+    <thead><tr><th>Видео</th><th>Канал</th><th>${valKey === "views" ? "Просмотров" : "≈ Время"}</th><th>Последний</th></tr></thead>
+    <tbody>${rows}</tbody></table></div>`;
+}
+
+function renderStats(views, searches, sourceLabel) {
+  const S = buildStats(views, searches);
+  if (!S.total) {
+    statsroot.innerHTML = `<div class="empty"><h2>Данных пока нет</h2>
+      <p>Загрузите файл истории выше — или положите его в <code>data/incoming/</code> репозитория.</p></div>`;
+    return;
+  }
+  const days = S.first ? Math.max(1, Math.round((S.last - S.first) / 86400000)) : 0;
+  const kindsPairs = Object.entries(S.byKind)
+    .sort((a, b) => b[1] - a[1])
+    .map(([k, n]) => [KIND_META[k]?.name || k, n, KIND_META[k]?.color || "var(--indigo)"]);
+  const maxKind = Math.max(...kindsPairs.map((p) => p[1]), 1);
+
+  statsroot.innerHTML = `
+    <section class="metrics" aria-label="Основные метрики">
+      ${metric(fmtN(S.total), "событий в истории", sourceLabel)}
+      ${metric(fmtN(S.uniqueVideos), "уникальных видео", fmtN(S.contentTotal) + " просмотров")}
+      ${metric(fmtN(S.channels.length), "каналов")}
+      ${metric("≈ " + fmtDur(S.estTotal), "время просмотра", "оценка по интервалам")}
+      ${metric(fmtN(S.activeDays), "активных дней", S.first ? fmtDate(S.first) + " — " + fmtDate(S.last) : "")}
+      ${metric(S.avgPerDay.toFixed(1), "событий в день", "в активные дни")}
+      ${metric(fmtN(S.searchTotal), "поисковых запросов", fmtN(S.searchUnique) + " уникальных")}
     </section>
 
-    <section class="controls" aria-label="Поиск и фильтры">
-      <input class="search" id="search" type="search"
-        placeholder="Поиск по названию, тезисам, фактам, тегам…"
-        aria-label="Поиск по конспектам" />
-      <div class="chipgroups">
-        ${chipGroup("темы", "topics", stats.top_topics)}
-        ${chipGroup("каналы", "channels", stats.top_channels)}
-        ${chipGroup("теги", "tags", stats.top_tags)}
-      </div>
-    </section>
+    <h2 class="sec">Динамика</h2>
+    <p class="sec-note">Все события истории (видео, посты, реклама). Часы и дни — в вашем часовом поясе.</p>
+    <div class="panel"><h3>Просмотры по месяцам <small>· ${days ? "период " + fmtN(days) + " дн." : ""}</small></h3>
+      ${monthChart(S.byMonth)}</div>
+    <div class="cols2">
+      <div class="panel"><h3>По часам суток</h3>${columnChart(S.byHour, S.byHour.map((_, h) => h % 3 === 0 ? String(h) : ""), "Просмотры по часам суток")}</div>
+      <div class="panel"><h3>По дням недели</h3>${columnChart(S.byWeekday, WEEKDAYS, "Просмотры по дням недели")}</div>
+    </div>
+    <div class="panel"><h3>Тепловая карта: день недели × час</h3>${heatmap(S.heat)}</div>
 
-    <div class="resultline" id="resultline"></div>
-    <main class="cards" id="cards"></main>
+    <h2 class="sec">Типы записей</h2>
+    <p class="sec-note">Что именно накопилось в истории: обычные видео, посты сообществ, показы рекламы и удалённые ролики.</p>
+    <div class="panel">
+      ${kindsPairs.map(([name, n, color]) => `
+        <div class="hbar-row">
+          <div class="hbar-name">${esc(name)}</div>
+          <div class="hbar-track"><div class="hbar-fill" style="width:${(100 * n / maxKind).toFixed(1)}%;background:${color}"></div></div>
+          <div class="hbar-val">${fmtN(n)} · ${(100 * n / S.total).toFixed(1)}%</div>
+        </div>`).join("")}
+    </div>
+
+    <h2 class="sec">Каналы</h2>
+    <p class="sec-note">Все ${fmtN(S.channels.length)} каналов; сортировка — клик по заголовку столбца. Время — оценка ≈.</p>
+    <div class="panel"><h3>Топ-20 по просмотрам</h3>
+      ${hbars(S.channels.slice(0, 20).map((c) => [c.name, c.views]), S.channels[0]?.views || 1, "var(--ochre)")}
+    </div>
+    <div class="panel" id="chpanel"><h3>Все каналы</h3>${channelTable(S)}</div>
+
+    <h2 class="sec">Видео</h2>
+    <p class="sec-note">«Дольше всего» — оценка: сумма интервалов до следующего события (пересмотры складываются), интервалы больше 40 минут не учитываются.</p>
+    <div class="panel"><h3>Смотрелись дольше всего <span class="approx">≈</span></h3>
+      ${videoTable(S.longest, "est", (v) => "≈ " + fmtDur(v))}</div>
+    <div class="panel"><h3>Самые пересматриваемые</h3>
+      ${S.rewatched.length ? videoTable(S.rewatched, "views", fmtN) : "<p class='sec-note'>Пересмотров не найдено.</p>"}</div>
+
+    <h2 class="sec">Сессии</h2>
+    <p class="sec-note">Сессия — просмотры с перерывами меньше 30 минут.</p>
+    <section class="metrics">
+      ${metric(fmtN(S.sessionCount), "сессий")}
+      ${metric("≈ " + fmtDur(S.avgSession), "средняя сессия")}
+      ${metric(S.sessionCount ? (S.total / S.sessionCount).toFixed(1) : 0, "событий за сессию")}
+    </section>
+    <div class="panel"><h3>Марафоны — самые длинные сессии</h3>
+      <div class="tblwrap"><table class="data">
+        <thead><tr><th>Когда</th><th>Длительность</th><th>Событий</th></tr></thead>
+        <tbody>${S.marathons.map((m) => `<tr>
+          <td>${fmtDate(m.start)}, ${m.start.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })}</td>
+          <td class="num">${fmtDur(m.end - m.start)}</td>
+          <td class="num">${fmtN(m.count)}</td></tr>`).join("")}
+        </tbody></table></div>
+    </div>
+
+    ${S.searchTotal ? `
+    <h2 class="sec">Поиск</h2>
+    <p class="sec-note">${fmtN(S.searchTotal)} запросов, ${fmtN(S.searchUnique)} уникальных.</p>
+    <div class="panel"><h3>Частые запросы</h3>
+      <div class="qchips">${S.topQueries.map(([q, n]) =>
+        `<span class="qchip">${esc(q)}<span class="n">${n}</span></span>`).join("")}
+      </div>
+    </div>` : ""}
   `;
 
-  document.getElementById("search").addEventListener("input", (e) => {
-    state.q = e.target.value.trim().toLowerCase();
-    renderCards();
-  });
-  app.querySelectorAll(".chip").forEach((chip) => {
-    chip.addEventListener("click", () =>
-      toggleFilter(chip.dataset.kind, chip.dataset.value));
-  });
-  attachSparkTooltip();
+  attachStatsHandlers(S, views, searches, sourceLabel);
 }
 
-function metric(num, label) {
-  return `<div class="metric"><div class="num">${num ?? 0}</div>
-    <div class="lbl">${label}</div></div>`;
+function attachStatsHandlers(S, views, searches, sourceLabel) {
+  // month chart hover
+  const mc = $("#monthchart");
+  const tip = $("#tip");
+  if (mc) {
+    const months = JSON.parse(mc.dataset.months);
+    mc.addEventListener("mousemove", (e) => {
+      const r = mc.getBoundingClientRect();
+      const idx = Math.min(months.length - 1, Math.max(0,
+        Math.round((e.clientX - r.left) / r.width * (months.length - 1))));
+      tip.textContent = months[idx][0] + ": " + fmtN(months[idx][1]);
+      tip.style.left = e.clientX + "px"; tip.style.top = e.clientY + "px";
+      tip.style.display = "block";
+    });
+    mc.addEventListener("mouseleave", () => tip.style.display = "none");
+  }
+  // column charts hover
+  document.querySelectorAll(".colchart").forEach((svg) => {
+    const vals = JSON.parse(svg.dataset.vals), lbls = JSON.parse(svg.dataset.lbls);
+    svg.addEventListener("mousemove", (e) => {
+      const t = e.target;
+      if (t.tagName !== "rect") { tip.style.display = "none"; return; }
+      const i = +t.dataset.i;
+      tip.textContent = (lbls[i] !== "" ? lbls[i] : i) + " — " + fmtN(vals[i]);
+      tip.style.left = e.clientX + "px"; tip.style.top = e.clientY + "px";
+      tip.style.display = "block";
+    });
+    svg.addEventListener("mouseleave", () => tip.style.display = "none");
+  });
+  // heatmap hover
+  document.querySelectorAll(".hcell").forEach((c) => {
+    c.addEventListener("mousemove", (e) => {
+      tip.textContent = c.dataset.tip;
+      tip.style.left = e.clientX + "px"; tip.style.top = e.clientY + "px";
+      tip.style.display = "block";
+    });
+    c.addEventListener("mouseleave", () => tip.style.display = "none");
+  });
+  // channel table controls
+  const rebuild = () => {
+    $("#chpanel").innerHTML = "<h3>Все каналы</h3>" + channelTable(S);
+    attachChannelHandlers();
+  };
+  const attachChannelHandlers = () => {
+    $("#chsearch")?.addEventListener("input", (e) => {
+      channelQuery = e.target.value; channelLimit = 25; rebuild();
+      $("#chsearch").focus();
+      const v = $("#chsearch").value; $("#chsearch").setSelectionRange(v.length, v.length);
+    });
+    document.querySelectorAll("#chtable th").forEach((th) => {
+      th.addEventListener("click", () => {
+        const k = th.dataset.k;
+        if (!k) return;
+        if (channelSort.key === k) channelSort.dir *= -1;
+        else channelSort = { key: k, dir: k === "name" ? 1 : -1 };
+        rebuild();
+      });
+    });
+    $("#chmore")?.addEventListener("click", () => { channelLimit += 100; rebuild(); });
+  };
+  attachChannelHandlers();
+}
+
+/* ================= upload ================= */
+const dropzone = $("#dropzone");
+const fileinput = $("#fileinput");
+$("#pickfile").addEventListener("click", () => fileinput.click());
+fileinput.addEventListener("change", () => handleFiles(fileinput.files));
+["dragover", "dragenter"].forEach((ev) =>
+  dropzone.addEventListener(ev, (e) => { e.preventDefault(); dropzone.classList.add("drag"); }));
+["dragleave", "drop"].forEach((ev) =>
+  dropzone.addEventListener(ev, (e) => { e.preventDefault(); dropzone.classList.remove("drag"); }));
+dropzone.addEventListener("drop", (e) => handleFiles(e.dataTransfer.files));
+
+async function handleFiles(files) {
+  if (!files || !files.length) return;
+  const out = { views: [], searches: [] };
+  const names = [];
+  for (const f of files) {
+    try {
+      const arr = JSON.parse(await f.text());
+      const n = parseUploadedJson(arr, out);
+      names.push(`${f.name} (${fmtN(n)})`);
+    } catch (err) {
+      names.push(`${f.name} — не удалось разобрать`);
+    }
+  }
+  dedupDataset(out);
+  if (!out.views.length && !out.searches.length) {
+    $("#badgetext").textContent = "В выбранных файлах не нашлось записей истории: " + names.join(", ");
+    $("#databadge").classList.add("on");
+    return;
+  }
+  $("#badgetext").textContent = "Показаны данные из локальных файлов: " + names.join(", ");
+  $("#databadge").classList.add("on");
+  channelQuery = ""; channelLimit = 25; channelSort = { key: "views", dir: -1 };
+  renderStats(out.views, out.searches, "локальный файл");
+  fileinput.value = "";
+}
+
+$("#resetdata").addEventListener("click", () => {
+  $("#databadge").classList.remove("on");
+  channelQuery = ""; channelLimit = 25; channelSort = { key: "views", dir: -1 };
+  if (repoDataset) renderStats(repoDataset.views, repoDataset.searches, "данные репозитория");
+});
+
+/* ================= tabs ================= */
+const tabStats = $("#tab-stats"), tabNotes = $("#tab-notes");
+function selectTab(which) {
+  const stats = which === "stats";
+  tabStats.setAttribute("aria-selected", stats);
+  tabNotes.setAttribute("aria-selected", !stats);
+  $("#pane-stats").hidden = !stats;
+  $("#pane-notes").hidden = stats;
+}
+tabStats.addEventListener("click", () => selectTab("stats"));
+tabNotes.addEventListener("click", () => selectTab("notes"));
+
+/* ================= notes tab ================= */
+const notesroot = $("#notesroot");
+const nstate = { q: "", topics: new Set(), channels: new Set(), tags: new Set() };
+
+function renderNotesShell(payload) {
+  const items = payload.items || [];
+  if (!items.length) {
+    notesroot.innerHTML = `<div class="empty"><h2>Конспектов пока нет</h2>
+      <p>Автоматический сбор субтитров с GitHub Actions сейчас блокируется YouTube
+      («RequestBlocked»). Запустите <code>python scripts/summarize.py</code> локально —
+      конспекты появятся здесь после пуша.</p></div>`;
+    return;
+  }
+  const stats = payload.stats || {};
+  const chCount = {};
+  items.forEach((it) => { if (it.channel) chCount[it.channel] = (chCount[it.channel] || 0) + 1; });
+  const topCh = Object.entries(chCount).sort((a, b) => b[1] - a[1]).slice(0, 15);
+
+  notesroot.innerHTML = `
+    <section class="metrics">
+      ${metric(fmtN(items.length), "конспектов")}
+      ${metric(fmtN(stats.no_transcript || 0), "без субтитров")}
+    </section>
+    <input class="search" id="nsearch" type="search" placeholder="Поиск по названию, тезисам, фактам, тегам…" aria-label="Поиск по конспектам" />
+    <div class="chipgroups">
+      ${chipGroup("темы", "topics", stats.top_topics || [])}
+      ${chipGroup("каналы", "channels", topCh)}
+      ${chipGroup("теги", "tags", stats.top_tags || [])}
+    </div>
+    <div class="resultline" id="nresultline"></div>
+    <div class="cards" id="ncards"></div>`;
+
+  $("#nsearch").addEventListener("input", (e) => {
+    nstate.q = e.target.value.trim().toLowerCase(); renderNoteCards(items);
+  });
+  notesroot.querySelectorAll(".chip").forEach((chip) =>
+    chip.addEventListener("click", () => toggleNoteFilter(items, chip.dataset.kind, chip.dataset.value)));
+  renderNoteCards(items);
 }
 
 function chipGroup(name, kind, pairs) {
   if (!pairs || !pairs.length) return "";
-  const chips = pairs.map(([value, count]) => `
-    <button class="chip" data-kind="${kind}" data-value="${esc(value)}"
-      aria-pressed="false">${esc(value)}<span class="n">${count}</span></button>
-  `).join("");
-  return `<div class="chipgroup" data-kind="${kind}">
-    <div class="gname">${name}</div><div class="chips">${chips}</div></div>`;
+  return `<div class="chipgroup" data-kind="${kind}"><div class="gname">${name}</div>
+    <div class="chips">${pairs.map(([v, c]) =>
+      `<button class="chip" data-kind="${kind}" data-value="${esc(v)}" aria-pressed="false">${esc(v)}<span class="n">${c}</span></button>`).join("")}
+    </div></div>`;
 }
 
-// ------------------------------------------------------------------ спарклайн
-function sparkline(byMonth) {
-  if (!byMonth || byMonth.length < 2) {
-    return `<svg viewBox="0 0 100 40" aria-hidden="true"></svg>`;
-  }
-  const W = 600, H = 56, PAD = 4;
-  const max = Math.max(...byMonth.map(([, n]) => n), 1);
-  const pts = byMonth.map(([, n], i) => {
-    const x = PAD + (i * (W - 2 * PAD)) / (byMonth.length - 1);
-    const y = H - PAD - ((H - 2 * PAD) * n) / max;
-    return [x, y];
+function toggleNoteFilter(items, kind, value) {
+  const set = nstate[kind];
+  set.has(value) ? set.delete(value) : set.add(value);
+  notesroot.querySelectorAll(`.chip[data-kind="${kind}"]`).forEach((c) => {
+    if (c.dataset.value === value) c.setAttribute("aria-pressed", set.has(value));
   });
-  const line = pts.map(([x, y], i) =>
-    (i ? "L" : "M") + x.toFixed(1) + " " + y.toFixed(1)).join(" ");
-  const area = line +
-    ` L ${pts[pts.length - 1][0].toFixed(1)} ${H - PAD} L ${PAD} ${H - PAD} Z`;
-  const label = `Просмотры по месяцам: ` +
-    byMonth.map(([m, n]) => `${m} — ${n}`).join(", ");
-  return `<svg viewBox="0 0 ${W} ${H}" id="spark" role="img"
-      aria-label="${esc(label)}" preserveAspectRatio="none"
-      data-months='${esc(JSON.stringify(byMonth))}'>
-    <path d="${area}" fill="#ECEBFE"></path>
-    <path d="${line}" fill="none" stroke="#3A38F0" stroke-width="2"
-      vector-effect="non-scaling-stroke" stroke-linejoin="round"></path>
-  </svg>`;
+  renderNoteCards(items);
 }
 
-function attachSparkTooltip() {
-  const svg = document.getElementById("spark");
-  const tip = document.getElementById("tip");
-  if (!svg || !svg.dataset.months) return;
-  const months = JSON.parse(svg.dataset.months);
-  svg.addEventListener("mousemove", (e) => {
-    const rect = svg.getBoundingClientRect();
-    const idx = Math.min(
-      months.length - 1,
-      Math.max(0, Math.round(((e.clientX - rect.left) / rect.width) *
-        (months.length - 1))));
-    const [m, n] = months[idx];
-    tip.textContent = `${m}: ${n}`;
-    tip.style.left = e.clientX + "px";
-    tip.style.top = e.clientY + "px";
-    tip.style.display = "block";
-  });
-  svg.addEventListener("mouseleave", () => { tip.style.display = "none"; });
-}
-
-// ------------------------------------------------------------------ фильтры
-function toggleFilter(kind, value) {
-  const set = state[kind];
-  if (set.has(value)) set.delete(value); else set.add(value);
-  app.querySelectorAll(
-    `.chip[data-kind="${kind}"]`).forEach((chip) => {
-    if (chip.dataset.value === value) {
-      chip.setAttribute("aria-pressed", set.has(value) ? "true" : "false");
-    }
-  });
-  renderCards();
-}
-
-function clearFilters() {
-  state.q = "";
-  state.topics.clear(); state.channels.clear(); state.tags.clear();
-  const search = document.getElementById("search");
-  if (search) search.value = "";
-  app.querySelectorAll('.chip[aria-pressed="true"]')
-    .forEach((c) => c.setAttribute("aria-pressed", "false"));
-  renderCards();
-}
-
-function matches(item) {
-  if (state.topics.size &&
-      ![...state.topics].every((t) => item.topics.includes(t))) return false;
-  if (state.channels.size && !state.channels.has(item.channel)) return false;
-  if (state.tags.size &&
-      ![...state.tags].every((t) => item.tags.includes(t))) return false;
-  if (state.q) {
-    const hay = [
-      item.title, item.one_liner,
-      ...(item.theses || []), ...(item.key_points || []),
-      ...(item.tags || []), ...(item.topics || []), item.channel,
-    ].join(" ").toLowerCase();
-    if (!hay.includes(state.q)) return false;
+function noteMatches(it) {
+  if (nstate.topics.size && ![...nstate.topics].every((t) => (it.topics || []).includes(t))) return false;
+  if (nstate.channels.size && !nstate.channels.has(it.channel)) return false;
+  if (nstate.tags.size && ![...nstate.tags].every((t) => (it.tags || []).includes(t))) return false;
+  if (nstate.q) {
+    const hay = [it.title, it.one_liner, ...(it.theses || []), ...(it.key_points || []),
+      ...(it.tags || []), ...(it.topics || []), it.channel].join(" ").toLowerCase();
+    if (!hay.includes(nstate.q)) return false;
   }
   return true;
 }
 
-// ------------------------------------------------------------------ карточки
-function renderCards() {
-  const cardsEl = document.getElementById("cards");
-  const line = document.getElementById("resultline");
-  const items = (state.data.items || []).filter(matches);
-
-  const active = state.q || state.topics.size || state.channels.size ||
-    state.tags.size;
-  line.innerHTML = `${items.length} / ${state.data.items.length}` +
-    (active ? ` · <button id="reset">сбросить фильтры</button>` : "");
-  const reset = document.getElementById("reset");
-  if (reset) reset.addEventListener("click", clearFilters);
-
-  if (!state.data.items.length) {
-    cardsEl.innerHTML = `<div class="empty"><h2>Конспектов пока нет</h2>
-      <p>Workflow ещё не обработал ни одного видео с субтитрами.</p></div>`;
-    return;
-  }
-  if (!items.length) {
-    cardsEl.innerHTML = `<div class="empty"><h2>Ничего не найдено</h2>
-      <p>Попробуйте смягчить запрос или снять фильтры.</p></div>`;
-    return;
-  }
-
-  cardsEl.innerHTML = items.map(card).join("");
-  cardsEl.querySelectorAll(".tagbtn").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      const { kind, value } = btn.dataset;
-      if (!state[kind].has(value)) toggleFilter(kind, value);
-      document.getElementById("search")
-        .scrollIntoView({ block: "start" });
-    });
+function renderNoteCards(items) {
+  const list = items.filter(noteMatches);
+  const active = nstate.q || nstate.topics.size || nstate.channels.size || nstate.tags.size;
+  $("#nresultline").innerHTML = `${list.length} / ${items.length}` +
+    (active ? ` · <button id="nreset">сбросить фильтры</button>` : "");
+  $("#nreset")?.addEventListener("click", () => {
+    nstate.q = ""; nstate.topics.clear(); nstate.channels.clear(); nstate.tags.clear();
+    $("#nsearch").value = "";
+    notesroot.querySelectorAll('.chip[aria-pressed="true"]').forEach((c) => c.setAttribute("aria-pressed", "false"));
+    renderNoteCards(items);
   });
+  $("#ncards").innerHTML = list.length ? list.map(noteCard).join("")
+    : `<div class="empty"><h2>Ничего не найдено</h2></div>`;
+  $("#ncards").querySelectorAll(".tagbtn").forEach((btn) =>
+    btn.addEventListener("click", () => {
+      if (!nstate[btn.dataset.kind].has(btn.dataset.value))
+        toggleNoteFilter(items, btn.dataset.kind, btn.dataset.value);
+    }));
 }
 
-function card(item) {
-  const theses = (item.theses || [])
-    .map((t) => `<li>${esc(t)}</li>`).join("");
-  const facts = (item.key_points || []).length ? `
-    <details><summary>Ключевые факты (${item.key_points.length})</summary>
-      <ul>${item.key_points.map((k) => `<li>${esc(k)}</li>`).join("")}</ul>
-    </details>` : "";
-  const topicBtns = (item.topics || []).map((t) =>
-    `<button class="tagbtn topic" data-kind="topics"
-      data-value="${esc(t)}">${esc(t)}</button>`).join("");
-  const tagBtns = (item.tags || []).map((t) =>
-    `<button class="tagbtn" data-kind="tags"
-      data-value="${esc(t)}">#${esc(t)}</button>`).join("");
-  return `
-  <article class="card">
-    <div class="meta">
-      <span>${esc(item.watched_at)}</span>
-      <span class="channel">${esc(item.channel || "—")}</span>
-      <span>${esc(item.id)}</span>
-    </div>
-    <h2><a href="${esc(item.url)}" target="_blank"
-      rel="noopener">${esc(item.title)}</a></h2>
-    <p class="oneliner">${esc(item.one_liner)}</p>
-    <ul class="theses">${theses}</ul>
+function noteCard(it) {
+  const facts = (it.key_points || []).length
+    ? `<details><summary>Ключевые факты (${it.key_points.length})</summary>
+       <ul>${it.key_points.map((k) => `<li>${esc(k)}</li>`).join("")}</ul></details>` : "";
+  return `<article class="card">
+    <div class="meta"><span>${esc(it.watched_at)}</span>
+      <span class="channel">${esc(it.channel || "—")}</span><span>${esc(it.id)}</span></div>
+    <h2><a href="${esc(it.url)}" target="_blank" rel="noopener">${esc(it.title)}</a></h2>
+    <p class="oneliner">${esc(it.one_liner)}</p>
+    <ul class="theses">${(it.theses || []).map((t) => `<li>${esc(t)}</li>`).join("")}</ul>
     ${facts}
-    <div class="tagrow">${topicBtns}${tagBtns}</div>
-  </article>`;
+    <div class="tagrow">
+      ${(it.topics || []).map((t) => `<button class="tagbtn topic" data-kind="topics" data-value="${esc(t)}">${esc(t)}</button>`).join("")}
+      ${(it.tags || []).map((t) => `<button class="tagbtn" data-kind="tags" data-value="${esc(t)}">#${esc(t)}</button>`).join("")}
+    </div></article>`;
 }
+
+/* ================= boot ================= */
+fetch("data.json?ts=" + Date.now())
+  .then((r) => { if (!r.ok) throw new Error(r.status); return r.json(); })
+  .then((payload) => {
+    repoPayload = payload;
+    $("#generated").textContent = "обновлено " +
+      (payload.generated_at || "").slice(0, 16).replace("T", " ") + " UTC";
+    repoDataset = {
+      views: (payload.records || []).map(([id, title, channel, ts, kind]) =>
+        ({ id, title, channel, ts: new Date(ts), kind: kind || "video" })),
+      searches: (payload.searches || []).map(([q, ts]) => ({ q, ts: new Date(ts) })),
+    };
+    renderStats(repoDataset.views, repoDataset.searches, "данные репозитория");
+    renderNotesShell(payload);
+  })
+  .catch(() => {
+    statsroot.innerHTML = `<div class="empty"><h2>data.json ещё не собран</h2>
+      <p>Загрузите файл истории выше — статистика посчитается прямо в браузере. Или положите файл
+      в <code>data/incoming/</code> и дождитесь workflow.</p></div>`;
+    notesroot.innerHTML = `<div class="empty"><h2>Конспектов пока нет</h2></div>`;
+  });
 </script>
 </body>
 </html>
