@@ -56,15 +56,16 @@ window.WC = {
       { id: "R16-2", home: "FRA", away: "PAR", score: [1, 0], date: "4 июля",  venue: "Даллас" },
       { id: "R16-3", home: "MEX", away: "ENG", score: [2, 3], date: "5 июля",  venue: "Атланта" },
       { id: "R16-4", home: "USA", away: "BEL", score: [1, 4], date: "5 июля",  venue: "Сиэтл" },
-      { id: "R16-5", home: "BRA", away: "NOR", score: null,   date: "6 июля",  venue: "Нью-Йорк / Нью-Джерси" },
-      { id: "R16-6", home: "POR", away: "ESP", score: null,   date: "6 июля",  venue: "Филадельфия" },
+      { id: "R16-5", home: "BRA", away: "NOR", score: [1, 2], date: "6 июля",  venue: "Нью-Йорк / Нью-Джерси" },
+      { id: "R16-6", home: "POR", away: "ESP", score: [0, 1], date: "6 июля",  venue: "Филадельфия" },
       { id: "R16-7", home: "ARG", away: "EGY", score: null,   date: "7 июля",  venue: "Сан-Франциско" },
       { id: "R16-8", home: "SUI", away: "COL", score: null,   date: "7 июля",  venue: "Торонто" }
     ],
 
     /* --- 1/4 финала ---
-       Пары заданы ссылками winnerOf, поэтому Франция и Марокко уже
-       подставились автоматически (их матчи 1/8 сыграны). */
+       Пары заданы ссылками winnerOf, поэтому победители сыгранных
+       матчей 1/8 (Франция, Марокко, Испания, Норвегия…) подставляются
+       в сетку автоматически. */
     qf: [
       { id: "QF-1", home: { winnerOf: "R16-2" }, away: { winnerOf: "R16-1" }, score: null, date: "9 июля",  venue: "Бостон" },
       { id: "QF-2", home: { winnerOf: "R16-6" }, away: { winnerOf: "R16-4" }, score: null, date: "10 июля", venue: "Лос-Анджелес" },
