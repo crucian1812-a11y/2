@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Пробей пенальти — FIFA World Cup 2026</title>
+  <meta name="description" content="Мини-игра: выберите сборную ЧМ-2026 и пробейте серию пенальти против вратаря.">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚽</text></svg>">
+  <link rel="stylesheet" href="./assets/styles.css">
+</head>
+<body data-page="penalty">
+
+  <main>
+    <h1 class="page-title anim-up">Пробей <span class="accent">пенальти</span></h1>
+
+    <!-- Экран 1: выбор команды -->
+    <section id="screen-team">
+      <p class="page-lead anim-up-1">Выберите сборную из участников 1/8 финала и пробейте серию
+        из пяти ударов. Кликните по углу ворот — вратарь попытается угадать направление!</p>
+      <div class="team-pick anim-up-2" id="team-pick" aria-label="Выбор сборной"></div>
+    </section>
+
+    <!-- Экран 2: игра -->
+    <section id="screen-game" class="hidden">
+      <div class="pen-hud">
+        <span class="hud-team" id="hud-team"></span>
+        <span class="kick-dots" id="kick-dots" aria-label="Серия ударов"></span>
+        <span class="hud-score" id="hud-score"></span>
+      </div>
+
+      <div class="pitch" id="pitch">
+        <div class="goal" id="goal">
+          <div class="keeper" id="keeper" aria-hidden="true">
+            <div class="k-arm left"></div>
+            <div class="k-arm right"></div>
+            <div class="k-head"></div>
+            <div class="k-body"></div>
+            <div class="k-legs"></div>
+          </div>
+          <div class="zones armed" id="zones" aria-label="Углы ворот">
+            <button class="zone" data-col="0" data-row="0" aria-label="Верхний левый угол"></button>
+            <button class="zone" data-col="1" data-row="0" aria-label="Верх по центру"></button>
+            <button class="zone" data-col="2" data-row="0" aria-label="Верхний правый угол"></button>
+            <button class="zone" data-col="0" data-row="1" aria-label="Нижний левый угол"></button>
+            <button class="zone" data-col="1" data-row="1" aria-label="Низ по центру"></button>
+            <button class="zone" data-col="2" data-row="1" aria-label="Нижний правый угол"></button>
+          </div>
+        </div>
+        <span class="ball idle" id="ball" aria-hidden="true">⚽</span>
+        <span class="verdict" id="verdict"></span>
+      </div>
+
+      <p class="pen-hint" id="pen-hint">Кликните по зоне ворот, чтобы пробить 👆</p>
+    </section>
+
+    <!-- Экран 3: итог серии -->
+    <section id="screen-result" class="pen-result card hidden">
+      <span class="pr-emoji" id="pr-emoji"></span>
+      <h3 id="pr-title"></h3>
+      <p id="pr-text"></p>
+      <div class="pr-actions">
+        <button class="btn btn-primary" id="pr-again">Сыграть ещё раз</button>
+        <button class="btn btn-ghost" id="pr-team">Выбрать другую команду</button>
+      </div>
+    </section>
+  </main>
+
+  <script src="./assets/data.js"></script>
+  <script src="./assets/nav.js" defer></script>
+  <script>
+    /* Игра «Пробей пенальти»: чистый JS + CSS-анимации.
+       Список команд — window.WC.penaltyTeams (assets/data.js). */
+    (function () {
+      "use strict";
+
+      var KICKS = 5;              // ударов в серии
+      var WIDE_CHANCE = 0.08;     // шанс пробить выше ворот
+      var KEEPER_READS = 0.4;     // как часто вратарь угадывает сторону удара
+      var HALF_SAVE = 0.5;        // шанс сейва при верной стороне, но другой высоте
+
+      var TEAMS = window.WC.teams;
+
+      var $pickWrap = document.getElementById("team-pick");
+      var $screens = {
+        team: document.getElementById("screen-team"),
+        game: document.getElementById("screen-game"),
+        result: document.getElementById("screen-result")
+      };
+      var $zones  = document.getElementById("zones");
+      var $goal   = document.getElementById("goal");
+      var $pitch  = document.getElementById("pitch");
+      var $ball   = document.getElementById("ball");
+      var $keeper = document.getElementById("keeper");
+      var $verdict = document.getElementById("verdict");
+      var $dots   = document.getElementById("kick-dots");
+      var $hint   = document.getElementById("pen-hint");
+
+      var state = { team: null, kick: 0, goals: 0, results: [] };
+
+      function show(name) {
+        Object.keys($screens).forEach(function (k) {
+          $screens[k].classList.toggle("hidden", k !== name);
+        });
+      }
+
+      /* --- Экран выбора команды --- */
+      $pickWrap.innerHTML = window.WC.penaltyTeams.map(function (code) {
+        var t = TEAMS[code];
+        return '<button class="team-btn" data-code="' + code + '">' +
+          '<span class="tb-flag">' + t.flag + "</span><span>" + t.name + "</span></button>";
+      }).join("");
+
+      $pickWrap.addEventListener("click", function (e) {
+        var btn = e.target.closest(".team-btn");
+        if (btn) startGame(btn.dataset.code);
+      });
+
+      /* --- Игра --- */
+      function startGame(code) {
+        state = { team: code, kick: 0, goals: 0, results: [] };
+        var t = TEAMS[code];
+        document.getElementById("hud-team").innerHTML =
+          '<span class="flag">' + t.flag + "</span>" + t.name;
+        renderHUD();
+        resetPositions(true);
+        arm(true);
+        $hint.textContent = "Кликните по зоне ворот, чтобы пробить 👆";
+        show("game");
+      }
+
+      function renderHUD() {
+        var html = "";
+        for (var i = 0; i < KICKS; i++) {
+          var r = state.results[i];
+          html += '<span class="kd' + (r ? " " + r : "") + '">' +
+            (r === "goal" ? "⚽" : r === "miss" ? "✖" : i + 1) + "</span>";
+        }
+        $dots.innerHTML = html;
+        document.getElementById("hud-score").textContent =
+          "Голы: " + state.goals + " · Промахи: " + (state.results.filter(function (r) { return r === "miss"; }).length);
+      }
+
+      function arm(on) {
+        $zones.classList.toggle("armed", on);
+        $zones.querySelectorAll(".zone").forEach(function (z) { z.disabled = !on; });
+      }
+
+      function resetPositions(instant) {
+        [$ball, $keeper].forEach(function (el) {
+          if (instant) el.style.transition = "none";
+          el.style.transform = "translateX(-50%)";
+        });
+        $keeper.classList.remove("dive-arms");
+        if (instant) {
+          void $ball.offsetWidth; // сброс без анимации
+          $ball.style.transition = "";
+          $keeper.style.transition = "";
+        }
+        $ball.classList.add("idle");
+        $verdict.className = "verdict";
+      }
+
+      function centerOf(el) {
+        var r = el.getBoundingClientRect();
+        return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+      }
+
+      // Перемещение absolute-элемента (позиционирован через left/bottom + translateX(-50%))
+      // в точку target (координаты окна)
+      function flyTo(el, target, extra) {
+        var c = centerOf(el);
+        var dx = target.x - c.x, dy = target.y - c.y;
+        el.style.transform =
+          "translateX(calc(-50% + " + dx.toFixed(1) + "px)) translateY(" + dy.toFixed(1) + "px)" +
+          (extra || "");
+      }
+
+      $zones.addEventListener("click", function (e) {
+        var zone = e.target.closest(".zone");
+        if (!zone || zone.disabled) return;
+        kick(+zone.dataset.col, +zone.dataset.row, zone);
+      });
+
+      function kick(col, row, zoneEl) {
+        arm(false);
+        $ball.classList.remove("idle");
+        $hint.textContent = "Удар №" + (state.kick + 1) + "…";
+
+        // --- ИИ вратаря ---
+        var cols = [0, 1, 2];
+        var kCol = Math.random() < KEEPER_READS
+          ? col
+          : cols.filter(function (c) { return c !== col; })[Math.random() < 0.5 ? 0 : 1];
+        var kRow = Math.random() < 0.5 ? 0 : 1;
+
+        // --- исход удара ---
+        var wide = Math.random() < WIDE_CHANCE;
+        var saved = !wide && kCol === col &&
+          (kRow === row || Math.random() < HALF_SAVE);
+
+        // при сейве вратарь оказывается ровно там, куда летит мяч
+        if (saved) { kCol = col; kRow = row; }
+
+        // --- анимации ---
+        var zones = $zones.querySelectorAll(".zone");
+        var shotTarget = centerOf(zoneEl);
+        var goalRect = $goal.getBoundingClientRect();
+        if (wide) shotTarget.y = goalRect.top - goalRect.height * 0.35; // выше перекладины
+
+        var keeperZone = zones[kRow * 3 + kCol];
+        var kTarget = centerOf(keeperZone);
+        var rot = kCol === 0 ? -22 : kCol === 2 ? 22 : 0;
+        // вратарь в прыжке чуть ниже центра зоны
+        kTarget.y = Math.min(kTarget.y + goalRect.height * 0.12, goalRect.bottom - 10);
+
+        // вратарь стартует чуть раньше мяча — «читает» удар
+        flyTo($keeper, kTarget, " rotate(" + rot + "deg)");
+        $keeper.classList.add("dive-arms");
+        setTimeout(function () {
+          flyTo($ball, shotTarget, " scale(.6)");
+        }, 90);
+
+        setTimeout(function () { settle(wide, saved); }, 700);
+      }
+
+      function settle(wide, saved) {
+        var isGoal = !wide && !saved;
+        state.results[state.kick] = isGoal ? "goal" : "miss";
+        if (isGoal) state.goals++;
+
+        $verdict.textContent = isGoal ? "ГОЛ! 🎉" : wide ? "Мимо! 😱" : "Сейв! 🧤";
+        $verdict.className = "verdict show " + (isGoal ? "goal" : wide ? "wide" : "save");
+        if (isGoal) {
+          $goal.classList.add("net-shake");
+          setTimeout(function () { $goal.classList.remove("net-shake"); }, 400);
+        }
+
+        state.kick++;
+        renderHUD();
+
+        setTimeout(function () {
+          if (state.kick >= KICKS) return finish();
+          resetPositions(true);
+          arm(true);
+          $hint.textContent = "Удар №" + (state.kick + 1) + " из " + KICKS + " — выбирайте угол 👆";
+        }, 1300);
+      }
+
+      /* --- Итог серии --- */
+      function finish() {
+        var t = TEAMS[state.team];
+        var g = state.goals;
+        var emoji, title;
+        if (g === 5)      { emoji = "🏆"; title = "Идеальная серия!"; }
+        else if (g === 4) { emoji = "🔥"; title = "Почти идеально!"; }
+        else if (g === 3) { emoji = "👏"; title = "Уверенная серия"; }
+        else if (g === 2) { emoji = "😬"; title = "Вратарь сегодня в ударе"; }
+        else              { emoji = "🧤"; title = "Вратарь — герой матча"; }
+
+        document.getElementById("pr-emoji").textContent = emoji;
+        document.getElementById("pr-title").textContent = title;
+        document.getElementById("pr-text").textContent =
+          t.flag + " " + t.name + ": " + g + " " + plural(g) + " из " + KICKS + " в серии.";
+        show("result");
+      }
+
+      function plural(n) {
+        if (n === 1) return "гол";
+        if (n >= 2 && n <= 4) return "гола";
+        return "голов";
+      }
+
+      document.getElementById("pr-again").addEventListener("click", function () {
+        startGame(state.team);
+      });
+      document.getElementById("pr-team").addEventListener("click", function () {
+        show("team");
+      });
+    })();
+  </script>
+</body>
+</html>

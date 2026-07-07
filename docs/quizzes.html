@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Квизы — FIFA World Cup 2026</title>
+  <meta name="description" content="Квизы о ЧМ-2026 и истории чемпионатов мира: три уровня сложности.">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚽</text></svg>">
+  <link rel="stylesheet" href="./assets/styles.css">
+</head>
+<body data-page="quizzes">
+
+  <main>
+    <h1 class="page-title anim-up">Футбольные <span class="accent">квизы</span></h1>
+    <p class="page-lead anim-up-1">Проверьте себя: вопросы о ЧМ-2026 и всей истории мундиалей.
+      Выберите уровень — квиз начнётся прямо здесь.</p>
+
+    <!-- Экран 1: выбор уровня -->
+    <section id="screen-levels" class="quiz-levels anim-up-2" aria-label="Выбор уровня сложности"></section>
+
+    <!-- Экран 2: сам квиз -->
+    <section id="screen-quiz" class="quiz-panel card hidden" aria-live="polite">
+      <div class="quiz-top">
+        <span class="q-level" id="q-level"></span>
+        <span class="q-score" id="q-progress-text"></span>
+      </div>
+      <div class="progress"><div class="bar" id="q-bar"></div></div>
+      <div id="q-body"></div>
+    </section>
+
+    <!-- Экран 3: результат -->
+    <section id="screen-result" class="quiz-panel card hidden">
+      <div class="quiz-result">
+        <span class="qr-emoji" id="r-emoji"></span>
+        <h3 id="r-title"></h3>
+        <p class="qr-score" id="r-score"></p>
+        <div class="qr-actions">
+          <button class="btn btn-primary" id="r-retry">Пройти заново</button>
+          <button class="btn btn-ghost" id="r-back">Выбрать другой уровень</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="./assets/data.js"></script>
+  <script src="./assets/nav.js" defer></script>
+  <script>
+    /* Механика квиза. Вопросы лежат в window.WC.quizzes (assets/data.js). */
+    (function () {
+      "use strict";
+
+      var QUIZZES = window.WC.quizzes;
+      var $levels = document.getElementById("screen-levels");
+      var $quiz   = document.getElementById("screen-quiz");
+      var $result = document.getElementById("screen-result");
+      var $body   = document.getElementById("q-body");
+      var $bar    = document.getElementById("q-bar");
+
+      var state = { level: null, index: 0, score: 0 };
+
+      function show(el) {
+        [$levels, $quiz, $result].forEach(function (s) { s.classList.add("hidden"); });
+        el.classList.remove("hidden");
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+
+      /* --- Экран выбора уровня --- */
+      function renderLevels() {
+        $levels.innerHTML = Object.keys(QUIZZES).map(function (key) {
+          var lv = QUIZZES[key];
+          return '<button class="level-card ' + key + '" data-level="' + key + '">' +
+            '<span class="lv-emoji">' + lv.emoji + "</span>" +
+            "<h3>" + lv.title + "</h3>" +
+            "<p>" + lv.desc + "</p>" +
+            '<span class="lv-meta">' + lv.questions.length + " вопросов →</span>" +
+          "</button>";
+        }).join("");
+      }
+      $levels.addEventListener("click", function (e) {
+        var card = e.target.closest(".level-card");
+        if (card) startQuiz(card.dataset.level);
+      });
+
+      /* --- Квиз --- */
+      function startQuiz(level) {
+        state = { level: level, index: 0, score: 0 };
+        document.getElementById("q-level").textContent =
+          QUIZZES[level].emoji + " " + QUIZZES[level].title + " уровень";
+        show($quiz);
+        renderQuestion();
+      }
+
+      function renderQuestion() {
+        var lv = QUIZZES[state.level];
+        var q = lv.questions[state.index];
+
+        document.getElementById("q-progress-text").textContent =
+          "Вопрос " + (state.index + 1) + " из " + lv.questions.length + " · очки: " + state.score;
+        $bar.style.width = (state.index / lv.questions.length * 100) + "%";
+
+        $body.innerHTML =
+          '<p class="quiz-q">' + q.q + "</p>" +
+          '<div class="quiz-options">' +
+            q.options.map(function (opt, i) {
+              return '<button class="quiz-option" data-i="' + i + '">' + opt + "</button>";
+            }).join("") +
+          "</div>" +
+          '<div id="q-after"></div>';
+
+        $body.querySelector(".quiz-options").addEventListener("click", onAnswer);
+      }
+
+      function onAnswer(e) {
+        var btn = e.target.closest(".quiz-option");
+        if (!btn) return;
+
+        var lv = QUIZZES[state.level];
+        var q = lv.questions[state.index];
+        var picked = +btn.dataset.i;
+        var options = $body.querySelectorAll(".quiz-option");
+
+        // мгновенная проверка: блокируем варианты и подсвечиваем
+        options.forEach(function (o, i) {
+          o.disabled = true;
+          if (i === q.correct) o.classList.add("correct");
+          else if (i === picked) o.classList.add("wrong");
+          else o.classList.add("dimmed");
+        });
+
+        if (picked === q.correct) state.score++;
+        document.getElementById("q-progress-text").textContent =
+          "Вопрос " + (state.index + 1) + " из " + lv.questions.length + " · очки: " + state.score;
+        $bar.style.width = ((state.index + 1) / lv.questions.length * 100) + "%";
+
+        var after = document.getElementById("q-after");
+        after.innerHTML =
+          (q.note ? '<p class="quiz-note">💡 ' + q.note + "</p>" : "") +
+          '<div class="quiz-next"><button class="btn btn-primary" id="q-next">' +
+            (state.index + 1 < lv.questions.length ? "Дальше →" : "Результат 🏁") +
+          "</button></div>";
+        document.getElementById("q-next").addEventListener("click", nextQuestion);
+      }
+
+      function nextQuestion() {
+        var lv = QUIZZES[state.level];
+        state.index++;
+        if (state.index < lv.questions.length) renderQuestion();
+        else renderResult();
+      }
+
+      /* --- Результат --- */
+      function renderResult() {
+        var lv = QUIZZES[state.level];
+        var total = lv.questions.length;
+        var ratio = state.score / total;
+
+        var emoji, title;
+        if (ratio === 1)       { emoji = "🏆"; title = "Чемпион мира!"; }
+        else if (ratio >= .7)  { emoji = "🥈"; title = "Отличная игра!"; }
+        else if (ratio >= .4)  { emoji = "⚽"; title = "Неплохо, но есть куда расти"; }
+        else                   { emoji = "🟥"; title = "Судья показывает красную…"; }
+
+        document.getElementById("r-emoji").textContent = emoji;
+        document.getElementById("r-title").textContent = title;
+        document.getElementById("r-score").textContent =
+          "Ваш результат: " + state.score + " из " + total +
+          " (" + lv.title.toLowerCase() + " уровень)";
+        show($result);
+      }
+
+      document.getElementById("r-retry").addEventListener("click", function () {
+        startQuiz(state.level);
+      });
+      document.getElementById("r-back").addEventListener("click", function () {
+        show($levels);
+      });
+
+      renderLevels();
+    })();
+  </script>
+</body>
+</html>

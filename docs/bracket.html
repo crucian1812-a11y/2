@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Плей-офф — FIFA World Cup 2026</title>
+  <meta name="description" content="Турнирная сетка плей-офф ЧМ-2026: 1/8, 1/4, полуфиналы, матч за 3-е место и финал.">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚽</text></svg>">
+  <link rel="stylesheet" href="./assets/styles.css">
+</head>
+<body data-page="bracket">
+
+  <main>
+    <h1 class="page-title anim-up">Сетка <span class="accent">плей-офф</span></h1>
+    <p class="page-lead anim-up-1">От 1/8 финала до финала 19 июля. Победители сыгранных матчей автоматически
+      проходят в следующий раунд; несыгранные пары отмечены как TBD.</p>
+
+    <div class="legend anim-up-1">
+      <span class="lg"><span class="dot dot-w"></span>победитель матча</span>
+      <span class="lg"><span class="dot dot-t"></span>TBD — участник ещё не определён</span>
+    </div>
+
+    <div class="bracket-wrap anim-up-2">
+      <div class="bracket" id="bracket"></div>
+    </div>
+
+    <section class="third-place anim-up-3">
+      <p class="third-title">🥉 Матч за 3-е место</p>
+      <div id="third-place"></div>
+    </section>
+
+    <p class="bracket-note anim-up-3">
+      ℹ️ Результаты обновляются вручную по ходу турнира: откройте
+      <code>assets/data.js</code> и впишите счёт в поле <code>score</code> нужного матча —
+      сетка пересчитается автоматически.
+    </p>
+  </main>
+
+  <script src="./assets/data.js"></script>
+  <script src="./assets/nav.js" defer></script>
+  <script>
+    /* Отрисовка турнирной сетки из window.WC.bracket (см. assets/data.js).
+       ⚠️ Счета турнира меняются — обновлять их нужно вручную в assets/data.js. */
+    (function () {
+      "use strict";
+
+      var B = window.WC.bracket;
+      var TEAMS = window.WC.teams;
+
+      // Индекс всех матчей по id
+      var byId = {};
+      [].concat(B.r16, B.qf, B.sf, [B.third, B.final]).forEach(function (m) { byId[m.id] = m; });
+
+      // Победитель / проигравший сыгранного матча (код команды или null)
+      function outcome(match, wantWinner) {
+        if (!match || !match.score) return null;
+        var a = match.score[0], b = match.score[1];
+        if (a === b && match.pens) { a = match.pens[0]; b = match.pens[1]; }
+        if (a === b) return null;
+        var homeWins = a > b;
+        var slot = (homeWins === wantWinner) ? match.home : match.away;
+        return typeof slot === "string" ? slot : resolve(slot).code;
+      }
+
+      // Слот -> { code | null, label } . Слот: "FRA" или {winnerOf|loserOf: id}
+      function resolve(slot) {
+        if (typeof slot === "string") return { code: slot };
+        var src = byId[slot.winnerOf || slot.loserOf];
+        var code = outcome(src, !!slot.winnerOf);
+        if (code) return { code: code };
+        // Матч-источник не сыгран: показываем возможных участников, если они известны
+        var h = resolve(src.home), a = resolve(src.away);
+        var label = (h.code && a.code)
+          ? (TEAMS[h.code].name + " / " + TEAMS[a.code].name)
+          : "TBD";
+        return { code: null, label: label };
+      }
+
+      function teamRowHTML(slot, dispScore, result) {
+        // result: "winner" | "loser" | "" (матч не сыгран)
+        var r = resolve(slot);
+        var cls = "team-row" + (result ? " " + result : ""), flag = "❔", name, score = "–";
+        if (r.code) {
+          var t = TEAMS[r.code];
+          flag = t.flag; name = t.name;
+          if (dispScore !== null) score = dispScore;
+        } else {
+          cls += " tbd";
+          name = r.label;
+        }
+        return '<div class="' + cls + '">' +
+          '<span class="t-flag">' + flag + '</span>' +
+          '<span class="t-name">' + name + '</span>' +
+          '<span class="t-score">' + score + '</span>' +
+        "</div>";
+      }
+
+      function matchHTML(m, extraClass) {
+        var played = !!m.score;
+        var hRes = "", aRes = "", pensNote = "";
+        if (played) {
+          var hs = m.score[0], as = m.score[1];
+          // при равном счёте исход решает серия пенальти (поле pens)
+          if (hs === as && m.pens) {
+            hs = m.pens[0]; as = m.pens[1];
+            pensNote = " · пен. " + m.pens[0] + ":" + m.pens[1];
+          }
+          if (hs !== as) {
+            hRes = hs > as ? "winner" : "loser";
+            aRes = hs > as ? "loser" : "winner";
+          }
+        }
+        return '<div class="match' + (extraClass ? " " + extraClass : "") + '">' +
+          teamRowHTML(m.home, played ? m.score[0] : null, hRes) +
+          teamRowHTML(m.away, played ? m.score[1] : null, aRes) +
+          '<div class="match-meta">' + m.date + " · " + m.venue + pensNote + "</div>" +
+        "</div>";
+      }
+
+      // Порядок отображения выводим из ссылок winnerOf, чтобы линии сетки
+      // всегда соединяли реальные пары (1/8 № 2 и № 1 сходятся в 1/4 № 1 и т.д.)
+      function sources(round) {
+        var ids = [];
+        round.forEach(function (m) {
+          ids.push(byId[m.home.winnerOf], byId[m.away.winnerOf]);
+        });
+        return ids;
+      }
+
+      var sfOrdered  = [byId[B.final.home.winnerOf], byId[B.final.away.winnerOf]];
+      var qfOrdered  = sources(sfOrdered);
+      var r16Ordered = sources(qfOrdered);
+
+      function pairsHTML(matches) {
+        var html = "";
+        for (var i = 0; i < matches.length; i += 2) {
+          html += '<div class="pair">' +
+            '<div class="slot">' + matchHTML(matches[i]) + "</div>" +
+            '<div class="slot">' + matchHTML(matches[i + 1]) + "</div>" +
+          "</div>";
+        }
+        return html;
+      }
+
+      function roundHTML(title, matches, cls) {
+        return '<div class="round ' + (cls || "") + '">' +
+          '<div class="round-title">' + title + "</div>" +
+          '<div class="round-matches">' + pairsHTML(matches) + "</div>" +
+        "</div>";
+      }
+
+      document.getElementById("bracket").innerHTML =
+        roundHTML("1/8 финала", r16Ordered, "round-first") +
+        roundHTML("1/4 финала", qfOrdered) +
+        roundHTML("1/2 финала", sfOrdered) +
+        '<div class="round round-final">' +
+          '<div class="round-title">🏆 Финал</div>' +
+          '<div class="round-matches"><div class="pair"><div class="slot">' +
+            matchHTML(B.final, "match-final") +
+          "</div></div></div>" +
+        "</div>";
+
+      document.getElementById("third-place").innerHTML = matchHTML(B.third);
+    })();
+  </script>
+</body>
+</html>
