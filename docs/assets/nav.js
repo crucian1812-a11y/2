@@ -12,7 +12,8 @@
     { id: "home",    href: "./index.html",   label: "Главная" },
     { id: "bracket", href: "./bracket.html", label: "Плей-офф" },
     { id: "quizzes", href: "./quizzes.html", label: "Квизы" },
-    { id: "penalty", href: "./penalty.html", label: "Пенальти" }
+    { id: "penalty", href: "./penalty.html", label: "Пенальти" },
+    { id: "manager", href: "./manager.html", label: "Менеджер" }
   ];
 
   function build() {

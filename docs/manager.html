@@ -1,0 +1,1002 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Менеджер — FIFA World Cup 2026</title>
+  <meta name="description" content="Футбольный менеджер ЧМ-2026: возьмите сборную из плей-офф, настройте тактику и доведите её до титула.">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚽</text></svg>">
+  <link rel="stylesheet" href="./assets/styles.css">
+</head>
+<body data-page="manager">
+
+  <main>
+    <h1 class="page-title anim-up">Менеджер <span class="accent">сборной</span></h1>
+
+    <!-- Экран 1: выбор сборной -->
+    <section id="scr-team">
+      <p class="page-lead anim-up-1">Возглавьте сборную, которая ещё не вылетела из ЧМ-2026, и доведите её до
+        финала 19 июля. Реальные заявки FIFA — все 26 игроков, никаких трансферов: только состав,
+        тактика и ваши решения по ходу матча.</p>
+      <div id="continue-box" class="mgr-actions hidden" style="margin-bottom:18px"></div>
+      <div class="mgr-teams anim-up-2" id="team-grid"></div>
+    </section>
+
+    <!-- Экран 2: штаб (состав + тактика) -->
+    <section id="scr-hub" class="hidden">
+      <div class="hub-grid">
+        <div>
+          <div class="panel next-match" id="next-match"></div>
+          <div class="panel">
+            <h3>⚙️ Тактика</h3>
+            <div class="tactic-row">
+              <label for="t-formation">Схема</label>
+              <select class="mgr-select" id="t-formation"></select>
+            </div>
+            <div class="tactic-row">
+              <label for="t-mentality">Менталитет</label>
+              <select class="mgr-select" id="t-mentality">
+                <option value="def">Оборонительный</option>
+                <option value="bal" selected>Сбалансированный</option>
+                <option value="atk">Атакующий</option>
+              </select>
+            </div>
+            <div class="tactic-row">
+              <label for="t-pressing">Прессинг</label>
+              <select class="mgr-select" id="t-pressing">
+                <option value="low">Низкий блок</option>
+                <option value="mid" selected>Средний</option>
+                <option value="high">Высокий</option>
+              </select>
+            </div>
+            <div class="tactic-row">
+              <label for="t-style">Стиль атаки</label>
+              <select class="mgr-select" id="t-style">
+                <option value="pass" selected>Короткий пас</option>
+                <option value="counter">Контратаки</option>
+                <option value="cross">Фланги и навесы</option>
+              </select>
+            </div>
+            <div class="tactic-row">
+              <label for="t-tempo">Темп</label>
+              <select class="mgr-select" id="t-tempo">
+                <option value="low">Низкий</option>
+                <option value="mid" selected>Средний</option>
+                <option value="high">Высокий</option>
+              </select>
+            </div>
+            <p class="mgr-note">Высокие темп и прессинг сильнее изматывают игроков — следите за
+              шкалой готовности, впереди несколько матчей.</p>
+          </div>
+          <div class="panel">
+            <h3>🏆 Путь по турниру</h3>
+            <ul class="path-list" id="path-list"></ul>
+          </div>
+        </div>
+        <div>
+          <div class="panel">
+            <h3>📋 Стартовый состав <span id="xi-ovr" style="color:var(--gold)"></span></h3>
+            <div id="xi-list"></div>
+            <h3 style="margin-top:18px">🪑 Запас</h3>
+            <div id="bench-list"></div>
+            <div class="mgr-actions">
+              <button class="btn btn-ghost" id="btn-auto">Авто-состав</button>
+              <button class="btn btn-primary" id="btn-play">▶ Начать матч</button>
+            </div>
+            <p class="mgr-note">Клик по игроку основы, затем по игроку запаса — замена в составе.
+              Вратарь меняется только на вратаря.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Экран 3: матч -->
+    <section id="scr-match" class="hidden">
+      <div class="panel match-head" id="match-head"></div>
+      <div class="match-controls">
+        <button class="speed-btn" data-spd="0">⏸ Пауза</button>
+        <button class="speed-btn active" data-spd="1">▶ ×1</button>
+        <button class="speed-btn" data-spd="2">▶▶ ×2</button>
+        <button class="speed-btn" data-spd="4">▶▶▶ ×4</button>
+      </div>
+      <div class="match-grid">
+        <div class="panel">
+          <h3>📣 Ход матча</h3>
+          <div class="feed" id="feed"></div>
+          <div class="mgr-actions hidden" id="ft-actions">
+            <button class="btn btn-primary" id="btn-next">Продолжить →</button>
+          </div>
+        </div>
+        <div>
+          <div class="panel">
+            <h3>📊 Статистика</h3>
+            <div class="stat-rows" id="stat-rows"></div>
+          </div>
+          <div class="panel">
+            <h3>🔁 Замены (<span id="subs-left">5</span>)</h3>
+            <div id="subs-panel"><p class="subs-hint">Поставьте матч на паузу, чтобы сделать замену.</p></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Экран 4: конец карьеры -->
+    <section id="scr-end" class="hidden">
+      <div class="mgr-end card" id="end-box"></div>
+    </section>
+  </main>
+
+  <script src="./assets/data.js"></script>
+  <script src="./assets/squads.js"></script>
+  <script src="./assets/nav.js" defer></script>
+  <script>
+    /* «Менеджер сборной» — карьера от текущей стадии плей-офф до финала.
+       Составы: assets/squads.js (реальные заявки FIFA, 26 игроков).
+       Сетка и уже сыгранные матчи: assets/data.js (WC.bracket). */
+    (function () {
+      "use strict";
+
+      var SQ = window.WCSQUADS, TEAMS = window.WC.teams, BR = window.WC.bracket;
+      var SAVE_KEY = "wcManager2026";
+
+      var POS_RU = { GK: "ВРТ", DF: "ЗАЩ", MF: "ПЗЩ", FW: "НАП" };
+      var STAGE_RU = { r16: "1/8 финала", qf: "1/4 финала", sf: "Полуфинал", third: "Матч за 3-е место", fin: "Финал" };
+      var FORMATIONS = {
+        "4-3-3":   ["GK","DF","DF","DF","DF","MF","MF","MF","FW","FW","FW"],
+        "4-4-2":   ["GK","DF","DF","DF","DF","MF","MF","MF","MF","FW","FW"],
+        "4-2-3-1": ["GK","DF","DF","DF","DF","MF","MF","MF","MF","MF","FW"],
+        "3-5-2":   ["GK","DF","DF","DF","MF","MF","MF","MF","MF","FW","FW"],
+        "5-3-2":   ["GK","DF","DF","DF","DF","DF","MF","MF","MF","FW","FW"],
+        "5-4-1":   ["GK","DF","DF","DF","DF","DF","MF","MF","MF","MF","FW"]
+      };
+      // штраф за игру не на своей позиции
+      var FIT = {
+        GK: { GK: 1, DF: .3, MF: .3, FW: .3 },
+        DF: { GK: .3, DF: 1, MF: .85, FW: .7 },
+        MF: { GK: .3, DF: .85, MF: 1, FW: .9 },
+        FW: { GK: .3, DF: .7, MF: .9, FW: 1 }
+      };
+
+      /* ================= данные карьеры ================= */
+      var G = null; // { team, bracket, squads:{code:[players]}, formation, tactics, xi[], subsLeft, campaign[] }
+
+      function mkPlayers(code) {
+        return SQ[code].players.map(function (a, i) {
+          return { i: i, num: a[0], name: a[1], pos: a[2],
+                   pace: a[3], sho: a[4], pas: a[5], dri: a[6], def: a[7], phy: a[8],
+                   cond: 100, out: false, ban: 0, goals: 0, yc: 0 };
+        });
+      }
+
+      // базовый рейтинг игрока в роли roleПоз
+      function roleOvr(p, role) {
+        var v;
+        if (role === "GK") v = p.def * .6 + p.phy * .25 + p.pas * .1 + p.pace * .05;
+        else if (role === "DF") v = p.def * .45 + p.phy * .2 + p.pace * .15 + p.pas * .12 + p.dri * .08;
+        else if (role === "MF") v = p.pas * .3 + p.dri * .2 + p.def * .15 + p.phy * .15 + p.pace * .1 + p.sho * .1;
+        else v = p.sho * .3 + p.dri * .22 + p.pace * .22 + p.pas * .13 + p.phy * .13;
+        return v * FIT[role][p.pos];
+      }
+      function effOvr(p, role) {
+        return roleOvr(p, role) * (.72 + .28 * p.cond / 100);
+      }
+      function baseOvr(p) { return Math.round(roleOvr(p, p.pos)); }
+      function teamAvgOvr(code) {
+        var ps = mkPlayers(code).map(baseOvr).sort(function (a, b) { return b - a; });
+        return Math.round(ps.slice(0, 11).reduce(function (s, v) { return s + v; }, 0) / 11);
+      }
+
+      /* ================= сетка ================= */
+      function cloneBracket() {
+        function cm(m) { return { id: m.id, home: m.home, away: m.away, score: m.score ? m.score.slice() : null,
+                                  pens: m.pens ? m.pens.slice() : null, date: m.date, venue: m.venue }; }
+        return { r16: BR.r16.map(cm), qf: BR.qf.map(cm), sf: BR.sf.map(cm), third: cm(BR.third), fin: cm(BR.final) };
+      }
+      function allMatches(b) { return [].concat(b.r16, b.qf, b.sf, [b.third, b.fin]); }
+      function byId(b, id) {
+        var r = null;
+        allMatches(b).forEach(function (m) { if (m.id === id || (id === "FIN" && m.id === "FIN")) r = m; });
+        return r;
+      }
+      function winnerOf(b, m) {
+        if (!m.score) return null;
+        var a = m.score[0], c = m.score[1];
+        if (a === c && m.pens) { a = m.pens[0]; c = m.pens[1]; }
+        if (a === c) return null;
+        return resolveSlot(b, a > c ? m.home : m.away);
+      }
+      function loserOf(b, m) {
+        if (!m.score) return null;
+        var a = m.score[0], c = m.score[1];
+        if (a === c && m.pens) { a = m.pens[0]; c = m.pens[1]; }
+        if (a === c) return null;
+        return resolveSlot(b, a > c ? m.away : m.home);
+      }
+      function resolveSlot(b, slot) {
+        if (typeof slot === "string") return slot;
+        var src = byId(b, slot.winnerOf || slot.loserOf);
+        return slot.winnerOf ? winnerOf(b, src) : loserOf(b, src);
+      }
+      function aliveTeams() {
+        var b = cloneBracket(), alive = [];
+        b.r16.forEach(function (m) {
+          var w = winnerOf(b, m);
+          if (!w) { alive.push(m.home, m.away); }
+          else alive.push(w);
+        });
+        return alive.filter(function (c) { return SQ[c]; });
+      }
+      // очередной несыгранный матч пользователя
+      function nextUserMatch() {
+        var b = G.bracket, order = [["r16"], ["qf"], ["sf"], ["third", "fin"]];
+        for (var r = 0; r < order.length; r++) {
+          for (var k = 0; k < order[r].length; k++) {
+            var round = order[r][k];
+            var ms = round === "third" ? [b.third] : round === "fin" ? [b.fin] : b[round];
+            for (var i = 0; i < ms.length; i++) {
+              var m = ms[i];
+              if (m.score) continue;
+              var h = resolveSlot(b, m.home), a = resolveSlot(b, m.away);
+              if (h === G.team || a === G.team) return { m: m, round: round, home: h, away: a };
+            }
+          }
+        }
+        return null;
+      }
+      // симулируем все чужие несыгранные матчи, которые уже определены,
+      // вплоть до раунда пользователя включительно
+      function simOthersUpTo(round) {
+        var b = G.bracket, seq = ["r16", "qf", "sf", "third", "fin"];
+        var lim = seq.indexOf(round);
+        for (var s = 0; s <= lim; s++) {
+          var ms = seq[s] === "third" ? [b.third] : seq[s] === "fin" ? [b.fin] : b[seq[s]];
+          ms.forEach(function (m) {
+            if (m.score) return;
+            var h = resolveSlot(b, m.home), a = resolveSlot(b, m.away);
+            if (!h || !a) return;
+            if (h === G.team || a === G.team) return;
+            var r = quickSim(h, a);
+            m.score = r.score; m.pens = r.pens;
+          });
+        }
+      }
+
+      /* ================= рейтинги команды ================= */
+      function autoXI(players, formation) {
+        var slots = FORMATIONS[formation];
+        var free = players.filter(function (p) { return !p.out && p.ban === 0; });
+        var xi = [];
+        slots.forEach(function (role) {
+          var best = null, bv = -1;
+          free.forEach(function (p) {
+            if (xi.indexOf(p) >= 0) return;
+            var v = effOvr(p, role);
+            if (v > bv) { bv = v; best = p; }
+          });
+          xi.push(best);
+        });
+        return xi;
+      }
+      function lineRatings(xi, formation, tactics) {
+        var slots = FORMATIONS[formation];
+        var sum = { GK: 0, DF: 0, MF: 0, FW: 0 }, n = { GK: 0, DF: 0, MF: 0, FW: 0 };
+        xi.forEach(function (p, i) {
+          if (!p) return;
+          var r = slots[i];
+          sum[r] += effOvr(p, r); n[r]++;
+        });
+        var gk = n.GK ? sum.GK / n.GK : 40;
+        var def = (n.DF ? sum.DF / n.DF : 40) * (1 + (n.DF - 4) * .05);
+        var mid = (n.MF ? sum.MF / n.MF : 40) * (1 + (n.MF - 4) * .05);
+        var att = (n.FW ? sum.FW / n.FW : 40) * (1 + (n.FW - 2) * .07);
+        // тактика
+        var t = tactics;
+        if (t.mentality === "atk") { att *= 1.1; mid *= 1.03; def *= .9; }
+        if (t.mentality === "def") { att *= .88; def *= 1.1; }
+        if (t.pressing === "high") { mid *= 1.07; }
+        if (t.pressing === "low") { mid *= .95; def *= 1.03; }
+        if (t.style === "pass") { mid *= 1.05; }
+        if (t.style === "cross") {
+          var tallFW = xi.some(function (p, i) { return p && slots[i] === "FW" && p.phy >= 84; });
+          att *= tallFW ? 1.05 : .99;
+        }
+        return { gk: gk, def: def, mid: mid, att: att, tactics: t };
+      }
+      function xiAvg(xi, formation) {
+        var slots = FORMATIONS[formation], s = 0, c = 0;
+        xi.forEach(function (p, i) { if (p) { s += effOvr(p, slots[i]); c++; } });
+        return c ? Math.round(s / c) : 0;
+      }
+
+      // тактика ИИ-соперника
+      function aiSetup(code, oppStrength) {
+        var players = G.squads[code];
+        var probe = autoXI(players, "4-3-3");
+        var mine = xiAvg(probe, "4-3-3");
+        var formation = "4-3-3", t = { mentality: "bal", pressing: "mid", style: "pass", tempo: "mid" };
+        if (mine < oppStrength - 3) { formation = "5-4-1"; t.mentality = "def"; t.style = "counter"; }
+        else if (mine > oppStrength + 3) { t.mentality = "atk"; t.pressing = "high"; }
+        var xi = autoXI(players, formation);
+        return { xi: xi, formation: formation, tactics: t };
+      }
+
+      /* ================= движок матча ================= */
+      function tempoF(t) { return t === "high" ? 1.2 : t === "low" ? .85 : 1; }
+
+      function xGoalP(att, mid, oppDef, oppGk, tac, oppTac) {
+        var a = att * .62 + mid * .38;
+        var d = oppDef * .62 + oppGk * .38;
+        if (tac.style === "counter" && oppTac.mentality === "atk") a *= 1.1;
+        if (tac.pressing === "high") d *= .995;
+        return Math.max(.05, Math.min(.5, .27 + (a - d) * .011));
+      }
+
+      function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+      function pickScorer(xi, slots) {
+        var pool = [];
+        xi.forEach(function (p, i) {
+          if (!p) return;
+          var w = slots[i] === "FW" ? p.sho * p.sho : slots[i] === "MF" ? p.sho * p.sho * .35 : p.sho * 8;
+          pool.push({ p: p, w: w });
+        });
+        var sum = pool.reduce(function (s, x) { return s + x.w; }, 0), r = Math.random() * sum;
+        for (var i = 0; i < pool.length; i++) { r -= pool[i].w; if (r <= 0) return pool[i].p; }
+        return pool[pool.length - 1].p;
+      }
+
+      // быстрая симуляция чужого матча (без комментариев)
+      function quickSim(hCode, aCode) {
+        var h = aiSetup(hCode, teamAvgOvr(aCode));
+        var a = aiSetup(aCode, teamAvgOvr(hCode));
+        var rh = lineRatings(h.xi, h.formation, h.tactics);
+        var ra = lineRatings(a.xi, a.formation, a.tactics);
+        var gh = 0, ga = 0;
+        for (var min = 0; min < 90; min++) {
+          if (Math.random() < .155) {
+            var wH = rh.att + rh.mid * .6, wA = ra.att + ra.mid * .6;
+            if (Math.random() < wH / (wH + wA)) {
+              if (Math.random() < xGoalP(rh.att, rh.mid, ra.def, ra.gk, h.tactics, a.tactics) * .42) gh++;
+            } else if (Math.random() < xGoalP(ra.att, ra.mid, rh.def, rh.gk, a.tactics, h.tactics) * .42) ga++;
+          }
+        }
+        var pens = null;
+        if (gh === ga) { // серия пенальти
+          var ph = 0, pa = 0, i;
+          for (i = 0; i < 5; i++) {
+            if (Math.random() < .74) ph++;
+            if (Math.random() < .74) pa++;
+          }
+          for (i = 0; ph === pa && i < 20; i++) {
+            if (Math.random() < .74) ph++;
+            if (Math.random() < .74) pa++;
+          }
+          if (ph === pa) ph++;
+          pens = [ph, pa];
+        }
+        return { score: [gh, ga], pens: pens };
+      }
+
+      /* ================= интерактивный матч ================= */
+      var M = null; // состояние текущего матча
+
+      function startMatch(info) {
+        var oppCode = info.home === G.team ? info.away : info.home;
+        var userHome = info.home === G.team;
+        var opp = aiSetup(oppCode, xiAvg(G.xi, G.formation));
+        M = {
+          info: info, oppCode: oppCode, userHome: userHome,
+          min: 0, phase: "1T", limit: 45, et: false,
+          gUser: 0, gOpp: 0,
+          shots: [0, 0], onT: [0, 0], possAcc: [0, 0],
+          xi: G.xi.slice(), oppXi: opp.xi, oppSet: opp,
+          subsLeft: 5, played: {}, speed: 1, timer: null, over: false,
+          minutes: {} // сыгранные минуты для усталости
+        };
+        M.xi.forEach(function (p) { if (p) M.minutes[p.name] = 0; });
+        show("match");
+        renderMatchHead();
+        renderStats();
+        renderSubsPanel();
+        $("#feed").innerHTML = "";
+        $("#ft-actions").classList.add("hidden");
+        feed(0, "info", STAGE_RU[info.round] + " · " + (M.info.m.venue || "") +
+          ". Составы объявлены — судья даёт стартовый свисток!");
+        setSpeed(1);
+      }
+
+      function userRatings() { return lineRatings(M.xi, G.formation, G.tactics); }
+      function oppRatings() { return lineRatings(M.oppXi, M.oppSet.formation, M.oppSet.tactics); }
+
+      function feed(min, cls, text) {
+        var el = document.createElement("div");
+        el.className = "ev ev-" + cls;
+        el.innerHTML = (min ? '<b class="min">' + min + "′</b>" : "") + text;
+        var f = $("#feed");
+        f.appendChild(el);
+        f.scrollTop = f.scrollHeight;
+      }
+
+      function stepMinute() {
+        if (M.over) return;
+        M.min++;
+        var ru = userRatings(), ro = oppRatings();
+        var tf = (tempoF(G.tactics.tempo) + tempoF(M.oppSet.tactics.tempo)) / 2;
+
+        // владение
+        var wU = ru.mid + ru.att * .3, wO = ro.mid + ro.att * .3;
+        M.possAcc[0] += wU / (wU + wO); M.possAcc[1] += wO / (wU + wO);
+
+        if (Math.random() < .155 * tf) {
+          var atkU = Math.random() < (ru.att + ru.mid * .6) / (ru.att + ru.mid * .6 + ro.att + ro.mid * .6);
+          attack(atkU, ru, ro);
+        }
+        if (Math.random() < .022) cardEvent();
+        if (Math.random() < .0016) injuryEvent();
+
+        // усталость по ходу матча
+        var drain = .16 * tempoF(G.tactics.tempo) * (G.tactics.pressing === "high" ? 1.25 : 1);
+        M.xi.forEach(function (p) { if (p) { p.cond = Math.max(20, p.cond - drain); M.minutes[p.name]++; } });
+
+        renderMatchHead();
+        if (M.min % 5 === 0) renderStats();
+
+        if (M.min >= M.limit) phaseEnd();
+      }
+
+      function attack(userSide, ru, ro) {
+        var atk = userSide ? ru : ro, def = userSide ? ro : ru;
+        var tacA = userSide ? G.tactics : M.oppSet.tactics;
+        var tacD = userSide ? M.oppSet.tactics : G.tactics;
+        var xi = userSide ? M.xi : M.oppXi;
+        var slots = FORMATIONS[userSide ? G.formation : M.oppSet.formation];
+        var teamName = TEAMS[userSide ? G.team : M.oppCode].name;
+
+        M.shots[userSide ? 0 : 1]++;
+        var shooter = pickScorer(xi, slots);
+        var p = xGoalP(atk.att, atk.mid, def.def, def.gk, tacA, tacD) * .42;
+
+        if (Math.random() < p) {
+          M.onT[userSide ? 0 : 1]++;
+          if (userSide) M.gUser++; else M.gOpp++;
+          shooter.goals++;
+          feed(M.min, "goal", "⚽ <b>ГОЛ!</b> " + shooter.name + " (" + teamName + ") — " + scoreLine());
+        } else {
+          var r = Math.random();
+          if (r < .38) { M.onT[userSide ? 0 : 1]++; feed(M.min, "info", "🧤 " + shooter.name + " бьёт в створ — вратарь спасает!"); }
+          else if (r < .5) feed(M.min, "info", "🥅 " + shooter.name + " попадает в каркас ворот!");
+          else if (r < .78) feed(M.min, "info", "💨 " + shooter.name + " бьёт — мимо цели.");
+          else feed(M.min, "info", "🛡️ Удар " + shooter.name + " заблокирован защитой.");
+        }
+      }
+
+      function cardEvent() {
+        var userSide = Math.random() < (G.tactics.pressing === "high" ? .56 : .48);
+        var xi = userSide ? M.xi : M.oppXi;
+        var slots = FORMATIONS[userSide ? G.formation : M.oppSet.formation];
+        var cands = xi.filter(function (p, i) {
+          return p && slots[i] !== "FW" && slots[i] !== "GK";
+        });
+        if (!cands.length) return;
+        var p = pick(cands);
+        if (Math.random() < .07) { // прямая красная
+          sendOff(userSide, p, "🟥 Прямая красная! " + p.name + " оставляет команду в меньшинстве!");
+        } else {
+          p.yc++;
+          if (p.yc >= 2 && userSide !== null) {
+            sendOff(userSide, p, "🟨🟥 Вторая жёлтая — " + p.name + " удалён!");
+          } else {
+            feed(M.min, "yc", "🟨 Жёлтая карточка: " + p.name + ".");
+          }
+        }
+      }
+      function sendOff(userSide, p, text) {
+        var xi = userSide ? M.xi : M.oppXi;
+        xi[xi.indexOf(p)] = null;
+        if (userSide) p.ban = 1;
+        feed(M.min, "rc", text);
+      }
+
+      function injuryEvent() {
+        var userSide = Math.random() < .5;
+        var xi = userSide ? M.xi : M.oppXi;
+        var cands = xi.filter(Boolean);
+        if (!cands.length) return;
+        var p = pick(cands);
+        p.out = true;
+        var idx = xi.indexOf(p);
+        feed(M.min, "rc", "🚑 Травма! " + p.name + " не может продолжить матч.");
+        if (userSide) {
+          xi[idx] = null;
+          if (M.subsLeft > 0) {
+            var role = FORMATIONS[G.formation][idx];
+            var bench = benchPlayers().filter(function (b) { return !b.out && b.ban === 0; });
+            if (bench.length) {
+              var best = bench.sort(function (a, b) { return effOvr(b, role) - effOvr(a, role); })[0];
+              xi[idx] = best; M.subsLeft--;
+              M.minutes[best.name] = M.minutes[best.name] || 0;
+              feed(M.min, "sub", "🔁 Вынужденная замена: вместо него выходит " + best.name + ".");
+              renderSubsPanel();
+            }
+          }
+        } else {
+          var bench2 = G.squads[M.oppCode].filter(function (b) {
+            return !b.out && b.ban === 0 && xi.indexOf(b) < 0;
+          });
+          xi[idx] = bench2.length ? bench2[0] : null;
+        }
+      }
+
+      function scoreLine() {
+        var h = M.userHome ? M.gUser : M.gOpp, a = M.userHome ? M.gOpp : M.gUser;
+        return TEAMS[M.info.home].name + " " + h + ":" + a + " " + TEAMS[M.info.away].name;
+      }
+
+      function phaseEnd() {
+        if (M.phase === "1T") {
+          M.phase = "2T"; M.limit = 90;
+          feed(45, "end", "⏱ Перерыв. " + scoreLine() + ". Пауза — самое время для замен.");
+          offerContinue("Начать второй тайм");
+          return;
+        }
+        if (M.phase === "2T") {
+          if (M.gUser !== M.gOpp) return fullTime();
+          M.phase = "ET"; M.et = true; M.limit = 120;
+          feed(90, "end", "⏱ 90 минут — ничья " + scoreLine() + ". Впереди дополнительное время!");
+          M.xi.forEach(function (p) { if (p) p.cond = Math.max(15, p.cond - 6); });
+          offerContinue("Начать дополнительное время");
+          return;
+        }
+        if (M.min >= 120) {
+          if (M.gUser !== M.gOpp) return fullTime();
+          return shootout();
+        }
+      }
+
+      function offerContinue(label) {
+        M.awaiting = true;
+        pauseTimer();
+        renderSubsPanel();
+        var box = $("#ft-actions");
+        box.classList.remove("hidden");
+        box.innerHTML = '<button class="btn btn-primary" id="btn-resume">' + label + " →</button>";
+        $("#btn-resume").addEventListener("click", function () {
+          box.classList.add("hidden");
+          M.awaiting = false;
+          setSpeed(M.speed || 1);
+        });
+      }
+
+      // серия пенальти: удар за ударом в ленту
+      function shootout() {
+        M.awaiting = true;
+        feed(120, "end", "⚖️ 120 минут — " + scoreLine() + ". Серия пенальти!");
+        var takersU = M.xi.filter(Boolean).sort(function (a, b) { return b.sho - a.sho; });
+        var takersO = M.oppXi.filter(Boolean).sort(function (a, b) { return b.sho - a.sho; });
+        var gkU = M.xi[0], gkO = M.oppXi[0];
+        var su = 0, so = 0, i = 0;
+        function kickP(taker, gk) {
+          var ref = gk ? gk.def : 75;
+          return Math.max(.5, Math.min(.92, .74 + (taker.sho - ref) * .004));
+        }
+        var round = 0, feedDelay = 0;
+        function log(t) { setTimeout(function () { feed(0, "info", t); }, feedDelay += 420); }
+        while ((round < 5 || su === so) && round < 12) {
+          var tU = takersU[round % takersU.length], tO = takersO[round % takersO.length];
+          if (Math.random() < kickP(tU, gkO)) { su++; log("⚽ " + tU.name + " забивает — " + su + ":" + so); }
+          else log("🧤 Удар " + tU.name + " отражён! " + su + ":" + so);
+          // соперник может уже не бить, если всё решено — упрощаем: бьёт всегда
+          if (Math.random() < kickP(tO, gkU)) { so++; log("⚽ " + tO.name + " забивает — " + su + ":" + so); }
+          else log("🧤 " + (gkU ? gkU.name : "Вратарь") + " тащит удар " + tO.name + "! " + su + ":" + so);
+          round++;
+        }
+        if (su === so) su++; // страховка
+        M.pens = [su, so];
+        setTimeout(function () { fullTime(); }, feedDelay + 500);
+      }
+
+      function fullTime() {
+        M.over = true;
+        pauseTimer();
+        renderMatchHead();
+        renderStats();
+        var won = M.pens ? M.pens[0] > M.pens[1] : M.gUser > M.gOpp;
+        var penNote = M.pens ? " (пен. " + M.pens[0] + ":" + M.pens[1] + ")" : "";
+        feed(M.min, "end", "🏁 Финальный свисток! " + scoreLine() + penNote +
+          (won ? " — победа!" : " — поражение…"));
+
+        // записываем результат в сетку (счёт в порядке home/away)
+        var m = M.info.m;
+        m.score = M.userHome ? [M.gUser, M.gOpp] : [M.gOpp, M.gUser];
+        if (M.pens) m.pens = M.userHome ? M.pens : [M.pens[1], M.pens[0]];
+
+        // усталость и восстановление
+        G.squads[G.team].forEach(function (p) {
+          var played = M.minutes[p.name] || 0;
+          if (played) p.cond = Math.max(10, p.cond - 6 - played * .04);
+          p.cond = Math.min(100, p.cond + 30); // восстановление до следующего матча
+          if (p.ban > 0 && M.minutes[p.name] === undefined) p.ban--; // отбыл дисквалификацию
+          p.yc = 0;
+        });
+        G.campaign.push({
+          stage: STAGE_RU[M.info.round],
+          text: scoreLine() + penNote,
+          won: won
+        });
+        saveGame();
+
+        var box = $("#ft-actions");
+        box.classList.remove("hidden");
+        box.innerHTML = '<button class="btn btn-primary" id="btn-next2">Продолжить →</button>';
+        $("#btn-next2").addEventListener("click", afterMatch);
+      }
+
+      function afterMatch() {
+        var lastRound = M.info.round;
+        simOthersUpTo(lastRound);
+        var won = G.campaign[G.campaign.length - 1].won;
+
+        if (lastRound === "fin") return endScreen(won ? "champion" : "runnerup");
+        if (lastRound === "third") return endScreen(won ? "bronze" : "fourth");
+        if (!won && lastRound !== "sf") return endScreen("out");
+        // поражение в полуфинале → матч за 3-е место остаётся в nextUserMatch
+        toHub();
+      }
+
+      /* ---- таймер и скорость ---- */
+      function setSpeed(s) {
+        M.speed = s || M.speed || 1;
+        document.querySelectorAll(".speed-btn").forEach(function (b) {
+          b.classList.toggle("active", +b.dataset.spd === s);
+        });
+        pauseTimer();
+        if (s > 0 && !M.over && !M.awaiting) {
+          M.timer = setInterval(stepMinute, 340 / s);
+        }
+        renderSubsPanel();
+      }
+      function pauseTimer() { if (M && M.timer) { clearInterval(M.timer); M.timer = null; } }
+
+      document.querySelectorAll(".speed-btn").forEach(function (b) {
+        b.addEventListener("click", function () {
+          if (!M || M.over || M.awaiting) return;
+          setSpeed(+b.dataset.spd);
+        });
+      });
+
+      /* ---- замены ---- */
+      function benchPlayers() {
+        return G.squads[G.team].filter(function (p) { return M.xi.indexOf(p) < 0; });
+      }
+      var subOut = null;
+      function renderSubsPanel() {
+        var box = $("#subs-panel");
+        $("#subs-left").textContent = M ? M.subsLeft : 5;
+        if (!M || M.timer || M.over) {
+          box.innerHTML = '<p class="subs-hint">' + (M && M.over ? "Матч завершён." :
+            "Поставьте матч на паузу, чтобы сделать замену.") + "</p>";
+          subOut = null;
+          return;
+        }
+        if (M.subsLeft <= 0) { box.innerHTML = '<p class="subs-hint">Лимит замен исчерпан.</p>'; return; }
+        var html = '<p class="subs-hint">1. Кто уходит:</p>';
+        M.xi.forEach(function (p, i) {
+          if (!p) return;
+          html += pRowHTML(p, FORMATIONS[G.formation][i], subOut === i ? " selected" : "", 'data-out="' + i + '"');
+        });
+        html += '<p class="subs-hint">2. Кто выходит:</p>';
+        benchPlayers().forEach(function (p, i) {
+          if (p.out || p.ban > 0) return;
+          html += pRowHTML(p, p.pos, "", 'data-in="' + G.squads[G.team].indexOf(p) + '"');
+        });
+        box.innerHTML = html;
+      }
+      $("#subs-panel").addEventListener("click", function (e) {
+        var row = e.target.closest(".p-row");
+        if (!row || !M || M.timer || M.over) return;
+        if (row.dataset.out !== undefined) { subOut = +row.dataset.out; renderSubsPanel(); return; }
+        if (row.dataset.in !== undefined && subOut !== null) {
+          var inP = G.squads[G.team][+row.dataset.in];
+          var outP = M.xi[subOut];
+          if (FORMATIONS[G.formation][subOut] === "GK" && inP.pos !== "GK") return;
+          M.xi[subOut] = inP;
+          M.minutes[inP.name] = M.minutes[inP.name] || 0;
+          M.subsLeft--;
+          feed(M.min, "sub", "🔁 Замена: " + inP.name + " вместо " + (outP ? outP.name : "—") + ".");
+          subOut = null;
+          renderSubsPanel();
+        }
+      });
+
+      /* ---- рендер матча ---- */
+      function renderMatchHead() {
+        var h = M.userHome ? G.team : M.oppCode, a = M.userHome ? M.oppCode : G.team;
+        var gh = M.userHome ? M.gUser : M.gOpp, ga = M.userHome ? M.gOpp : M.gUser;
+        $("#match-head").innerHTML =
+          '<div class="mh-team"><span class="flag">' + TEAMS[h].flag + "</span>" + TEAMS[h].name + "</div>" +
+          '<div class="mh-score">' + gh + ":" + ga + '<span class="mh-min">' +
+            (M.over ? "FT" : M.min + "′") + (M.et && !M.over ? " (доп. время)" : "") + "</span></div>" +
+          '<div class="mh-team"><span class="flag">' + TEAMS[a].flag + "</span>" + TEAMS[a].name + "</div>";
+      }
+      function renderStats() {
+        var tot = M.possAcc[0] + M.possAcc[1] || 1;
+        var pu = Math.round(M.possAcc[0] / tot * 100);
+        function row(lbl, a, b, pct) {
+          var l = pct ? a : a, r = pct ? b : b;
+          var wa = pct ? a : (a + b ? a / (a + b) * 100 : 50);
+          return '<div class="stat-row"><div class="sr-top"><b>' + l + (pct ? "%" : "") +
+            "</b><span>" + lbl + "</span><b>" + r + (pct ? "%" : "") + "</b></div>" +
+            '<div class="sr-bar"><i style="width:' + wa + '%"></i></div></div>';
+        }
+        $("#stat-rows").innerHTML =
+          row("Владение", pu, 100 - pu, true) +
+          row("Удары", M.shots[0], M.shots[1]) +
+          row("В створ", M.onT[0], M.onT[1]);
+      }
+
+      /* ================= экраны ================= */
+      function $(s) { return document.querySelector(s); }
+      var SCREENS = ["team", "hub", "match", "end"];
+      function show(name) {
+        SCREENS.forEach(function (s) {
+          document.getElementById("scr-" + s).classList.toggle("hidden", s !== name);
+        });
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+
+      /* ---- выбор команды ---- */
+      function renderTeamSelect() {
+        var alive = aliveTeams();
+        $("#team-grid").innerHTML = alive.map(function (code) {
+          var t = TEAMS[code];
+          return '<button class="mgr-team-card" data-code="' + code + '">' +
+            '<span class="mt-flag">' + t.flag + "</span>" +
+            '<span class="mt-name">' + t.name + "</span>" +
+            '<span class="mt-meta">Тренер: ' + SQ[code].coach + "</span>" +
+            '<span class="mt-meta">Сила состава: <span class="mt-ovr">' + teamAvgOvr(code) + "</span></span>" +
+          "</button>";
+        }).join("");
+
+        var save = loadSave();
+        var box = $("#continue-box");
+        if (save && save.team && !save.finished) {
+          box.classList.remove("hidden");
+          box.innerHTML = '<button class="btn btn-primary" id="btn-continue">▶ Продолжить карьеру: ' +
+            TEAMS[save.team].flag + " " + TEAMS[save.team].name + "</button>" +
+            '<button class="btn btn-ghost" id="btn-newgame">Начать заново</button>';
+          $("#btn-continue").addEventListener("click", function () { G = restoreGame(save); toHub(); });
+          $("#btn-newgame").addEventListener("click", function () {
+            localStorage.removeItem(SAVE_KEY); box.classList.add("hidden");
+          });
+        }
+      }
+      $("#team-grid").addEventListener("click", function (e) {
+        var card = e.target.closest(".mgr-team-card");
+        if (card) newCareer(card.dataset.code);
+      });
+
+      function newCareer(code) {
+        var squads = {};
+        Object.keys(SQ).forEach(function (c) { squads[c] = mkPlayers(c); });
+        G = {
+          team: code, bracket: cloneBracket(), squads: squads,
+          formation: "4-3-3",
+          tactics: { mentality: "bal", pressing: "mid", style: "pass", tempo: "mid" },
+          xi: null, campaign: []
+        };
+        G.xi = autoXI(squads[code], G.formation);
+        saveGame();
+        toHub();
+      }
+
+      /* ---- штаб ---- */
+      function toHub() {
+        var next = nextUserMatch();
+        if (!next) return endScreen(G.campaign.length && G.campaign[G.campaign.length - 1].won ? "champion" : "out");
+        G.next = next;
+        show("hub");
+        renderNextMatch(next);
+        renderTactics();
+        renderXI();
+        renderPath();
+      }
+
+      function renderNextMatch(next) {
+        var oppCode = next.home === G.team ? next.away : next.home;
+        var opp = TEAMS[oppCode], me = TEAMS[G.team];
+        var h = TEAMS[next.home], a = TEAMS[next.away];
+        $("#next-match").innerHTML =
+          '<span class="nm-stage">' + STAGE_RU[next.round] + "</span>" +
+          '<div class="nm-teams">' +
+            "<span><span class='nm-flag'>" + h.flag + "</span>" + h.name + "</span>" +
+            '<span class="nm-vs">против</span>' +
+            "<span><span class='nm-flag'>" + a.flag + "</span>" + a.name + "</span>" +
+          "</div>" +
+          '<div class="nm-meta">' + next.m.date + " · " + next.m.venue + "</div>" +
+          '<div class="nm-meta">Сила соперника: <b style="color:var(--gold)">' + teamAvgOvr(oppCode) + "</b></div>";
+      }
+
+      function renderTactics() {
+        var fSel = $("#t-formation");
+        fSel.innerHTML = Object.keys(FORMATIONS).map(function (f) {
+          return '<option value="' + f + '"' + (f === G.formation ? " selected" : "") + ">" + f + "</option>";
+        }).join("");
+        $("#t-mentality").value = G.tactics.mentality;
+        $("#t-pressing").value = G.tactics.pressing;
+        $("#t-style").value = G.tactics.style;
+        $("#t-tempo").value = G.tactics.tempo;
+      }
+      ["t-mentality", "t-pressing", "t-style", "t-tempo"].forEach(function (id) {
+        document.getElementById(id).addEventListener("change", function () {
+          G.tactics[{ "t-mentality": "mentality", "t-pressing": "pressing", "t-style": "style", "t-tempo": "tempo" }[id]] = this.value;
+          renderXI(); saveGame();
+        });
+      });
+      $("#t-formation").addEventListener("change", function () {
+        G.formation = this.value;
+        G.xi = autoXI(G.squads[G.team], G.formation);
+        renderXI(); saveGame();
+      });
+
+      function condClass(c) { return c >= 75 ? "" : c >= 50 ? " c-mid" : " c-low"; }
+      function pRowHTML(p, role, extraCls, dataAttr) {
+        var flags = (p.ban > 0 ? " 🟥" : "") + (p.out ? " 🚑" : "");
+        return '<button class="p-row' + (extraCls || "") + (p.out || p.ban > 0 ? " out" : "") + '" ' + (dataAttr || "") + ">" +
+          '<span class="p-num">' + p.num + "</span>" +
+          '<span class="pos-chip pos-' + p.pos + '">' + POS_RU[p.pos] + "</span>" +
+          '<span class="p-name">' + p.name + flags + "</span>" +
+          '<span class="cond' + condClass(p.cond) + '"><i style="width:' + Math.round(p.cond) + '%"></i></span>' +
+          '<span class="p-ovr">' + Math.round(effOvr(p, role || p.pos)) + "</span>" +
+        "</button>";
+      }
+
+      var pickedXi = null;
+      function renderXI() {
+        var slots = FORMATIONS[G.formation];
+        var lines = { GK: [], DF: [], MF: [], FW: [] };
+        G.xi.forEach(function (p, i) { lines[slots[i]].push({ p: p, i: i }); });
+        var html = "";
+        ["GK", "DF", "MF", "FW"].forEach(function (line) {
+          if (!lines[line].length) return;
+          html += '<div class="xi-line-title">' + { GK: "Вратарь", DF: "Защита", MF: "Полузащита", FW: "Атака" }[line] + "</div>";
+          lines[line].forEach(function (o) {
+            html += o.p
+              ? pRowHTML(o.p, line, pickedXi === o.i ? " selected" : "", 'data-xi="' + o.i + '"')
+              : '<button class="p-row" data-xi="' + o.i + '"><span class="p-name" style="color:var(--muted)">— пусто —</span></button>';
+          });
+        });
+        $("#xi-list").innerHTML = html;
+        $("#xi-ovr").textContent = "· сила " + xiAvg(G.xi, G.formation);
+
+        $("#bench-list").innerHTML = G.squads[G.team]
+          .filter(function (p) { return G.xi.indexOf(p) < 0; })
+          .map(function (p) { return pRowHTML(p, p.pos, "", 'data-bench="' + G.squads[G.team].indexOf(p) + '"'); })
+          .join("");
+      }
+
+      $("#scr-hub").addEventListener("click", function (e) {
+        var row = e.target.closest(".p-row");
+        if (!row) return;
+        if (row.dataset.xi !== undefined) {
+          pickedXi = pickedXi === +row.dataset.xi ? null : +row.dataset.xi;
+          renderXI();
+        } else if (row.dataset.bench !== undefined && pickedXi !== null) {
+          var p = G.squads[G.team][+row.dataset.bench];
+          if (p.out || p.ban > 0) return;
+          var role = FORMATIONS[G.formation][pickedXi];
+          if (role === "GK" && p.pos !== "GK") return;
+          G.xi[pickedXi] = p;
+          pickedXi = null;
+          renderXI(); saveGame();
+        }
+      });
+
+      $("#btn-auto").addEventListener("click", function () {
+        G.xi = autoXI(G.squads[G.team], G.formation);
+        pickedXi = null; renderXI(); saveGame();
+      });
+      $("#btn-play").addEventListener("click", function () {
+        if (G.xi.some(function (p) { return !p; }))
+          return alert("В составе есть пустые позиции!");
+        if (G.xi.some(function (p) { return p.out || p.ban > 0; }))
+          return alert("В составе есть травмированные или дисквалифицированные игроки!");
+        startMatch(G.next);
+      });
+
+      function renderPath() {
+        var html = G.campaign.map(function (c) {
+          return "<li><span>" + (c.won ? "✅ " : "❌ ") + c.text + '</span><span class="pl-stage">' + c.stage + "</span></li>";
+        }).join("");
+        // уже сыгранные реальные матчи команды из data.js
+        var pre = [];
+        G.bracket.r16.forEach(function (m) {
+          if (m.score && (m.home === G.team || m.away === G.team) && !G.campaign.length) {
+            pre.push("<li><span>📌 " + TEAMS[m.home].name + " " + m.score[0] + ":" + m.score[1] + " " +
+              TEAMS[m.away].name + '</span><span class="pl-stage">1/8 финала (сыграно)</span></li>');
+          }
+        });
+        $("#path-list").innerHTML = (pre.join("") + html) ||
+          '<li><span class="pl-stage">Путь начинается с ближайшего матча.</span></li>';
+      }
+
+      /* ---- конец карьеры ---- */
+      function endScreen(kind) {
+        var t = TEAMS[G.team];
+        var conf = {
+          champion: ["🏆", t.name + " — чемпион мира!", "Вы подняли Кубок мира над головой на MetLife. " + SQ[G.team].coach + " нервно курит в сторонке."],
+          runnerup: ["🥈", "Серебро чемпионата мира", "Поражение в финале — больно, но этот путь запомнят надолго."],
+          bronze:   ["🥉", "Бронза чемпионата мира!", "Победа в матче за 3-е место — достойное завершение турнира."],
+          fourth:   ["4️⃣", "Четвёртое место", "До медалей не хватило совсем чуть-чуть."],
+          out:      ["😔", "Вылет из турнира", "Сборная " + t.name + " покидает чемпионат мира. Болельщики требуют реванша!"]
+        }[kind];
+        var top = G.squads[G.team].filter(function (p) { return p.goals > 0; })
+          .sort(function (a, b) { return b.goals - a.goals; }).slice(0, 3)
+          .map(function (p) { return p.name + " — " + p.goals; }).join(", ");
+        $("#end-box").innerHTML =
+          '<span class="me-emoji">' + conf[0] + "</span>" +
+          "<h2>" + conf[1] + "</h2>" +
+          "<p>" + conf[2] + "</p>" +
+          '<ul class="path-list" style="text-align:left">' +
+            G.campaign.map(function (c) {
+              return "<li><span>" + (c.won ? "✅ " : "❌ ") + c.text + '</span><span class="pl-stage">' + c.stage + "</span></li>";
+            }).join("") + "</ul>" +
+          (top ? '<p style="margin-top:14px">⚽ Бомбардиры: ' + top + "</p>" : "") +
+          '<div class="me-actions">' +
+            '<button class="btn btn-primary" id="btn-again">Новая карьера</button>' +
+            '<a class="btn btn-ghost" href="./bracket.html">Реальная сетка</a>' +
+          "</div>";
+        show("end");
+        var save = loadSave(); if (save) { save.finished = true; localStorage.setItem(SAVE_KEY, JSON.stringify(save)); }
+        $("#btn-again").addEventListener("click", function () {
+          localStorage.removeItem(SAVE_KEY);
+          renderTeamSelect(); show("team");
+        });
+      }
+
+      /* ---- сохранение ---- */
+      function saveGame() {
+        if (!G) return;
+        try {
+          var squadState = {};
+          Object.keys(G.squads).forEach(function (c) {
+            squadState[c] = G.squads[c].map(function (p) {
+              return [Math.round(p.cond), p.out ? 1 : 0, p.ban, p.goals];
+            });
+          });
+          localStorage.setItem(SAVE_KEY, JSON.stringify({
+            team: G.team, formation: G.formation, tactics: G.tactics,
+            xiIdx: G.xi.map(function (p) { return p ? G.squads[G.team].indexOf(p) : -1; }),
+            campaign: G.campaign, squadState: squadState,
+            bracket: G.bracket, finished: false
+          }));
+        } catch (e) { /* localStorage может быть недоступен — игра просто не сохранится */ }
+      }
+      function loadSave() {
+        try { return JSON.parse(localStorage.getItem(SAVE_KEY)); } catch (e) { return null; }
+      }
+      function restoreGame(s) {
+        var squads = {};
+        Object.keys(SQ).forEach(function (c) {
+          squads[c] = mkPlayers(c);
+          if (s.squadState && s.squadState[c]) {
+            s.squadState[c].forEach(function (st, i) {
+              squads[c][i].cond = st[0]; squads[c][i].out = !!st[1];
+              squads[c][i].ban = st[2]; squads[c][i].goals = st[3];
+            });
+          }
+        });
+        var g = {
+          team: s.team, bracket: s.bracket, squads: squads,
+          formation: s.formation, tactics: s.tactics, campaign: s.campaign || []
+        };
+        g.xi = (s.xiIdx || []).map(function (idx) { return idx >= 0 ? squads[s.team][idx] : null; });
+        if (!g.xi.length || g.xi.some(function (p) { return p === undefined; })) {
+          g.xi = autoXI(squads[s.team], g.formation);
+        }
+        return g;
+      }
+
+      renderTeamSelect();
+    })();
+  </script>
+</body>
+</html>
