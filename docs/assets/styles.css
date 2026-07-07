@@ -129,7 +129,7 @@ h1, h2, h3 { line-height: 1.1; letter-spacing: -.02em; }
     border-bottom: 1px solid var(--line);
     display: none;
   }
-  .main-nav.open { display: flex; animation: fade-up .25s ease both; }
+  .main-nav.open { display: flex; animation: fade-up .25s ease backwards; }
   .main-nav a { padding: 12px 14px; font-size: 1.05rem; }
   .main-nav a.active::after { bottom: 6px; }
 }
@@ -206,10 +206,10 @@ h1, h2, h3 { line-height: 1.1; letter-spacing: -.02em; }
   75% { transform: translateX(6px); }
 }
 
-.anim-up { animation: fade-up .6s ease both; }
-.anim-up-1 { animation: fade-up .6s ease .1s both; }
-.anim-up-2 { animation: fade-up .6s ease .2s both; }
-.anim-up-3 { animation: fade-up .6s ease .3s both; }
+.anim-up { animation: fade-up .6s ease backwards; }
+.anim-up-1 { animation: fade-up .6s ease .1s backwards; }
+.anim-up-2 { animation: fade-up .6s ease .2s backwards; }
+.anim-up-3 { animation: fade-up .6s ease .3s backwards; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
@@ -354,7 +354,7 @@ h1, h2, h3 { line-height: 1.1; letter-spacing: -.02em; }
   background: var(--card); border: 1px solid var(--line); border-radius: 12px;
   overflow: hidden; font-size: .95rem;
   transition: transform .15s, border-color .15s;
-  animation: fade-up .5s ease both;
+  animation: fade-up .5s ease backwards;
 }
 .match:hover { transform: translateY(-2px); border-color: var(--muted); }
 
@@ -431,7 +431,7 @@ h1, h2, h3 { line-height: 1.1; letter-spacing: -.02em; }
 .progress { height: 10px; border-radius: 999px; background: rgba(255, 255, 255, .08); overflow: hidden; margin-bottom: 26px; }
 .progress .bar { height: 100%; width: 0; background: var(--grad); border-radius: inherit; transition: width .35s ease; }
 
-.quiz-q { font-size: clamp(1.15rem, 3vw, 1.5rem); font-weight: 800; margin-bottom: 22px; animation: fade-up .35s ease both; }
+.quiz-q { font-size: clamp(1.15rem, 3vw, 1.5rem); font-weight: 800; margin-bottom: 22px; animation: fade-up .35s ease backwards; }
 
 .quiz-options { display: grid; gap: 12px; }
 .quiz-option {
@@ -440,7 +440,7 @@ h1, h2, h3 { line-height: 1.1; letter-spacing: -.02em; }
   border: 1.5px solid var(--line); border-radius: 12px;
   font-weight: 600; font-size: 1rem;
   transition: border-color .15s, transform .15s, background .15s;
-  animation: fade-up .35s ease both;
+  animation: fade-up .35s ease backwards;
 }
 .quiz-option:nth-child(2) { animation-delay: .05s; }
 .quiz-option:nth-child(3) { animation-delay: .1s; }
@@ -496,8 +496,8 @@ h1, h2, h3 { line-height: 1.1; letter-spacing: -.02em; }
   border: 1.5px solid var(--line); background: var(--card);
   display: inline-flex; align-items: center; justify-content: center; font-size: .95rem;
 }
-.kick-dots .kd.goal { border-color: var(--green); background: rgba(22, 196, 127, .2); }
-.kick-dots .kd.miss { border-color: var(--red); background: rgba(255, 45, 85, .18); }
+.kick-dots .kd.kd-goal { border-color: var(--green); background: rgba(22, 196, 127, .2); }
+.kick-dots .kd.kd-miss { border-color: var(--red); background: rgba(255, 45, 85, .18); }
 
 /* Поле и ворота */
 .pitch {
@@ -518,10 +518,9 @@ h1, h2, h3 { line-height: 1.1; letter-spacing: -.02em; }
   pointer-events: none;
 }
 
-.goal {
-  position: absolute; left: 50%; top: 9%;
+.pitch .goal {
+  position: absolute; left: 12%; top: 9%;
   width: 76%; height: 46%;
-  transform: translateX(-50%);
   border: 6px solid #f4f6fb; border-bottom: none;
   border-radius: 4px 4px 0 0;
   background:
@@ -529,78 +528,164 @@ h1, h2, h3 { line-height: 1.1; letter-spacing: -.02em; }
     repeating-linear-gradient(0deg,  rgba(255,255,255,.14) 0 1.5px, transparent 1.5px 13px),
     rgba(8, 14, 30, .35);
 }
-.goal.net-shake { animation: shake .35s ease; }
+.pitch .goal.net-shake { animation: shake .35s ease; }
+.pitch .goal.frame-hit { animation: shake .3s ease; box-shadow: 0 0 34px rgba(255, 201, 60, .55); }
 
-.zones {
-  position: absolute; inset: 0;
-  display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(2, 1fr);
-  z-index: 6;
+/* Слой прицеливания (накрывает ворота с небольшим запасом) и прицел */
+.aim-layer {
+  position: absolute; left: 6%; right: 6%; top: 3%; height: 58%;
+  z-index: 6; cursor: crosshair; touch-action: none;
 }
-.zone {
-  background: transparent; border: none; border-radius: 8px;
-  outline: 2px dashed transparent; outline-offset: -8px;
-  transition: outline-color .15s, background .15s;
+.aim-layer.off { pointer-events: none; cursor: default; }
+
+.crosshair {
+  position: absolute; z-index: 7; width: 44px; height: 44px;
+  margin: -22px 0 0 -22px; border-radius: 50%;
+  border: 2px solid rgba(255, 201, 60, .95);
+  box-shadow: 0 0 12px rgba(255, 201, 60, .35), inset 0 0 8px rgba(255, 201, 60, .25);
+  opacity: 0; pointer-events: none; transition: opacity .15s;
 }
-.zones.armed .zone { cursor: crosshair; }
-.zones.armed .zone:hover { outline-color: rgba(255, 201, 60, .8); background: rgba(255, 201, 60, .1); }
+.crosshair::before, .crosshair::after { content: ""; position: absolute; background: rgba(255, 201, 60, .95); }
+.crosshair::before {
+  left: 50%; top: -8px; bottom: -8px; width: 2px; margin-left: -1px;
+  -webkit-mask: linear-gradient(180deg, #000 0 30%, transparent 30% 70%, #000 70%);
+          mask: linear-gradient(180deg, #000 0 30%, transparent 30% 70%, #000 70%);
+}
+.crosshair::after {
+  top: 50%; left: -8px; right: -8px; height: 2px; margin-top: -1px;
+  -webkit-mask: linear-gradient(90deg, #000 0 30%, transparent 30% 70%, #000 70%);
+          mask: linear-gradient(90deg, #000 0 30%, transparent 30% 70%, #000 70%);
+}
+.crosshair.on { opacity: 1; }
+.crosshair.charging { animation: cross-pulse .45s ease-in-out infinite; }
+@keyframes cross-pulse { 50% { transform: scale(1.3); } }
 
 /* Вратарь (стоит на линии ворот, внутри .goal) */
 .keeper {
   position: absolute; left: 50%; bottom: -2%; z-index: 4;
-  width: 17%; height: 82%;
+  width: 17%; height: 86%;
   transform: translateX(-50%);
-  transition: transform .5s cubic-bezier(.3, 1.2, .5, 1);
-  transform-origin: 50% 90%;
+  transform-origin: 50% 85%;
+  transition: transform .5s cubic-bezier(.22, 1.1, .36, 1);
+  will-change: transform;
 }
-.keeper .k-head {
+/* идл-анимация висит на внутренней фигуре, чтобы не конфликтовать
+   с transform прыжка на самом .keeper */
+.k-figure {
+  position: relative; width: 100%; height: 100%;
+  animation: keeper-idle 1.5s ease-in-out infinite;
+  transform-origin: 50% 95%;
+}
+.keeper.diving .k-figure { animation: none; }
+@keyframes keeper-idle {
+  0%, 100% { transform: translate(0, 0); }
+  20%      { transform: translate(-6%, -2.5%); }
+  50%      { transform: translate(0, -5%); }
+  70%      { transform: translate(6%, -2.5%); }
+}
+
+.k-head {
   position: absolute; top: 0; left: 50%; transform: translateX(-50%);
-  width: 42%; aspect-ratio: 1; border-radius: 50%;
+  width: 38%; aspect-ratio: 1; border-radius: 50%;
   background: #e8b98a;
 }
-.keeper .k-body {
-  position: absolute; top: 27%; left: 50%; transform: translateX(-50%);
-  width: 78%; height: 55%;
-  background: linear-gradient(180deg, var(--gold), #e0a51b);
-  border-radius: 10px 10px 6px 6px;
+.k-head::before { /* причёска */
+  content: ""; position: absolute; top: -6%; left: 8%; right: 8%; height: 46%;
+  border-radius: 50% 50% 20% 20%; background: #3b2a1d;
 }
-.keeper .k-arm {
-  position: absolute; top: 38%; width: 16%; height: 40%;
-  background: var(--gold); border-radius: 8px;
-  transition: transform .4s ease;
+.k-torso {
+  position: absolute; top: 22%; left: 50%; transform: translateX(-50%);
+  width: 72%; height: 44%;
+  background: linear-gradient(180deg, #ffd34e, #e8a416);
+  border-radius: 30% 30% 22% 22% / 20% 20% 12% 12%;
+  display: flex; align-items: center; justify-content: center;
+  color: #0a0f1e; font-weight: 900; font-size: clamp(.65rem, 1.7vw, .95rem);
 }
-.keeper .k-arm.left  { left: 2%; }
-.keeper .k-arm.right { right: 2%; }
-.keeper .k-legs {
-  position: absolute; bottom: 0; left: 50%; transform: translateX(-50%);
-  width: 62%; height: 20%;
-  background: #14203f; border-radius: 0 0 6px 6px;
+.k-arm {
+  position: absolute; top: 24%; width: 14%; height: 44%;
+  background: linear-gradient(180deg, #ffd34e, #e8a416);
+  border-radius: 999px;
+  transform-origin: 50% 10%;
+  transition: transform .35s cubic-bezier(.3, 1.4, .5, 1);
 }
-.keeper.dive-arms .k-arm.left  { transform: rotate(160deg) translateY(30%); }
-.keeper.dive-arms .k-arm.right { transform: rotate(-160deg) translateY(30%); }
+.k-arm.left  { left: 4%;  transform: rotate(16deg); }
+.k-arm.right { right: 4%; transform: rotate(-16deg); }
+.k-glove {
+  position: absolute; bottom: -10%; left: 50%; transform: translateX(-50%);
+  width: 150%; aspect-ratio: 1; border-radius: 50%;
+  background: #f4f6fb; box-shadow: 0 0 0 1px rgba(0, 0, 0, .18);
+}
+.k-leg {
+  position: absolute; bottom: 0; width: 20%; height: 36%;
+  background: #16224a; border-radius: 8px 8px 4px 4px;
+  transform-origin: 50% 5%;
+  transition: transform .35s ease;
+}
+.k-leg.left { left: 26%; }
+.k-leg.right { right: 26%; }
 
-/* Мяч */
+/* позы в прыжке: руки тянутся туда, куда летит вратарь */
+.keeper.d-high .k-arm.left  { transform: rotate(160deg); }
+.keeper.d-high .k-arm.right { transform: rotate(-160deg); }
+.keeper.d-side-left .k-arm.left   { transform: rotate(115deg); }
+.keeper.d-side-left .k-arm.right  { transform: rotate(-40deg); }
+.keeper.d-side-right .k-arm.right { transform: rotate(-115deg); }
+.keeper.d-side-right .k-arm.left  { transform: rotate(40deg); }
+.keeper.diving .k-leg.left  { transform: rotate(16deg); }
+.keeper.diving .k-leg.right { transform: rotate(-16deg); }
+
+/* Мяч: внешний элемент отвечает за полёт (inline transform),
+   внутренний — за идл-парение и вращение, чтобы transform'ы не конфликтовали */
 .pitch .ball {
   position: absolute; left: 50%; bottom: 5%; z-index: 5;
   font-size: clamp(2rem, 7vw, 3.2rem); line-height: 1;
   transform: translateX(-50%);
-  transition: transform .55s cubic-bezier(.2, .8, .4, 1);
   filter: drop-shadow(0 8px 8px rgba(0, 0, 0, .4));
+  will-change: transform;
 }
-.pitch .ball.idle { animation: float 2.6s ease-in-out infinite; }
+.pitch .ball .b { display: block; }
+.pitch .ball.idle .b { animation: float 2.6s ease-in-out infinite; }
+.pitch .ball.flying .b { animation: ball-spin .4s linear infinite; }
+@keyframes ball-spin { to { transform: rotate(360deg); } }
 
 /* Вердикт удара */
 .verdict {
   position: absolute; left: 50%; top: 38%; z-index: 8;
-  transform: translate(-50%, -50%);
+  translate: -50% -50%;
   font-size: clamp(1.6rem, 6vw, 2.6rem); font-weight: 900;
   text-transform: uppercase; letter-spacing: .05em;
   padding: 8px 26px; border-radius: 999px;
   opacity: 0; pointer-events: none;
 }
 .verdict.show { opacity: 1; animation: pop .4s ease both; }
-.verdict.goal { background: rgba(22, 196, 127, .92); color: #06281a; }
-.verdict.save { background: rgba(255, 201, 60, .94); color: #33270a; }
-.verdict.wide { background: rgba(255, 45, 85, .92); color: #fff; }
+.verdict.v-goal { background: rgba(22, 196, 127, .92); color: #06281a; }
+.verdict.v-save { background: rgba(255, 201, 60, .94); color: #33270a; }
+.verdict.v-wide { background: rgba(255, 45, 85, .92); color: #fff; }
+
+/* Шкала силы удара */
+.power-wrap {
+  max-width: 680px; margin: 14px auto 0;
+  display: flex; align-items: center; gap: 12px;
+  font-size: .82rem; font-weight: 800; color: var(--muted);
+  text-transform: uppercase; letter-spacing: .08em;
+}
+.power-track {
+  flex: 1; height: 16px; border-radius: 999px; position: relative; overflow: hidden;
+  background: rgba(255, 255, 255, .07); border: 1px solid var(--line);
+}
+.power-fill { height: 100%; width: 0%; background: var(--grad); border-radius: inherit; }
+.power-sweet {
+  position: absolute; top: -1px; bottom: -1px; left: 60%; width: 30%;
+  border-left: 2px dashed rgba(255, 255, 255, .5);
+  border-right: 2px dashed rgba(255, 255, 255, .5);
+}
+.power-val { min-width: 3.5ch; text-align: right; color: var(--text); font-variant-numeric: tabular-nums; }
+
+/* Комментатор */
+.pen-comment {
+  min-height: 1.5em; text-align: center; margin-top: 12px;
+  font-weight: 700; color: var(--gold);
+}
 
 .pen-hint { text-align: center; color: var(--muted); margin: 14px auto 0; max-width: 680px; font-size: .92rem; }
 

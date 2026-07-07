@@ -15,8 +15,9 @@
 
     <!-- Экран 1: выбор команды -->
     <section id="screen-team">
-      <p class="page-lead anim-up-1">Выберите сборную из участников 1/8 финала и пробейте серию
-        из пяти ударов. Кликните по углу ворот — вратарь попытается угадать направление!</p>
+      <p class="page-lead anim-up-1">Выберите сборную из участников 1/8 финала и пробейте серию из пяти ударов.
+        Целься точно, бей сильно — но помни: перекачанный удар летит куда попало,
+        а вратарь запоминает твои любимые углы!</p>
       <div class="team-pick anim-up-2" id="team-pick" aria-label="Выбор сборной"></div>
     </section>
 
@@ -31,26 +32,33 @@
       <div class="pitch" id="pitch">
         <div class="goal" id="goal">
           <div class="keeper" id="keeper" aria-hidden="true">
-            <div class="k-arm left"></div>
-            <div class="k-arm right"></div>
-            <div class="k-head"></div>
-            <div class="k-body"></div>
-            <div class="k-legs"></div>
-          </div>
-          <div class="zones armed" id="zones" aria-label="Углы ворот">
-            <button class="zone" data-col="0" data-row="0" aria-label="Верхний левый угол"></button>
-            <button class="zone" data-col="1" data-row="0" aria-label="Верх по центру"></button>
-            <button class="zone" data-col="2" data-row="0" aria-label="Верхний правый угол"></button>
-            <button class="zone" data-col="0" data-row="1" aria-label="Нижний левый угол"></button>
-            <button class="zone" data-col="1" data-row="1" aria-label="Низ по центру"></button>
-            <button class="zone" data-col="2" data-row="1" aria-label="Нижний правый угол"></button>
+            <div class="k-figure">
+              <div class="k-arm left"><span class="k-glove"></span></div>
+              <div class="k-arm right"><span class="k-glove"></span></div>
+              <div class="k-leg left"></div>
+              <div class="k-leg right"></div>
+              <div class="k-torso">1</div>
+              <div class="k-head"></div>
+            </div>
           </div>
         </div>
-        <span class="ball idle" id="ball" aria-hidden="true">⚽</span>
+        <div class="aim-layer" id="aim" aria-label="Прицеливание: зажмите для силы, отпустите для удара"></div>
+        <div class="crosshair" id="crosshair"></div>
+        <span class="ball idle" id="ball" aria-hidden="true"><span class="b">⚽</span></span>
         <span class="verdict" id="verdict"></span>
       </div>
 
-      <p class="pen-hint" id="pen-hint">Кликните по зоне ворот, чтобы пробить 👆</p>
+      <div class="power-wrap" aria-hidden="true">
+        <span>Сила</span>
+        <div class="power-track">
+          <div class="power-sweet"></div>
+          <div class="power-fill" id="power-fill"></div>
+        </div>
+        <span class="power-val" id="power-val">0</span>
+      </div>
+
+      <p class="pen-comment" id="pen-comment"></p>
+      <p class="pen-hint" id="pen-hint"></p>
     </section>
 
     <!-- Экран 3: итог серии -->
@@ -58,6 +66,7 @@
       <span class="pr-emoji" id="pr-emoji"></span>
       <h3 id="pr-title"></h3>
       <p id="pr-text"></p>
+      <p id="pr-stats" class="qr-score"></p>
       <div class="pr-actions">
         <button class="btn btn-primary" id="pr-again">Сыграть ещё раз</button>
         <button class="btn btn-ghost" id="pr-team">Выбрать другую команду</button>
@@ -68,34 +77,43 @@
   <script src="./assets/data.js"></script>
   <script src="./assets/nav.js" defer></script>
   <script>
-    /* Игра «Пробей пенальти»: чистый JS + CSS-анимации.
+    /* Игра «Пробей пенальти» — чистый JS + CSS-анимации.
+       Механика:
+       - свободное прицеливание: прицел следует за курсором/пальцем по воротам;
+       - сила удара: зажали — шкала качается, отпустили — удар. Слабый удар
+         точный, но медленный (вратарь успевает); перекачанный — быстрый,
+         но с сильным разбросом и риском улететь выше ворот;
+       - вратарь запоминает, куда вы бьёте чаще, и «читает» любимый угол;
+       - возможны попадания в штангу/перекладину.
        Список команд — window.WC.penaltyTeams (assets/data.js). */
     (function () {
       "use strict";
 
-      var KICKS = 5;              // ударов в серии
-      var WIDE_CHANCE = 0.08;     // шанс пробить выше ворот
-      var KEEPER_READS = 0.4;     // как часто вратарь угадывает сторону удара
-      var HALF_SAVE = 0.5;        // шанс сейва при верной стороне, но другой высоте
+      var KICKS = 5;
 
       var TEAMS = window.WC.teams;
 
-      var $pickWrap = document.getElementById("team-pick");
       var $screens = {
         team: document.getElementById("screen-team"),
         game: document.getElementById("screen-game"),
         result: document.getElementById("screen-result")
       };
-      var $zones  = document.getElementById("zones");
-      var $goal   = document.getElementById("goal");
       var $pitch  = document.getElementById("pitch");
+      var $goal   = document.getElementById("goal");
+      var $aim    = document.getElementById("aim");
+      var $cross  = document.getElementById("crosshair");
       var $ball   = document.getElementById("ball");
       var $keeper = document.getElementById("keeper");
       var $verdict = document.getElementById("verdict");
       var $dots   = document.getElementById("kick-dots");
       var $hint   = document.getElementById("pen-hint");
+      var $comment = document.getElementById("pen-comment");
+      var $pFill  = document.getElementById("power-fill");
+      var $pVal   = document.getElementById("power-val");
 
-      var state = { team: null, kick: 0, goals: 0, results: [] };
+      var HINT_DEFAULT = "Наведите прицел на ворота, зажмите — растёт сила, отпустите — удар! 🎯";
+
+      var state; // { team, kick, results[], aimCols[], stats{goal,save,wide,post} }
 
       function show(name) {
         Object.keys($screens).forEach(function (k) {
@@ -103,153 +121,305 @@
         });
       }
 
-      /* --- Экран выбора команды --- */
+      /* ---------- Экран выбора команды ---------- */
+      var $pickWrap = document.getElementById("team-pick");
       $pickWrap.innerHTML = window.WC.penaltyTeams.map(function (code) {
         var t = TEAMS[code];
         return '<button class="team-btn" data-code="' + code + '">' +
           '<span class="tb-flag">' + t.flag + "</span><span>" + t.name + "</span></button>";
       }).join("");
-
       $pickWrap.addEventListener("click", function (e) {
         var btn = e.target.closest(".team-btn");
         if (btn) startGame(btn.dataset.code);
       });
 
-      /* --- Игра --- */
+      /* ---------- Старт / HUD ---------- */
       function startGame(code) {
-        state = { team: code, kick: 0, goals: 0, results: [] };
+        state = { team: code, kick: 0, results: [], aimCols: [],
+                  stats: { goal: 0, save: 0, wide: 0, post: 0 } };
         var t = TEAMS[code];
         document.getElementById("hud-team").innerHTML =
           '<span class="flag">' + t.flag + "</span>" + t.name;
         renderHUD();
-        resetPositions(true);
-        arm(true);
-        $hint.textContent = "Кликните по зоне ворот, чтобы пробить 👆";
+        resetScene();
+        $comment.textContent = "";
+        $hint.textContent = HINT_DEFAULT;
         show("game");
+        arm(true);
       }
 
       function renderHUD() {
         var html = "";
         for (var i = 0; i < KICKS; i++) {
           var r = state.results[i];
-          html += '<span class="kd' + (r ? " " + r : "") + '">' +
-            (r === "goal" ? "⚽" : r === "miss" ? "✖" : i + 1) + "</span>";
+          var cls = r === "goal" ? " kd-goal" : r ? " kd-miss" : "";
+          var icon = r === "goal" ? "⚽" : r === "save" ? "🧤" : r ? "✖" : (i + 1);
+          html += '<span class="kd' + cls + '">' + icon + "</span>";
         }
         $dots.innerHTML = html;
+        var missed = state.kick - state.stats.goal;
         document.getElementById("hud-score").textContent =
-          "Голы: " + state.goals + " · Промахи: " + (state.results.filter(function (r) { return r === "miss"; }).length);
+          "Голы: " + state.stats.goal + " · Промахи: " + missed;
       }
 
-      function arm(on) {
-        $zones.classList.toggle("armed", on);
-        $zones.querySelectorAll(".zone").forEach(function (z) { z.disabled = !on; });
-      }
-
-      function resetPositions(instant) {
-        [$ball, $keeper].forEach(function (el) {
-          if (instant) el.style.transition = "none";
-          el.style.transform = "translateX(-50%)";
-        });
-        $keeper.classList.remove("dive-arms");
-        if (instant) {
-          void $ball.offsetWidth; // сброс без анимации
-          $ball.style.transition = "";
-          $keeper.style.transition = "";
-        }
-        $ball.classList.add("idle");
-        $verdict.className = "verdict";
-      }
-
-      function centerOf(el) {
-        var r = el.getBoundingClientRect();
+      /* ---------- Геометрия ---------- */
+      function rect(el) { return el.getBoundingClientRect(); }
+      function ballCenter() {
+        var r = rect($ball);
         return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
       }
-
-      // Перемещение absolute-элемента (позиционирован через left/bottom + translateX(-50%))
-      // в точку target (координаты окна)
-      function flyTo(el, target, extra) {
-        var c = centerOf(el);
-        var dx = target.x - c.x, dy = target.y - c.y;
+      // полёт элемента (у него base-transform translateX(-50%)) в точку окна
+      function flyTo(el, target, from, extra, ms, easing) {
+        var dx = target.x - from.x, dy = target.y - from.y;
+        if (ms) el.style.transition = "transform " + ms + "ms " + (easing || "cubic-bezier(.2,.8,.4,1)");
         el.style.transform =
-          "translateX(calc(-50% + " + dx.toFixed(1) + "px)) translateY(" + dy.toFixed(1) + "px)" +
-          (extra || "");
+          "translateX(calc(-50% + " + dx.toFixed(1) + "px)) translateY(" + dy.toFixed(1) + "px)" + (extra || "");
       }
 
-      $zones.addEventListener("click", function (e) {
-        var zone = e.target.closest(".zone");
-        if (!zone || zone.disabled) return;
-        kick(+zone.dataset.col, +zone.dataset.row, zone);
+      /* ---------- Прицел и шкала силы ---------- */
+      var aiming = false, charging = false, power = 0, chargeT0 = 0, rafId = 0;
+      var lastAim = null; // координаты окна
+
+      function arm(on) {
+        aiming = on;
+        $aim.classList.toggle("off", !on);
+        if (!on) $cross.classList.remove("on", "charging");
+      }
+
+      function setCross(x, y) {
+        var p = rect($pitch);
+        $cross.style.left = (x - p.left) + "px";
+        $cross.style.top  = (y - p.top) + "px";
+        $cross.classList.add("on");
+      }
+
+      function setPower(v) {
+        power = v;
+        $pFill.style.width = v + "%";
+        $pVal.textContent = Math.round(v);
+      }
+
+      $aim.addEventListener("pointermove", function (e) {
+        if (!aiming) return;
+        lastAim = { x: e.clientX, y: e.clientY };
+        setCross(e.clientX, e.clientY);
+      });
+      $aim.addEventListener("pointerleave", function () {
+        if (!charging) $cross.classList.remove("on");
       });
 
-      function kick(col, row, zoneEl) {
+      $aim.addEventListener("pointerdown", function (e) {
+        if (!aiming || charging) return;
+        e.preventDefault();
+        charging = true;
+        chargeT0 = performance.now();
+        lastAim = { x: e.clientX, y: e.clientY };
+        setCross(e.clientX, e.clientY);
+        $cross.classList.add("charging");
+        $hint.textContent = "Держите… и отпустите в нужный момент!";
+        (function loop(now) {
+          if (!charging) return;
+          // шкала «пинг-понг»: 0 → 100 → 0 за 1.2 с
+          var t = ((now - chargeT0) % 1200) / 1200;
+          setPower(Math.round((t < .5 ? t * 2 : 2 - t * 2) * 100));
+          rafId = requestAnimationFrame(loop);
+        })(performance.now());
+      });
+
+      window.addEventListener("pointerup", function () {
+        if (!charging) return;
+        charging = false;
+        cancelAnimationFrame(rafId);
+        $cross.classList.remove("charging");
         arm(false);
-        $ball.classList.remove("idle");
-        $hint.textContent = "Удар №" + (state.kick + 1) + "…";
+        shoot(lastAim, power);
+      });
 
-        // --- ИИ вратаря ---
-        var cols = [0, 1, 2];
-        var kCol = Math.random() < KEEPER_READS
-          ? col
-          : cols.filter(function (c) { return c !== col; })[Math.random() < 0.5 ? 0 : 1];
-        var kRow = Math.random() < 0.5 ? 0 : 1;
+      /* ---------- ИИ вратаря ---------- */
+      // Выбирает колонку (0-л, 1-центр, 2-п) с учётом ваших прошлых ударов
+      function keeperGuess() {
+        var counts = [1, 1, 1]; // сглаживание
+        state.aimCols.forEach(function (c) { counts[c] += 2; });
+        var sum = counts[0] + counts[1] + counts[2];
+        var r = Math.random() * sum, col = 0;
+        if (r > counts[0]) col = r > counts[0] + counts[1] ? 2 : 1;
 
-        // --- исход удара ---
-        var wide = Math.random() < WIDE_CHANCE;
-        var saved = !wide && kCol === col &&
-          (kRow === row || Math.random() < HALF_SAVE);
-
-        // при сейве вратарь оказывается ровно там, куда летит мяч
-        if (saved) { kCol = col; kRow = row; }
-
-        // --- анимации ---
-        var zones = $zones.querySelectorAll(".zone");
-        var shotTarget = centerOf(zoneEl);
-        var goalRect = $goal.getBoundingClientRect();
-        if (wide) shotTarget.y = goalRect.top - goalRect.height * 0.35; // выше перекладины
-
-        var keeperZone = zones[kRow * 3 + kCol];
-        var kTarget = centerOf(keeperZone);
-        var rot = kCol === 0 ? -22 : kCol === 2 ? 22 : 0;
-        // вратарь в прыжке чуть ниже центра зоны
-        kTarget.y = Math.min(kTarget.y + goalRect.height * 0.12, goalRect.bottom - 10);
-
-        // вратарь стартует чуть раньше мяча — «читает» удар
-        flyTo($keeper, kTarget, " rotate(" + rot + "deg)");
-        $keeper.classList.add("dive-arms");
-        setTimeout(function () {
-          flyTo($ball, shotTarget, " scale(.6)");
-        }, 90);
-
-        setTimeout(function () { settle(wide, saved); }, 700);
+        var favourite = counts.indexOf(Math.max.apply(null, counts));
+        var read = state.aimCols.length >= 2 && col === favourite &&
+                   counts[favourite] > sum / 2.5;
+        // иногда вратарь остаётся в центре до последнего
+        if (Math.random() < 0.1) return { col: 1, row: 1, stay: true, read: false };
+        return { col: col, row: Math.random() < 0.58 ? 1 : 0, stay: false, read: read };
       }
 
-      function settle(wide, saved) {
-        var isGoal = !wide && !saved;
-        state.results[state.kick] = isGoal ? "goal" : "miss";
-        if (isGoal) state.goals++;
+      /* ---------- Удар ---------- */
+      function shoot(aimPoint, pow) {
+        $ball.classList.remove("idle");
+        $ball.classList.add("flying");
+        $hint.textContent = "";
+        $comment.textContent = "";
 
-        $verdict.textContent = isGoal ? "ГОЛ! 🎉" : wide ? "Мимо! 😱" : "Сейв! 🧤";
-        $verdict.className = "verdict show " + (isGoal ? "goal" : wide ? "wide" : "save");
-        if (isGoal) {
-          $goal.classList.add("net-shake");
-          setTimeout(function () { $goal.classList.remove("net-shake"); }, 400);
+        var g = rect($goal);
+        var inner = { left: g.left + 8, right: g.right - 8, top: g.top + 8, bottom: g.bottom };
+
+        // --- рассеивание: слабый удар точный, перекачанный — дикий ---
+        var scatterBase = g.height * 0.07;
+        var f = pow < 40 ? 0.5 : pow <= 88 ? 1 : 1 + (pow - 88) / 12 * 1.8;
+        var ang = Math.random() * Math.PI * 2,
+            mag = Math.random() * scatterBase * f;
+        var land = {
+          x: aimPoint.x + Math.cos(ang) * mag,
+          y: aimPoint.y + Math.sin(ang) * mag
+        };
+        // перекачанный удар ещё и «взмывает»
+        if (pow > 88) land.y -= g.height * 0.12 * ((pow - 88) / 12) * Math.random();
+
+        // --- куда попал: в створ / штанга / мимо ---
+        var postBand = g.width * 0.035;
+        var onTarget = land.x > inner.left && land.x < inner.right &&
+                       land.y > inner.top && land.y < inner.bottom;
+        var nearFrame =
+          Math.abs(land.x - g.left) < postBand && land.y > g.top - postBand && land.y < g.bottom ||
+          Math.abs(land.x - g.right) < postBand && land.y > g.top - postBand && land.y < g.bottom ||
+          Math.abs(land.y - g.top) < postBand && land.x > g.left - postBand && land.x < g.right + postBand;
+        var outcome = onTarget ? "target" : nearFrame ? "post" : "wide";
+
+        // --- скорость полёта: 380 мс (пушка) … 780 мс (щёчкой) ---
+        var flight = Math.round(780 - pow / 100 * 400);
+
+        // --- вратарь: угол, точка и досягаемость ---
+        var guess = keeperGuess();
+        var kx = g.left + g.width * (guess.stay ? 0.5 : [0.18, 0.5, 0.82][guess.col]);
+        var ky = g.top + g.height * (guess.stay ? 0.55 : guess.row === 0 ? 0.3 : 0.72);
+        var slow = (flight - 380) / 400; // 0 — пушка, 1 — совсем мягко
+        var reach = g.width * (0.13 + slow * 0.09);
+
+        var saved = false, caught = false;
+        if (outcome === "target") {
+          var dist = Math.hypot(land.x - kx, land.y - ky);
+          saved = dist < reach;
+          caught = dist < reach * 0.5;
         }
+
+        // колонка удара — в память вратаря
+        var third = land.x < g.left + g.width / 3 ? 0 : land.x < g.right - g.width / 3 ? 1 : 2;
+        state.aimCols.push(third);
+
+        // --- анимации ---
+        var keeperStart = rect($keeper);
+        var keeperFrom = { x: keeperStart.left + keeperStart.width / 2,
+                           y: keeperStart.top + keeperStart.height / 2 };
+        var kTarget = saved
+          ? { x: land.x, y: Math.max(land.y, g.top + g.height * 0.35) }
+          : { x: kx, y: Math.max(ky, g.top + g.height * 0.35) };
+
+        $keeper.classList.add("diving");
+        var dxK = kTarget.x - keeperFrom.x;
+        var rot = guess.stay && !saved ? 0 : Math.max(-30, Math.min(30, dxK / 4));
+        var pose = (kTarget.y < g.top + g.height * 0.45) ? "d-high"
+                 : dxK < -10 ? "d-side-left" : dxK > 10 ? "d-side-right" : "d-high";
+        $keeper.classList.add(pose);
+
+        // вратарь реагирует с небольшой задержкой после удара
+        setTimeout(function () {
+          flyTo($keeper, kTarget, keeperFrom, " rotate(" + rot.toFixed(0) + "deg)",
+                Math.max(420, flight * 0.95), "cubic-bezier(.22,1.1,.36,1)");
+        }, 60);
+
+        var bFrom = ballCenter();
+        flyTo($ball, land, bFrom, " scale(.55)", flight);
+
+        setTimeout(function () {
+          settle(outcome, saved, caught, pow, guess, land, g, bFrom);
+        }, flight + 30);
+      }
+
+      /* ---------- Развязка удара ---------- */
+      function settle(outcome, saved, caught, pow, guess, land, g, bFrom) {
+        $ball.classList.remove("flying");
+        var isGoal = outcome === "target" && !saved;
+        var kind = isGoal ? "goal" : saved ? "save" : outcome; // goal|save|post|wide
+        state.results[state.kick] = kind;
+        state.stats[isGoal ? "goal" : saved ? "save" : outcome === "post" ? "post" : "wide"]++;
+
+        // вердикт + добивающие анимации
+        if (isGoal) {
+          $verdict.textContent = "ГОЛ! 🎉";
+          $verdict.className = "verdict show v-goal";
+          $goal.classList.add("net-shake");
+          setTimeout(function () { $goal.classList.remove("net-shake"); }, 420);
+        } else if (saved) {
+          $verdict.textContent = "Сейв! 🧤";
+          $verdict.className = "verdict show v-save";
+          if (!caught) { // отбил — мяч отскакивает в поле
+            var out = { x: land.x + (Math.random() - .5) * g.width * .5,
+                        y: g.bottom + g.height * .55 };
+            flyTo($ball, out, land, " scale(.7)", 450, "cubic-bezier(.3,.6,.5,1)");
+          }
+        } else if (outcome === "post") {
+          $verdict.textContent = land.y < g.top + g.height * .2 ? "Перекладина! 😱" : "Штанга! 😱";
+          $verdict.className = "verdict show v-wide";
+          $goal.classList.add("frame-hit");
+          setTimeout(function () { $goal.classList.remove("frame-hit"); }, 380);
+          // отскок от каркаса обратно в поле
+          var back = { x: bFrom.x + (Math.random() - .5) * 120, y: g.bottom + g.height * .5 };
+          flyTo($ball, back, land, " scale(.75)", 480, "cubic-bezier(.3,.6,.5,1)");
+        } else {
+          $verdict.textContent = "Мимо! 💨";
+          $verdict.className = "verdict show v-wide";
+        }
+
+        $comment.textContent = commentary(kind, pow, guess, caught);
 
         state.kick++;
         renderHUD();
 
         setTimeout(function () {
           if (state.kick >= KICKS) return finish();
-          resetPositions(true);
+          resetScene();
+          $hint.textContent = "Удар №" + (state.kick + 1) + " из " + KICKS + ". " + HINT_DEFAULT;
           arm(true);
-          $hint.textContent = "Удар №" + (state.kick + 1) + " из " + KICKS + " — выбирайте угол 👆";
-        }, 1300);
+        }, 1500);
       }
 
-      /* --- Итог серии --- */
+      function commentary(kind, pow, guess, caught) {
+        var pick = function (arr) { return arr[Math.floor(Math.random() * arr.length)]; };
+        if (kind === "goal") {
+          if (guess.read) return "Вратарь ждал этот угол, но удар оказался неберущимся!";
+          if (pow > 85) return pick(["Пушечный выстрел — вратарь без шансов!", "Мяч влетел как из пушки! 💥"]);
+          return pick(["Хладнокровное исполнение!", "Вратарь прыгнул в другой угол!", "Точно в цель!"]);
+        }
+        if (kind === "save") {
+          if (guess.read) return "Голкипер прочитал ваш любимый угол — бейте разнообразнее!";
+          if (guess.stay) return "Вратарь остался в центре — и угадал!";
+          return caught ? "Вратарь намертво забрал мяч!" : "Сейв кончиками перчаток!";
+        }
+        if (kind === "post") return pick(["Сантиметры от гола!", "Каркас ворот спасает вратаря!"]);
+        if (pow > 88) return "Перестарались: мяч улетел к болельщикам. Целься в район пунктира на шкале.";
+        return pick(["Неточно. Возьмите чуть ближе к створу.", "Мимо ворот!"]);
+      }
+
+      /* ---------- Сброс сцены ---------- */
+      function resetScene() {
+        [$ball, $keeper].forEach(function (el) {
+          el.style.transition = "none";
+          el.style.transform = "translateX(-50%)";
+        });
+        $keeper.classList.remove("diving", "d-high", "d-side-left", "d-side-right");
+        void $ball.offsetWidth;
+        $ball.style.transition = "";
+        $keeper.style.transition = "";
+        $ball.classList.add("idle");
+        $ball.classList.remove("flying");
+        $verdict.className = "verdict";
+        setPower(0);
+        $cross.classList.remove("on", "charging");
+      }
+
+      /* ---------- Итог серии ---------- */
       function finish() {
         var t = TEAMS[state.team];
-        var g = state.goals;
+        var g = state.stats.goal;
         var emoji, title;
         if (g === 5)      { emoji = "🏆"; title = "Идеальная серия!"; }
         else if (g === 4) { emoji = "🔥"; title = "Почти идеально!"; }
@@ -261,6 +431,9 @@
         document.getElementById("pr-title").textContent = title;
         document.getElementById("pr-text").textContent =
           t.flag + " " + t.name + ": " + g + " " + plural(g) + " из " + KICKS + " в серии.";
+        document.getElementById("pr-stats").textContent =
+          "⚽ голы: " + state.stats.goal + " · 🧤 сейвы: " + state.stats.save +
+          " · 🥅 каркас: " + state.stats.post + " · 💨 мимо: " + state.stats.wide;
         show("result");
       }
 
