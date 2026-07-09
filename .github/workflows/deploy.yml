@@ -29,6 +29,9 @@ jobs:
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
+        with:
+          # автоматически включает GitHub Pages с источником «GitHub Actions»
+          enablement: true
 
       # Сайт статический, сборка не нужна — публикуем корень репозитория
       - name: Upload site
