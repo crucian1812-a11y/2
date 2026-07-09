@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ЧМ-2026 · Сетка, квиз, пенальти, менеджер</title>
+  <meta name="description" content="Чемпионат мира 2026: актуальная сетка плей-офф, квиз, пенальти и футбольный менеджер.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Russo+One&family=Manrope:wght@400;600;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚽</text></svg>">
+</head>
+<body>
+
+  <header class="hero">
+    <div class="hero-inner">
+      <p class="hero-sup">США · Канада · Мексика</p>
+      <h1>ЧЕМПИОНАТ МИРА <span class="accent">2026</span></h1>
+      <p class="hero-sub">Сетка плей-офф · Квиз · Пенальти · Менеджер</p>
+    </div>
+  </header>
+
+  <nav class="tabs" role="tablist">
+    <button class="tab active" data-tab="bracket" role="tab">🏆 Сетка</button>
+    <button class="tab" data-tab="quiz" role="tab">🧠 Квиз</button>
+    <button class="tab" data-tab="penalty" role="tab">🥅 Пенальти</button>
+    <button class="tab" data-tab="manager" role="tab">📋 Менеджер</button>
+  </nav>
+
+  <main>
+
+    <!-- ================= СЕТКА ================= -->
+    <section id="tab-bracket" class="tab-panel active">
+      <div class="panel-head">
+        <h2>Плей-офф ЧМ-2026</h2>
+        <p class="muted">Результаты обновлены: <span id="updated-at"></span>. Четвертьфиналы — 9–11 июля.</p>
+      </div>
+      <div class="bracket-scroll">
+        <div id="bracket" class="bracket"></div>
+      </div>
+      <div id="schedule-cards" class="schedule-cards"></div>
+    </section>
+
+    <!-- ================= КВИЗ ================= -->
+    <section id="tab-quiz" class="tab-panel">
+      <div class="panel-head">
+        <h2>Квиз о чемпионатах мира</h2>
+        <p class="muted">Три уровня по 10 вопросов. В сложном — вопросы в духе «Что? Где? Когда?»: без вариантов, только логика.</p>
+      </div>
+
+      <div id="quiz-select" class="quiz-select">
+        <button class="quiz-card" data-level="easy">
+          <span class="quiz-emoji">⚽</span>
+          <b>Лёгкий</b>
+          <span>Разминка для болельщика: 10 вопросов с вариантами</span>
+        </button>
+        <button class="quiz-card" data-level="medium">
+          <span class="quiz-emoji">🔥</span>
+          <b>Средний</b>
+          <span>Для тех, кто смотрит каждый матч: 10 вопросов с вариантами</span>
+        </button>
+        <button class="quiz-card" data-level="hard">
+          <span class="quiz-emoji">🦉</span>
+          <b>Сложный · ЧГК</b>
+          <span>10 вопросов на логику без вариантов ответа. Минута на размышление!</span>
+        </button>
+      </div>
+
+      <div id="quiz-game" class="quiz-game" hidden>
+        <div class="quiz-top">
+          <span id="quiz-progress"></span>
+          <span id="quiz-timer" class="quiz-timer" hidden></span>
+          <span id="quiz-score"></span>
+        </div>
+        <div class="quiz-qcard">
+          <p id="quiz-question"></p>
+          <div id="quiz-options" class="quiz-options"></div>
+          <div id="quiz-open" class="quiz-open" hidden>
+            <input id="quiz-input" type="text" placeholder="Ваш ответ…" autocomplete="off">
+            <div class="quiz-open-btns">
+              <button id="quiz-answer-btn" class="btn primary">Ответить</button>
+              <button id="quiz-giveup-btn" class="btn ghost">Сдаюсь</button>
+            </div>
+          </div>
+          <div id="quiz-feedback" class="quiz-feedback" hidden></div>
+          <button id="quiz-next" class="btn primary quiz-next" hidden>Дальше →</button>
+        </div>
+      </div>
+
+      <div id="quiz-result" class="quiz-result" hidden></div>
+    </section>
+
+    <!-- ================= ПЕНАЛЬТИ ================= -->
+    <section id="tab-penalty" class="tab-panel">
+      <div class="panel-head">
+        <h2>Серия пенальти</h2>
+        <p class="muted">Бьёте вы — потом соперник. Целься мышью (или пальцем), зажми для силы удара, отпусти — удар! На воротах — выбери зону прыжка.</p>
+      </div>
+
+      <div id="pen-setup" class="pen-setup">
+        <h3>Выбери свою сборную</h3>
+        <div id="pen-teams" class="team-grid"></div>
+      </div>
+
+      <div id="pen-game" hidden>
+        <div class="pen-hud">
+          <div class="pen-side" id="pen-hud-you"></div>
+          <div class="pen-score" id="pen-hud-score">0 : 0</div>
+          <div class="pen-side" id="pen-hud-cpu"></div>
+        </div>
+        <div class="pen-dots-row">
+          <div class="pen-dots" id="pen-dots-you"></div>
+          <div class="pen-dots" id="pen-dots-cpu"></div>
+        </div>
+        <div class="canvas-wrap">
+          <canvas id="pen-canvas" width="900" height="620"></canvas>
+          <div id="pen-msg" class="pen-msg" hidden></div>
+        </div>
+        <p id="pen-hint" class="pen-hint"></p>
+        <button id="pen-restart" class="btn ghost" hidden>Сыграть ещё раз</button>
+      </div>
+    </section>
+
+    <!-- ================= МЕНЕДЖЕР ================= -->
+    <section id="tab-manager" class="tab-panel">
+      <div class="panel-head">
+        <h2>Футбольный менеджер · путь к кубку</h2>
+        <p class="muted">Возьми одну из восьми сборных 1/4 финала и доведи её до титула: схема, тактика, замены по ходу матча.</p>
+      </div>
+
+      <!-- Шаг 1: выбор команды -->
+      <div id="mgr-pick" class="mgr-step">
+        <h3>Выбери сборную</h3>
+        <div id="mgr-teams" class="team-grid"></div>
+      </div>
+
+      <!-- Шаг 2: предматчевая подготовка -->
+      <div id="mgr-prep" class="mgr-step" hidden>
+        <div class="mgr-matchup" id="mgr-matchup"></div>
+        <div class="mgr-prep-grid">
+          <div class="mgr-panel">
+            <h4>Схема</h4>
+            <div id="mgr-formations" class="chip-row"></div>
+            <h4>Тактика</h4>
+            <div class="mgr-tactics">
+              <label>Настрой
+                <select id="mgr-mentality">
+                  <option value="def">Оборонительный</option>
+                  <option value="bal" selected>Сбалансированный</option>
+                  <option value="atk">Атакующий</option>
+                </select>
+              </label>
+              <label>Прессинг
+                <select id="mgr-pressing">
+                  <option value="low">Низкий блок</option>
+                  <option value="mid" selected>Средний</option>
+                  <option value="high">Высокий</option>
+                </select>
+              </label>
+              <label>Стиль
+                <select id="mgr-style">
+                  <option value="pass" selected>Контроль мяча</option>
+                  <option value="counter">Контратаки</option>
+                  <option value="wings">Фланги и навесы</option>
+                </select>
+              </label>
+            </div>
+            <div class="mgr-strength" id="mgr-strength"></div>
+            <button id="mgr-kickoff" class="btn primary big">Начать матч ▶</button>
+          </div>
+          <div class="mgr-panel">
+            <h4>Состав <span class="muted small">(клик по игроку в старте — выбор замены из запаса)</span></h4>
+            <div id="mgr-xi" class="mgr-xi"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Шаг 3: матч -->
+      <div id="mgr-match" class="mgr-step" hidden>
+        <div class="mgr-scoreboard">
+          <div class="sb-team" id="sb-home"></div>
+          <div class="sb-mid">
+            <div class="sb-score" id="sb-score">0 : 0</div>
+            <div class="sb-min" id="sb-min">0′</div>
+          </div>
+          <div class="sb-team" id="sb-away"></div>
+        </div>
+        <div class="mgr-controls">
+          <button id="mgr-pause" class="btn ghost">⏸ Пауза</button>
+          <button id="mgr-speed" class="btn ghost">Скорость ×1</button>
+          <button id="mgr-tactics-btn" class="btn ghost" disabled>Тактика</button>
+          <button id="mgr-subs-btn" class="btn ghost" disabled>Замены (<span id="mgr-subs-left">5</span>)</button>
+        </div>
+        <div class="mgr-match-grid">
+          <div id="mgr-feed" class="mgr-feed"></div>
+          <div class="mgr-lineups">
+            <div id="mgr-lineup-you" class="mgr-lineup"></div>
+          </div>
+        </div>
+        <!-- Панель тактики/замен во время паузы -->
+        <div id="mgr-pausepanel" class="mgr-pausepanel" hidden></div>
+      </div>
+
+      <!-- Шаг 4: итоги матча / турнира -->
+      <div id="mgr-result" class="mgr-step mgr-result" hidden></div>
+    </section>
+
+  </main>
+
+  <footer class="site-footer">
+    <p>Фан-сайт к ЧМ-2026 · результаты на <span id="updated-at2"></span> ·
+      <a href="../index.html">семейный календарь</a></p>
+  </footer>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
