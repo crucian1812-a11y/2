@@ -11,5 +11,5 @@
 // Project Settings → API → Project URL / anon public key.
 // ============================================================
 
-export const SUPABASE_URL = 'https://YOUR-PROJECT.supabase.co';
-export const SUPABASE_ANON_KEY = 'YOUR-ANON-KEY';
+export const SUPABASE_URL = https://ihhkaeybdsehewcfsmws.supabase.co/rest/v1/;
+export const SUPABASE_ANON_KEY = sb_publishable_mjySYY1NzhURpuFz00AVzQ_FIUGuXYL;
