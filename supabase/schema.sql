@@ -61,9 +61,9 @@ alter publication supabase_realtime add table family_members;
 -- Удалите или замените на свою семью.
 
 insert into family_members (id, name, color, emoji) values
-  ('11111111-1111-1111-1111-111111111111', 'Мама',  '#c2571b', '🌷'),
-  ('22222222-2222-2222-2222-222222222222', 'Папа',  '#2f6f8f', '🎸'),
-  ('33333333-3333-3333-3333-333333333333', 'Мия',   '#7a9a3d', '🦄');
+  ('11111111-1111-1111-1111-111111111111', 'Аня',    '#c2571b', '🌷'),
+  ('22222222-2222-2222-2222-222222222222', 'Никита', '#2f6f8f', '🎸'),
+  ('33333333-3333-3333-3333-333333333333', 'Глеб',   '#7a9a3d', '⚽');
 
 insert into events (title, event_date, event_time, member_id, note, recurring) values
   ('Ужин у бабушки', current_date + 2, '18:30',
@@ -73,6 +73,6 @@ insert into events (title, event_date, event_time, member_id, note, recurring) v
   ('Оплата квартиры', current_date + 7, null,
    '22222222-2222-2222-2222-222222222222', null, 'monthly'),
   ('Семейный киновечер', current_date + 1, '20:00',
-   null, 'Выбирает Мия', 'weekly'),
-  ('День рождения Мии', current_date + 30, null,
+   null, 'Выбирает Глеб', 'weekly'),
+  ('День рождения Глеба', current_date + 30, null,
    '33333333-3333-3333-3333-333333333333', 'Торт и шарики!', 'yearly');
