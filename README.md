@@ -14,7 +14,8 @@
 
 > Про другой контент этого репозитория: конспекты YouTube — в
 > [YTBRAIN.md](YTBRAIN.md), прежняя корневая страница переехала в
-> [novgorod.html](novgorod.html).
+> [novgorod.html](novgorod.html), фан-сайт ЧМ-2026 (сетка, квиз, пенальти,
+> менеджер) — в [worldcup/](worldcup/).
 
 ## Структура
 
