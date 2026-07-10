@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+<title>Мишка · лѣсной бѣгъ</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #14201a; overflow: hidden;
+    font-family: Georgia, "Times New Roman", serif; }
+  #stage { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; }
+  canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+  #hud {
+    position: fixed; top: 10px; left: 14px; right: 14px;
+    display: flex; justify-content: space-between; align-items: flex-start;
+    color: #f5ead0; text-shadow: 0 2px 0 rgba(0,0,0,.45);
+    font-size: clamp(16px, 3.4vw, 24px); pointer-events: none; z-index: 5;
+  }
+  #hud .honey { color: #ffce54; }
+  #msg {
+    position: fixed; inset: 0; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 14px; z-index: 10;
+    background: radial-gradient(ellipse at center, rgba(10,18,14,.55), rgba(6,10,8,.88));
+    color: #f5ead0; text-align: center; padding: 20px;
+  }
+  #msg h1 { font-size: clamp(34px, 8vw, 64px); margin: 0; letter-spacing: .04em;
+    text-shadow: 0 4px 0 rgba(0,0,0,.5); }
+  #msg h1 .paw { color: #ffce54; }
+  #msg p { max-width: 560px; font-size: clamp(15px, 3vw, 19px); line-height: 1.55;
+    margin: 0; color: #d9cfb4; }
+  #msg .kbd { display: inline-block; border: 1px solid #8a7c5a; border-bottom-width: 3px;
+    border-radius: 6px; padding: 1px 9px; margin: 0 2px; background: #241f14; font-size: .9em; }
+  #msg button {
+    font: inherit; font-size: clamp(18px, 4vw, 24px); cursor: pointer;
+    color: #241a08; background: linear-gradient(#ffd76b, #f0a83a);
+    border: 0; border-bottom: 4px solid #a86a14; border-radius: 12px;
+    padding: 12px 38px; letter-spacing: .05em;
+  }
+  #msg button:hover { filter: brightness(1.06); }
+  #msg button:focus-visible { outline: 3px solid #f5ead0; outline-offset: 2px; }
+  #msg .score-line { font-size: clamp(18px, 4.4vw, 28px); color: #ffce54; }
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+<div id="stage"><canvas id="cv"></canvas></div>
+<div id="hud">
+  <div id="hearts"></div>
+  <div style="text-align:right">
+    <div id="score">0 м</div>
+    <div class="honey" id="honey">🍯 0</div>
+  </div>
+</div>
+<div id="msg">
+  <h1>Мишка<span class="paw">·</span>лѣсной бѣгъ</h1>
+  <p id="msgtext">Мишка бѣжитъ черезъ сѣверный лѣсъ за мёдомъ.
+    Прыгай черезъ пни и ежей, пригибайся подъ пчёлами, собирай горшочки мёда.
+    Въ прыжкѣ мишка дѣлаетъ сальто!</p>
+  <p id="controls"></p>
+  <div class="score-line hidden" id="finalscore"></div>
+  <button id="startbtn">Бѣжать!</button>
+</div>
+<script>
+"use strict";
+
+/* ---------- setup ---------- */
+const cv = document.getElementById("cv");
+const g = cv.getContext("2d");
+let W = 960, H = 540, DPR = 1;
+function resize() {
+  DPR = Math.min(devicePixelRatio || 1, 2);
+  W = innerWidth; H = innerHeight;
+  cv.width = W * DPR; cv.height = H * DPR;
+  g.setTransform(DPR, 0, 0, DPR, 0, 0);
+}
+addEventListener("resize", resize); resize();
+
+const isTouch = matchMedia("(pointer:coarse)").matches;
+document.getElementById("controls").innerHTML = isTouch
+  ? "Тапъ — прыжокъ (два тапа — двойное сальто), удерживай нижнюю треть экрана — пригнуться."
+  : "<span class='kbd'>Пробѣлъ</span>/<span class='kbd'>↑</span> — прыжокъ (дважды — двойное сальто), <span class='kbd'>↓</span> — пригнуться.";
+
+/* ---------- audio ---------- */
+let AC = null;
+function tone(freq, dur, type, vol, slide) {
+  if (!AC) return;
+  const o = AC.createOscillator(), gn = AC.createGain();
+  o.type = type || "square"; o.frequency.value = freq;
+  if (slide) o.frequency.exponentialRampToValueAtTime(slide, AC.currentTime + dur);
+  gn.gain.setValueAtTime(vol || 0.12, AC.currentTime);
+  gn.gain.exponentialRampToValueAtTime(0.0001, AC.currentTime + dur);
+  o.connect(gn).connect(AC.destination);
+  o.start(); o.stop(AC.currentTime + dur);
+}
+const sJump = () => { tone(300, 0.18, "square", 0.10, 520); };
+const sFlip = () => { tone(430, 0.14, "square", 0.09, 700); };
+const sHoney = () => { tone(760, 0.09, "sine", 0.14); tone(1020, 0.14, "sine", 0.10); };
+const sHit = () => { tone(160, 0.3, "sawtooth", 0.16, 60); };
+const sLand = () => { tone(110, 0.07, "triangle", 0.10); };
+
+/* ---------- world state ---------- */
+const GROUND = () => H * 0.82;
+const state = {
+  running: false, t: 0, dist: 0, speed: 5.2, honey: 0, lives: 3,
+  shake: 0, inv: 0, best: +(localStorage.getItem("mishka-best") || 0),
+};
+const bear = {
+  x: 0, y: 0, vy: 0, onGround: true,
+  duck: false, rot: 0, rotV: 0, flips: 0, maxFlips: 2,
+  runPh: 0, squash: 0, blink: 0,
+};
+let obstacles = [], honeys = [], parts = [], leaves = [], clouds = [], birds = [];
+let spawnIn = 90, honeyIn = 160;
+
+function reset() {
+  state.t = 0; state.dist = 0; state.speed = 5.2; state.honey = 0;
+  state.lives = 3; state.shake = 0; state.inv = 0;
+  bear.y = 0; bear.vy = 0; bear.onGround = true; bear.duck = false;
+  bear.rot = 0; bear.rotV = 0; bear.flips = 0; bear.runPh = 0; bear.squash = 0;
+  obstacles = []; honeys = []; parts = [];
+  spawnIn = 100; honeyIn = 60;
+  if (!leaves.length) {
+    for (let i = 0; i < 14; i++) leaves.push({ x: Math.random() * W, y: Math.random() * H,
+      vx: -0.4 - Math.random() * 0.8, vy: 0.3 + Math.random() * 0.5,
+      r: 2 + Math.random() * 3, a: Math.random() * 7, spin: 0.02 + Math.random() * 0.04 });
+    for (let i = 0; i < 5; i++) clouds.push({ x: Math.random() * W, y: 30 + Math.random() * H * 0.25,
+      s: 0.6 + Math.random() * 0.9, v: 0.12 + Math.random() * 0.2 });
+    for (let i = 0; i < 3; i++) birds.push({ x: Math.random() * W, y: 40 + Math.random() * H * 0.2,
+      v: 0.6 + Math.random() * 0.5, ph: Math.random() * 7 });
+  }
+  updateHud();
+}
+
+/* ---------- input ---------- */
+function jump() {
+  if (!state.running) return;
+  if (bear.onGround) {
+    bear.vy = -13.6; bear.onGround = false; bear.duck = false;
+    bear.flips = 1;
+    // полный оборотъ за время полёта: сальто вперёдъ
+    bear.rotV = (2 * Math.PI) / (2 * 13.6 / 0.62);
+    sJump();
+    burst(bear.x, GROUND(), "#8a7248", 6, 2);
+  } else if (bear.flips < bear.maxFlips) {
+    bear.vy = -11.2; bear.flips += 1;
+    bear.rotV = (2 * Math.PI) / (2 * 11.2 / 0.62) * 1.15;
+    sFlip();
+  }
+}
+function setDuck(v) { if (bear.onGround) bear.duck = v; else if (!v) bear.duck = false; }
+
+addEventListener("keydown", (e) => {
+  if (e.repeat) return;
+  if (e.code === "Space" || e.code === "ArrowUp" || e.code === "KeyW") { jump(); e.preventDefault(); }
+  if (e.code === "ArrowDown" || e.code === "KeyS") setDuck(true);
+});
+addEventListener("keyup", (e) => {
+  if (e.code === "ArrowDown" || e.code === "KeyS") setDuck(false);
+});
+let duckTouch = null;
+addEventListener("pointerdown", (e) => {
+  if (!state.running) return;
+  if (e.clientY > H * 0.66) { duckTouch = e.pointerId; setDuck(true); }
+  else jump();
+});
+addEventListener("pointerup", (e) => { if (e.pointerId === duckTouch) { duckTouch = null; setDuck(false); } });
+
+/* ---------- particles ---------- */
+function burst(x, y, color, n, up) {
+  for (let i = 0; i < n; i++) parts.push({
+    x, y, vx: (Math.random() - 0.5) * 3.4, vy: -Math.random() * 2.2 * (up || 1),
+    r: 2 + Math.random() * 3, life: 26 + Math.random() * 14, color,
+  });
+}
+
+/* ---------- spawning ---------- */
+function spawn() {
+  const roll = Math.random();
+  const gy = GROUND();
+  if (roll < 0.34) {
+    obstacles.push({ type: "stump", x: W + 60, w: 46, h: 40 + Math.random() * 18 });
+  } else if (roll < 0.58) {
+    obstacles.push({ type: "hedgehog", x: W + 60, w: 46, h: 26, ph: 0 });
+  } else if (roll < 0.8) {
+    obstacles.push({ type: "log", x: W + 60, w: 108, h: 30 });
+  } else {
+    // пчёлы летятъ на высотѣ головы — подъ ними надо пригнуться
+    obstacles.push({ type: "bees", x: W + 60, w: 54, h: 34, yOff: 58 + Math.random() * 8, ph: Math.random() * 7 });
+  }
+}
+function spawnHoney() {
+  const arc = Math.random() < 0.5;
+  const baseY = GROUND() - (arc ? 120 : 46);
+  const n = 1 + (Math.random() * 3 | 0);
+  for (let i = 0; i < n; i++)
+    honeys.push({ x: W + 80 + i * 44, y: baseY - (arc ? Math.sin(i / (n - 1 || 1) * Math.PI) * 26 : 0), t: Math.random() * 7 });
+}
+
+/* ---------- update ---------- */
+function update(dt) {
+  const gy = GROUND();
+  state.t += dt;
+  state.dist += state.speed * dt * 0.12;
+  state.speed = Math.min(11.5, 5.2 + state.dist / 260);
+  if (state.inv > 0) state.inv -= dt;
+  if (state.shake > 0) state.shake -= dt;
+
+  // bear physics
+  bear.x = Math.min(W * 0.22, 90 + W * 0.06);
+  if (!bear.onGround) {
+    bear.vy += 0.62 * dt;
+    bear.y += bear.vy * dt;
+    bear.rot += bear.rotV * dt;
+    if (bear.y >= 0) {
+      bear.y = 0; bear.vy = 0; bear.onGround = true;
+      bear.rot = 0; bear.rotV = 0; bear.flips = 0;
+      bear.squash = 1; sLand();
+      burst(bear.x, gy, "#8a7248", 5, 1);
+    }
+  } else {
+    bear.runPh += dt * (0.16 + state.speed * 0.012);
+  }
+  if (bear.squash > 0) bear.squash -= dt * 0.12;
+  bear.blink = (Math.sin(state.t * 0.02) > 0.996) ? 6 : Math.max(0, bear.blink - dt);
+
+  // spawn
+  spawnIn -= dt * (state.speed / 5.2);
+  if (spawnIn <= 0) { spawn(); spawnIn = 70 + Math.random() * 80 - Math.min(30, state.dist / 40); }
+  honeyIn -= dt;
+  if (honeyIn <= 0) { spawnHoney(); honeyIn = 140 + Math.random() * 160; }
+
+  // move & collide
+  const bb = bearBox();
+  for (const o of obstacles) {
+    o.x -= state.speed * dt;
+    if (o.ph !== undefined) o.ph += dt * 0.2;
+    if (state.inv <= 0 && hit(bb, obsBox(o))) {
+      state.inv = 90; state.shake = 14; state.lives -= 1; sHit();
+      burst(bb.x + bb.w / 2, bb.y + bb.h / 2, "#d04a3a", 12, 2);
+      updateHud();
+      if (state.lives <= 0) return gameOver();
+    }
+  }
+  obstacles = obstacles.filter((o) => o.x > -160);
+  for (const h of honeys) {
+    h.x -= state.speed * dt; h.t += dt * 0.1;
+    if (!h.got && hit(bb, { x: h.x - 14, y: h.y - 14, w: 28, h: 28 })) {
+      h.got = true; state.honey += 1; sHoney();
+      burst(h.x, h.y, "#ffce54", 8, 2);
+      updateHud();
+    }
+  }
+  honeys = honeys.filter((h) => h.x > -60 && !h.got);
+
+  // ambience
+  for (const p of parts) { p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 0.12 * dt; p.life -= dt; }
+  parts = parts.filter((p) => p.life > 0);
+  for (const l of leaves) {
+    l.x += (l.vx - state.speed * 0.25) * dt; l.y += l.vy * dt; l.a += l.spin * dt;
+    if (l.y > H || l.x < -20) { l.x = W + Math.random() * 60; l.y = -10; }
+  }
+  for (const c of clouds) { c.x -= c.v * dt; if (c.x < -220) c.x = W + 100; }
+  for (const b of birds) { b.x -= (b.v + state.speed * 0.08) * dt; b.ph += dt * 0.25;
+    if (b.x < -40) { b.x = W + 60; b.y = 40 + Math.random() * H * 0.2; } }
+
+  updateScore();
+}
+
+function bearBox() {
+  const gy = GROUND();
+  const duckH = bear.duck ? 46 : 74;
+  return { x: bear.x - 26, y: gy + bear.y - duckH, w: 56, h: duckH - 4 };
+}
+function obsBox(o) {
+  const gy = GROUND();
+  if (o.type === "bees") {
+    const wob = Math.sin(o.ph) * 6;
+    return { x: o.x - o.w / 2 + 6, y: gy - o.yOff - o.h / 2 + wob + 6, w: o.w - 12, h: o.h - 12 };
+  }
+  return { x: o.x - o.w / 2 + 5, y: gy - o.h + 4, w: o.w - 10, h: o.h - 6 };
+}
+function hit(a, b) {
+  return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+}
+
+/* ---------- drawing ---------- */
+function draw() {
+  const gy = GROUND();
+  g.save();
+  if (state.shake > 0) g.translate((Math.random() - 0.5) * state.shake * 0.7, (Math.random() - 0.5) * state.shake * 0.7);
+
+  // sky
+  const sky = g.createLinearGradient(0, 0, 0, gy);
+  sky.addColorStop(0, "#2c4a66"); sky.addColorStop(0.55, "#6e93a8"); sky.addColorStop(1, "#d8c9a0");
+  g.fillStyle = sky; g.fillRect(0, 0, W, gy);
+
+  // sun
+  const sunG = g.createRadialGradient(W * 0.78, H * 0.2, 8, W * 0.78, H * 0.2, 90);
+  sunG.addColorStop(0, "rgba(255,236,170,.95)"); sunG.addColorStop(1, "rgba(255,236,170,0)");
+  g.fillStyle = sunG; g.fillRect(W * 0.78 - 100, H * 0.2 - 100, 200, 200);
+
+  // clouds
+  for (const c of clouds) cloud(c.x, c.y, c.s);
+  // birds
+  g.strokeStyle = "rgba(30,40,50,.7)"; g.lineWidth = 2;
+  for (const b of birds) {
+    const f = Math.sin(b.ph) * 5;
+    g.beginPath(); g.moveTo(b.x - 8, b.y - f); g.quadraticCurveTo(b.x, b.y + 3, b.x + 8, b.y - f); g.stroke();
+  }
+
+  // far hills (parallax)
+  hills(gy, 0.14, H * 0.14, "#43604f");
+  // far pines
+  pines(gy, 0.3, 0.55, "#2d4a3c");
+  // near pines
+  pines(gy, 0.55, 1, "#1f3a2c");
+
+  // ground
+  const gr = g.createLinearGradient(0, gy, 0, H);
+  gr.addColorStop(0, "#7c9a4e"); gr.addColorStop(0.2, "#5f7c3a"); gr.addColorStop(1, "#3a4a26");
+  g.fillStyle = gr; g.fillRect(0, gy, W, H - gy);
+  // path texture
+  g.fillStyle = "rgba(120,96,58,.6)";
+  g.fillRect(0, gy, W, 10);
+  g.fillStyle = "rgba(0,0,0,.14)";
+  const off = (state.dist * 8) % 90;
+  for (let x = -off; x < W; x += 90) {
+    g.beginPath(); g.ellipse(x + 30, gy + 26, 26, 5, 0, 0, 7); g.fill();
+  }
+  // grass tufts
+  g.strokeStyle = "#8fae5a"; g.lineWidth = 2;
+  const goff = (state.dist * 8) % 48;
+  for (let x = -goff; x < W; x += 48) {
+    g.beginPath(); g.moveTo(x, gy + 8); g.lineTo(x - 3, gy - 2);
+    g.moveTo(x + 3, gy + 8); g.lineTo(x + 6, gy - 3); g.stroke();
+  }
+
+  // honey & obstacles
+  for (const h of honeys) honeyPot(h);
+  for (const o of obstacles) obstacle(o, gy);
+
+  // bear
+  drawBear(gy);
+
+  // particles & leaves
+  for (const p of parts) {
+    g.globalAlpha = Math.max(0, p.life / 40);
+    g.fillStyle = p.color;
+    g.beginPath(); g.arc(p.x, p.y, p.r, 0, 7); g.fill();
+  }
+  g.globalAlpha = 1;
+  for (const l of leaves) {
+    g.save(); g.translate(l.x, l.y); g.rotate(l.a);
+    g.fillStyle = "rgba(196,164,90,.8)";
+    g.beginPath(); g.ellipse(0, 0, l.r * 1.6, l.r * 0.8, 0, 0, 7); g.fill();
+    g.restore();
+  }
+  g.restore();
+}
+
+function cloud(x, y, s) {
+  g.save(); g.translate(x, y); g.scale(s, s);
+  g.fillStyle = "rgba(245,240,225,.85)";
+  g.beginPath();
+  g.arc(0, 0, 24, 0, 7); g.arc(28, -8, 30, 0, 7); g.arc(60, 0, 22, 0, 7);
+  g.arc(30, 10, 26, 0, 7); g.fill();
+  g.restore();
+}
+function hills(gy, par, hgt, color) {
+  g.fillStyle = color;
+  const shift = (state.dist * 8 * par) % (W * 2);
+  g.beginPath(); g.moveTo(0, gy);
+  for (let x = 0; x <= W; x += 8) {
+    const y = gy - hgt * (0.5 + 0.5 * Math.sin((x + shift) * 0.004) * Math.sin((x + shift) * 0.0013 + 2));
+    g.lineTo(x, y);
+  }
+  g.lineTo(W, gy); g.closePath(); g.fill();
+}
+function pines(gy, par, scale, color) {
+  g.fillStyle = color;
+  const period = 170 * scale + 40;
+  const shift = (state.dist * 8 * par) % period;
+  for (let x = -shift - period; x < W + period; x += period) {
+    const seed = Math.sin((x + shift) * 12.9898) * 43758.5453;
+    const jitter = (seed - Math.floor(seed)) * 60 - 30;
+    pine(x + jitter, gy + 2, (0.7 + ((seed * 7) % 1) * 0.5) * scale, color);
+  }
+}
+function pine(x, y, s, color) {
+  g.save(); g.translate(x, y); g.scale(s, s);
+  g.fillStyle = "#4a3620"; g.fillRect(-5, -18, 10, 20);
+  g.fillStyle = color;
+  for (let i = 0; i < 4; i++) {
+    const w = 66 - i * 13, h = -14 - i * 30;
+    g.beginPath(); g.moveTo(-w, h + 26); g.lineTo(0, h - 16); g.lineTo(w, h + 26); g.closePath(); g.fill();
+  }
+  g.restore();
+}
+function honeyPot(h) {
+  const bob = Math.sin(h.t) * 4;
+  g.save(); g.translate(h.x, h.y + bob);
+  g.fillStyle = "rgba(0,0,0,.16)";
+  g.beginPath(); g.ellipse(0, 18, 12, 3.4, 0, 0, 7); g.fill();
+  const pot = g.createLinearGradient(-12, -8, 12, 12);
+  pot.addColorStop(0, "#b0763a"); pot.addColorStop(1, "#7c4c1e");
+  g.fillStyle = pot;
+  g.beginPath(); g.moveTo(-11, -4); g.quadraticCurveTo(-14, 10, 0, 13);
+  g.quadraticCurveTo(14, 10, 11, -4); g.closePath(); g.fill();
+  g.fillStyle = "#ffce54";
+  g.beginPath(); g.ellipse(0, -5, 11, 4.6, 0, 0, 7); g.fill();
+  g.fillStyle = "#e8b23a";
+  g.beginPath(); g.ellipse(0, -5, 7, 2.8, 0, 0, 7); g.fill();
+  g.restore();
+}
+function obstacle(o, gy) {
+  g.save();
+  if (o.type === "stump") {
+    g.translate(o.x, gy);
+    g.fillStyle = "rgba(0,0,0,.18)";
+    g.beginPath(); g.ellipse(0, 2, o.w * 0.62, 6, 0, 0, 7); g.fill();
+    const wood = g.createLinearGradient(-o.w / 2, 0, o.w / 2, 0);
+    wood.addColorStop(0, "#6a4a26"); wood.addColorStop(0.5, "#8a6438"); wood.addColorStop(1, "#5a3c1e");
+    g.fillStyle = wood; g.fillRect(-o.w / 2, -o.h, o.w, o.h);
+    g.fillStyle = "#c8a060";
+    g.beginPath(); g.ellipse(0, -o.h, o.w / 2, 7, 0, 0, 7); g.fill();
+    g.strokeStyle = "#8a6438"; g.lineWidth = 1.6;
+    g.beginPath(); g.ellipse(0, -o.h, o.w / 3.2, 4.4, 0, 0, 7); g.stroke();
+    g.beginPath(); g.ellipse(0, -o.h, o.w / 7, 2, 0, 0, 7); g.stroke();
+  } else if (o.type === "log") {
+    g.translate(o.x, gy);
+    g.fillStyle = "rgba(0,0,0,.18)";
+    g.beginPath(); g.ellipse(0, 2, o.w * 0.56, 6, 0, 0, 7); g.fill();
+    const wood = g.createLinearGradient(0, -o.h, 0, 0);
+    wood.addColorStop(0, "#8a6438"); wood.addColorStop(1, "#5a3c1e");
+    g.fillStyle = wood;
+    rrect(-o.w / 2, -o.h, o.w, o.h, 12);
+    g.fillStyle = "#c8a060";
+    g.beginPath(); g.ellipse(-o.w / 2 + 2, -o.h / 2, 7, o.h / 2 - 2, 0, 0, 7); g.fill();
+    g.strokeStyle = "rgba(60,40,18,.5)"; g.lineWidth = 2;
+    g.beginPath(); g.moveTo(-o.w / 4, -o.h + 4); g.lineTo(o.w / 3, -o.h + 8); g.stroke();
+  } else if (o.type === "hedgehog") {
+    g.translate(o.x, gy);
+    const wob = Math.sin(o.ph * 4) * 1.4;
+    g.fillStyle = "rgba(0,0,0,.18)";
+    g.beginPath(); g.ellipse(0, 1, 26, 5, 0, 0, 7); g.fill();
+    g.fillStyle = "#4a3a2a";
+    for (let i = 0; i < 12; i++) {
+      const a = Math.PI + (i / 11) * Math.PI;
+      const px = Math.cos(a) * 22, py = -14 + Math.sin(a) * 18 + wob;
+      g.beginPath(); g.moveTo(px * 0.4, -12 + wob);
+      g.lineTo(px * 1.15, py - 7); g.lineTo(px * 0.75, -6 + wob); g.closePath(); g.fill();
+    }
+    g.fillStyle = "#6a5238";
+    g.beginPath(); g.ellipse(0, -12 + wob, 22, 15, 0, 0, 7); g.fill();
+    g.fillStyle = "#c8a888";
+    g.beginPath(); g.ellipse(-16, -8 + wob, 9, 6.6, -0.25, 0, 7); g.fill();
+    g.fillStyle = "#241a10";
+    g.beginPath(); g.arc(-24, -9 + wob, 2.6, 0, 7); g.fill();
+    g.beginPath(); g.arc(-17, -12 + wob, 1.8, 0, 7); g.fill();
+  } else if (o.type === "bees") {
+    const wob = Math.sin(o.ph) * 6;
+    g.translate(o.x, gy - o.yOff + wob);
+    for (let i = 0; i < 3; i++) {
+      const bx = (i - 1) * 17 + Math.sin(o.ph * 3 + i * 2.4) * 4;
+      const by = Math.cos(o.ph * 2.6 + i * 1.9) * 7;
+      // wings
+      g.fillStyle = "rgba(230,240,255,.75)";
+      const wf = Math.sin(o.ph * 18 + i) * 3;
+      g.beginPath(); g.ellipse(bx - 2, by - 7 + wf, 5.5, 2.8, -0.5, 0, 7); g.fill();
+      g.beginPath(); g.ellipse(bx + 3, by - 7 - wf, 5.5, 2.8, 0.5, 0, 7); g.fill();
+      // body
+      g.fillStyle = "#ffce54";
+      g.beginPath(); g.ellipse(bx, by, 8, 6, 0, 0, 7); g.fill();
+      g.fillStyle = "#241a10";
+      g.fillRect(bx - 5, by - 5.4, 3.2, 11);
+      g.fillRect(bx + 1, by - 5.8, 3.2, 11.6);
+      g.beginPath(); g.arc(bx + 8.6, by - 1.4, 1.4, 0, 7); g.fill();
+    }
+  }
+  g.restore();
+}
+function rrect(x, y, w, h, r) {
+  g.beginPath(); g.roundRect(x, y, w, h, r); g.fill();
+}
+
+/* ---------- THE BEAR ---------- */
+function drawBear(gy) {
+  const inv = state.inv > 0 && ((state.inv | 0) % 8 < 4);
+  if (inv) return;
+  const cx = bear.x, cy = gy + bear.y;
+  const airborne = !bear.onGround;
+  const duck = bear.duck && bear.onGround;
+
+  // тень: меньше и блѣднѣе въ прыжкѣ
+  const hgt = -bear.y;
+  const shScale = Math.max(0.35, 1 - hgt / 260);
+  g.fillStyle = `rgba(0,0,0,${0.22 * shScale})`;
+  g.beginPath(); g.ellipse(cx, gy + 4, 34 * shScale, 7 * shScale, 0, 0, 7); g.fill();
+
+  g.save();
+  // точка вращенія — центръ тѣла; сальто = полный оборотъ
+  g.translate(cx, cy - (duck ? 26 : 40));
+  if (airborne) g.rotate(bear.rot);
+
+  // squash & stretch
+  let sx = 1, sy = 1;
+  if (bear.squash > 0) { sx = 1 + bear.squash * 0.18; sy = 1 - bear.squash * 0.22; }
+  if (airborne) { const v = Math.max(-1, Math.min(1, bear.vy / 14)); sy = 1 + 0.10 * Math.abs(v); sx = 1 - 0.06 * Math.abs(v); }
+  if (duck) { sx = 1.18; sy = 0.66; }
+  g.scale(sx, sy);
+
+  const fur = g.createLinearGradient(0, -34, 0, 34);
+  fur.addColorStop(0, "#8a5a30"); fur.addColorStop(1, "#5e3a1a");
+  const furDark = "#4e3016", muzzle = "#d8b088", inner = "#c88a5a";
+
+  const run = bear.onGround && !duck;
+  const ph = bear.runPh;
+  const legA = run ? Math.sin(ph) * 0.85 : (airborne ? 0.5 : 0.1);
+  const legB = run ? Math.sin(ph + Math.PI) * 0.85 : (airborne ? -0.7 : -0.1);
+  const bob = run ? Math.abs(Math.sin(ph)) * 2.4 : 0;
+
+  g.save();
+  g.translate(0, -bob);
+
+  // заднія лапы
+  paw(-14, 24, legB, furDark);
+  // туловище
+  g.fillStyle = fur;
+  g.beginPath(); g.ellipse(0, 6, 30, 26, -0.08, 0, 7); g.fill();
+  // свѣтлое брюшко
+  g.fillStyle = inner;
+  g.beginPath(); g.ellipse(4, 12, 16, 14, -0.1, 0, 7); g.fill();
+  // хвостикъ
+  g.fillStyle = furDark;
+  g.beginPath(); g.arc(-28, 8, 6, 0, 7); g.fill();
+  // переднія лапы
+  paw(12, 24, legA, furDark);
+
+  // голова
+  g.save();
+  g.translate(22, -18);
+  g.rotate(airborne ? -0.12 : Math.sin(ph * 0.5) * 0.04);
+  // уши
+  g.fillStyle = furDark;
+  g.beginPath(); g.arc(-8, -16, 8, 0, 7); g.fill();
+  g.beginPath(); g.arc(8, -17, 8, 0, 7); g.fill();
+  g.fillStyle = inner;
+  g.beginPath(); g.arc(-8, -16, 4, 0, 7); g.fill();
+  g.beginPath(); g.arc(8, -17, 4, 0, 7); g.fill();
+  // морда
+  g.fillStyle = fur;
+  g.beginPath(); g.ellipse(0, -2, 17, 15, 0, 0, 7); g.fill();
+  g.fillStyle = muzzle;
+  g.beginPath(); g.ellipse(8, 3, 9.5, 7.5, 0, 0, 7); g.fill();
+  // носъ
+  g.fillStyle = "#241a10";
+  g.beginPath(); g.ellipse(13, 1, 3.6, 2.8, 0, 0, 7); g.fill();
+  // глазъ
+  if (bear.blink > 0) {
+    g.strokeStyle = "#241a10"; g.lineWidth = 1.6;
+    g.beginPath(); g.moveTo(1, -5); g.lineTo(6, -4.4); g.stroke();
+  } else {
+    g.fillStyle = "#241a10";
+    g.beginPath(); g.arc(3.6, -5, 2.6, 0, 7); g.fill();
+    g.fillStyle = "#fff";
+    g.beginPath(); g.arc(4.4, -5.8, 0.9, 0, 7); g.fill();
+  }
+  // ротикъ
+  g.strokeStyle = "#5a3a20"; g.lineWidth = 1.4;
+  g.beginPath(); g.arc(10, 5.4, 3.6, 0.3, 2.4); g.stroke();
+  g.restore();
+
+  // шарфикъ — деталь для живости
+  g.fillStyle = "#b23b2e";
+  g.beginPath(); g.ellipse(12, -8, 9, 4.6, -0.35, 0, 7); g.fill();
+  const flap = airborne ? -0.9 : Math.sin(ph) * 0.25;
+  g.save(); g.translate(6, -6); g.rotate(flap - 2.2);
+  g.fillRect(0, 0, 6, 16);
+  g.restore();
+
+  g.restore(); // bob
+  g.restore(); // rotation
+
+  function paw(x, y, ang, color) {
+    g.save(); g.translate(x, y - 8); g.rotate(ang * 0.55);
+    g.fillStyle = color;
+    g.beginPath(); g.roundRect(-5, 0, 10, 15, 5); g.fill();
+    g.beginPath(); g.ellipse(0, 15, 6.4, 4, 0, 0, 7); g.fill();
+    g.restore();
+  }
+}
+
+/* ---------- hud & flow ---------- */
+const heartsEl = document.getElementById("hearts");
+const scoreEl = document.getElementById("score");
+const honeyEl = document.getElementById("honey");
+function updateHud() {
+  heartsEl.textContent = "❤".repeat(Math.max(0, state.lives)) + "♡".repeat(Math.max(0, 3 - state.lives));
+  honeyEl.textContent = "🍯 " + state.honey;
+}
+function updateScore() { scoreEl.textContent = (state.dist | 0) + " м"; }
+
+const msg = document.getElementById("msg");
+const finalEl = document.getElementById("finalscore");
+function gameOver() {
+  state.running = false;
+  const score = state.dist | 0;
+  if (score > state.best) { state.best = score; localStorage.setItem("mishka-best", score); }
+  document.querySelector("#msg h1").innerHTML = "Мишка усталъ";
+  document.getElementById("msgtext").textContent = "Но мёдъ собранъ не зря. Попробуй убѣжать дальше!";
+  finalEl.classList.remove("hidden");
+  finalEl.innerHTML = `Пробѣгъ: <b>${score} м</b> · Мёдъ: <b>${state.honey}</b> · Рекордъ: <b>${state.best} м</b>`;
+  document.getElementById("startbtn").textContent = "Ещё разъ!";
+  msg.classList.remove("hidden");
+}
+document.getElementById("startbtn").addEventListener("click", () => {
+  if (!AC) { try { AC = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} }
+  reset();
+  msg.classList.add("hidden");
+  state.running = true;
+});
+
+/* ---------- main loop ---------- */
+let last = performance.now();
+function frame(now) {
+  const dt = Math.min(2.5, (now - last) / (1000 / 60));
+  last = now;
+  if (state.running) update(dt);
+  draw();
+  requestAnimationFrame(frame);
+}
+reset();
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
