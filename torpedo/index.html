@@ -173,6 +173,9 @@
     text-align:center;
     padding:24px;
     line-height:1.45;
+    overflow:auto;                 /* иначе на телефоне текст вылезает за сцену
+                                      и кнопка «Поехали» ложится на «Прыжок» */
+    overscroll-behavior:contain;
     background:rgba(8,11,13,.82);
     -webkit-backdrop-filter:blur(2px);
     backdrop-filter:blur(2px);
@@ -445,6 +448,13 @@
     .cell.city span{font-size:16px}
     .keys{display:none}
     .wrap{gap:18px;padding-block:18px 40px}
+    /* сцена в портрете всего ~240 px высотой — оверлей ужимаем под неё */
+    .overlay{padding:10px 12px;gap:7px;font-size:13px;line-height:1.35}
+    .overlay h2{font-size:clamp(19px,6vw,26px)}
+    .overlay p{max-width:none}
+    .overlay .big{font-size:12px}
+    .overlay .tag{font-size:10px}
+    .btn{font-size:15px;padding:9px 18px}
   }
   @media (pointer:coarse){
     .lede{display:none}
@@ -601,8 +611,14 @@
 
   /* ====================== константы мира ====================== */
   const W = 960, H = 600, TILE = 40, ROWS = 15, COLS = 190;
-  const GRAV = 0.78, JUMP = -14.2, MAXFALL = 16.5;
-  const ACC = 0.95, FRIC = 0.80, MAXSPD = 4.6;
+  // Прыжок разной тяжести вверх и вниз: подъём мягкий и высокий, падение цепкое.
+  // Высота 143 px — это 3.6 тайла, так что на навес в три тайла запас 23 px,
+  // а не два, как было раньше.
+  const GRAV_UP = 0.71, GRAV_DOWN = 0.95, JUMP = -14.6, MAXFALL = 17.5;
+  const JUMP_CUT = -4.2;          // отпустил кнопку — скорость подъёма срезается сюда
+  const ACC = 1.05, AIR_ACC = 0.72, FRIC = 0.80, AIR_FRIC = 0.94, MAXSPD = 4.9;
+  const COYOTE = 9, BUFFER = 9;   // кадров прощения на краю и перед приземлением
+  const NUDGE = 12;               // на сколько px подталкивать из-под угла навеса
   const EMPTY = 0, SOLID = 1, HAZ = 2;
   const LEVEL_TIME = 200;
 
@@ -634,17 +650,39 @@
   const hash = n => { const x = Math.sin(n * 127.1) * 43758.5453; return x - Math.floor(x); };
 
   /* ====================== генерация города ====================== */
+  /* Сложность растёт от города к городу: ямы шире, соперников больше и они
+     быстрее, теплотрассы длиннее. Раньше все пять городов были одним и тем же
+     уровнем с другим сидом. */
+  function difficulty(idx){
+    return {
+      pitMin: 2,
+      pitMax: idx >= 3 ? 4 : idx >= 1 ? 3 : 2,
+      pitChance: 0.18 + idx * 0.015,
+      foeSpeed: 1.0 + idx * 0.14,
+      foePair: 0.30 + idx * 0.11,
+      hazMax: idx >= 2 ? 2 : 1,
+      upper: idx >= 1 ? 0.45 + idx * 0.08 : 0.25,
+      time: 220 - idx * 8
+    };
+  }
+
   function buildLevel(idx){
     const rng = mulberry32(0x7A0BE + idx * 9176);
+    const D = difficulty(idx);
     const grid = new Uint8Array(COLS * ROWS);
-    const coins = [], foes = [], movers = [];
+    const coins = [], foes = [], movers = [], props = [], decks = [];
     const set = (x,y,v) => { if(x>=0 && x<COLS && y>=0 && y<ROWS) grid[y*COLS + x] = v; };
     const fillCol = (x, top) => { for(let y=top; y<ROWS; y++) set(x,y,SOLID); };
     const coin = (tx, ty) => coins.push({ x:tx*TILE + TILE/2, y:ty*TILE + TILE/2, got:false, ph:rng()*6.28 });
     const foe  = (tx, ty, a, b) => foes.push({
-      x:tx*TILE + 6, y:ty*TILE - 36, w:28, h:36, vx:(rng()<.5?-1:1)*1.15,
+      x:tx*TILE + 6, y:ty*TILE - 36, w:28, h:36, vx:(rng()<.5?-1:1)*D.foeSpeed,
       min:a*TILE, max:b*TILE - 28, dead:0, t:rng()*6.28
     });
+    // навес: плита + метка для отрисовки опор, вывески и тени
+    const deck = (px, py, len, kind) => {
+      for(let i=0;i<len;i++) set(px+i, py, SOLID);
+      decks.push({ x:px, y:py, len, kind, sign:Math.floor(rng()*4), seed:rng() });
+    };
 
     let floorY = ROWS - 3;   // верхний ряд асфальта
     let x = 0;
@@ -653,21 +691,74 @@
     const flat = (len, plainOnly) => {
       const from = x;
       for(let i=0; i<len; i++, x++) fillCol(x, floorY);
-      if(!plainOnly) flatRuns.push({ a:from, b:x, y:floorY });
-      return { a:from, b:x };
+      const run = { a:from, b:x, y:floorY, safe:true };
+      if(!plainOnly) flatRuns.push(run);
+      return run;
+    };
+    // уличная мелочь для фона переднего плана
+    const street = (run) => {
+      const n = 1 + Math.floor(rng()*2);
+      for(let i=0;i<n;i++){
+        const tx = run.a + 1 + Math.floor(rng()*Math.max(1, run.b - run.a - 2));
+        const r = rng();
+        props.push({
+          x:tx*TILE + rng()*20, y:run.y*TILE,
+          kind: r < 0.34 ? 'lamp' : r < 0.55 ? 'bin' : r < 0.78 ? 'fence' : 'kiosk',
+          seed: rng()
+        });
+      }
     };
 
     flat(11, true);                                   // безопасный разбег
+    props.push({ x:6*TILE, y:floorY*TILE, kind:'lamp', seed:0.3 });
 
-    while(x < COLS - 16){
-      const roll = rng();
+    if(idx === 0){
+      // Москва — первый выезд: механики по одной и в понятном порядке,
+      // чтобы игрок не знакомился с ямой и навесом одновременно
+      const p1 = x; x += 2;                           // узкая яма
+      coin(p1, floorY-3); coin(p1+1, floorY-3);
+      props.push({ x:(p1-0.15)*TILE, y:floorY*TILE, kind:'pit', w:2.3*TILE, seed:0.4 });
+      const r1 = flat(9);                             // один соперник
+      foe(r1.a + 4, floorY, r1.a + 1, r1.b - 1);
+      const r2 = flat(12);                            // первый навес
+      deck(r2.a + 4, floorY - 3, 4, 'awning');
+      for(let i=0;i<4;i++) coin(r2.a + 4 + i, floorY - 4);
+      props.push({ x:(r2.a + 10)*TILE, y:floorY*TILE, kind:'lamp', seed:0.6 });
+      const r3 = flat(8);                             // теплотрасса
+      set(r3.a + 3, floorY - 1, HAZ);
+      coin(r3.a + 3, floorY - 3);
+      props.push({ x:(r3.a + 2.6)*TILE, y:(floorY-1)*TILE, kind:'works', w:1.8*TILE, seed:0.2 });
+      flat(5);
+    } else {
+      // остальные города тоже открываются навесом — он учит высоте прыжка
+      const r = flat(12);
+      deck(r.a + 4, floorY - 3, 4, 'awning');
+      for(let i=0;i<4;i++) coin(r.a + 4 + i, floorY - 4);
+    }
 
-      if(roll < 0.20){                                 // яма
-        const w = 2 + Math.floor(rng()*2);             // 2–3 тайла
+    /* Секции берутся не чистым броском, а «мешком»: пока мешок не опустеет,
+       каждый тип встретится ровно раз. Иначе сид решал всё — в одном городе
+       было два навеса, в другом шестнадцать. */
+    const bag = [];
+    const nextKind = () => {
+      if(!bag.length){
+        const b = ['pit','step','awning','foe','haz', rng() < 0.5 ? 'foe' : 'awning'];
+        for(let i=b.length-1;i>0;i--){ const j=Math.floor(rng()*(i+1)); const t=b[i]; b[i]=b[j]; b[j]=t; }
+        bag.push.apply(bag, b);
+      }
+      return bag.pop();
+    };
+
+    while(x < COLS - 18){
+      const kind = nextKind();
+
+      if(kind === 'pit'){                              // яма
+        const w = D.pitMin + Math.floor(rng()*(D.pitMax - D.pitMin + 1));
         const gapFrom = x;
         x += w;
         for(let i=0; i<w; i++) coin(gapFrom+i, floorY-3);
-        if(w === 3 && rng() < 0.55){
+        props.push({ x:(gapFrom-0.15)*TILE, y:floorY*TILE, kind:'pit', w:(w+0.3)*TILE, seed:rng() });
+        if(w >= 3 && rng() < 0.5){
           movers.push({
             x:(gapFrom-0.4)*TILE, y:(floorY-2)*TILE, w:108, h:15,
             min:(gapFrom-0.7)*TILE, max:(gapFrom+w-0.6)*TILE,
@@ -676,49 +767,79 @@
         }
         flat(4 + Math.floor(rng()*3));
       }
-      else if(roll < 0.36){                            // ступень вверх/вниз
+      else if(kind === 'step'){                        // ступень вверх/вниз
         const d = rng() < 0.5 ? -1 : 1;
         const ny = clamp(floorY + d, ROWS-6, ROWS-2);
         if(ny !== floorY){
           floorY = ny;
           flat(3, true);
         }
-        flat(4 + Math.floor(rng()*3));
+        const r = flat(4 + Math.floor(rng()*3));
+        if(rng() < 0.5) street(r);
       }
-      else if(roll < 0.55){                            // навес с билетами
-        const run = flat(7 + Math.floor(rng()*3));
+      else if(kind === 'awning'){                      // навес с билетами
+        const run = flat(10 + Math.floor(rng()*3));
         const len = 3 + Math.floor(rng()*3);
-        const px = run.a + 2, py = floorY - 3;
-        for(let i=0; i<len; i++){ set(px+i, py, SOLID); coin(px+i, py-1); }
+        // четыре тайла разбега перед опорой: на подъёме прыжок проходит два,
+        // с двух тайлов разбега навес брался только впритирку
+        const px = run.a + 4, py = floorY - 3;
+        deck(px, py, len, 'awning');
+        for(let i=0; i<len; i++) coin(px+i, py-1);
+        // второй ярус: с навеса можно запрыгнуть на крышу, там билеты подороже
+        if(rng() < D.upper && len >= 4){
+          const ulen = 2 + Math.floor(rng()*2);
+          const ux = px + len - ulen - (rng() < 0.5 ? 0 : 1);
+          deck(ux, py - 3, ulen, 'roof');
+          for(let i=0;i<ulen;i++) coin(ux+i, py-4);
+          if(rng() < 0.45) foe(ux, py - 3, ux, ux + ulen);
+        }
         if(rng() < 0.6) foe(run.a + 1, floorY, run.a, run.b);
+        if(rng() < 0.6) street(run);
       }
-      else if(roll < 0.78){                            // локомотивские
+      else if(kind === 'foe'){                         // локомотивские
         const run = flat(8 + Math.floor(rng()*3));
-        const n = 1 + (rng() < 0.45 ? 1 : 0);
+        const n = 1 + (rng() < D.foePair ? 1 : 0);
         for(let i=0; i<n; i++) foe(run.a + 2 + i*3, floorY, run.a, run.b);
         if(rng() < 0.5) coin(run.a + 4, floorY - 2);
+        street(run);
       }
       else{                                            // разрытая теплотрасса
-        const run = flat(6 + Math.floor(rng()*3));
-        const hx = run.a + 2, hw = 1 + (rng() < 0.4 ? 1 : 0);
+        const run = flat(7 + Math.floor(rng()*3));
+        run.safe = false;                              // на трубах чекпоинт не ставим
+        const hx = run.a + 2, hw = 1 + (rng() < 0.45 ? D.hazMax - 1 : 0);
         for(let i=0; i<hw; i++) set(hx+i, floorY-1, HAZ);
         coin(hx, floorY - 3); coin(hx + hw - 1, floorY - 3);
+        props.push({ x:(hx-0.4)*TILE, y:(floorY-1)*TILE, kind:'works', w:(hw+0.8)*TILE, seed:rng() });
+        if(rng() < 0.4) street(run);
       }
     }
 
     const finish = flat(COLS - x, true);
     const flagX = (COLS - 9) * TILE;
     const flagY = floorY * TILE;
+    props.push({ x:(COLS-13)*TILE, y:floorY*TILE, kind:'lamp', seed:0.7 });
 
-    // столб-чекпоинт — на ровном участке ближе к середине
+    /* Столб-чекпоинт — на безопасном ровном участке ближе к середине.
+       Раньше кандидатом был любой участок, включая тот, где ровно на месте
+       столба лежала теплотрасса: возрождение в шипах сжигало все шарфы. */
     let cp = null, bestD = 1e9;
     for(const r of flatRuns){
+      if(!r.safe || r.b - r.a < 5) continue;
+      const cx = r.a + 2;
+      if(grid[(r.y - 1)*COLS + cx] || grid[(r.y - 2)*COLS + cx]) continue;   // над столбом должно быть пусто
       const d = Math.abs((r.a + r.b) / 2 - COLS / 2);
-      if(d < bestD && r.b - r.a >= 5){ bestD = d; cp = { x:(r.a + 2) * TILE, y:r.y * TILE }; }
+      if(d < bestD){ bestD = d; cp = { x:cx * TILE, y:r.y * TILE }; }
     }
     if(!cp) cp = { x:20*TILE, y:(ROWS-3)*TILE };
 
-    return { grid, coins, foes, movers, flagX, flagY, cp, startY:(ROWS-3)*TILE, finishA:finish.a };
+    // верхний твёрдый ряд каждой колонки — для затемнения асфальта по глубине
+    const topRow = new Uint8Array(COLS).fill(ROWS);
+    for(let tx=0; tx<COLS; tx++)
+      for(let ty=0; ty<ROWS; ty++)
+        if(grid[ty*COLS + tx] === SOLID){ topRow[tx] = ty; break; }
+
+    return { grid, coins, foes, movers, props, decks, topRow, flagX, flagY, cp,
+             startY:(ROWS-3)*TILE, finishA:finish.a, time:D.time };
   }
 
   /* ====================== состояние ====================== */
@@ -743,12 +864,24 @@
 
   let L = null;                   // текущий уровень
   let cam = 0;
-  const poofs = [], sparks = [];
+  const poofs = [], sparks = [], dust = [], glints = [];
   const P = {
     x:0, y:0, w:26, h:38, vx:0, vy:0,
-    face:1, onGround:false, coyote:0, buffer:0, holding:false,
-    run:0, inv:0, ride:null, passed:false
+    face:1, onGround:false, coyote:0, buffer:0, holding:false, jumpHold:false,
+    run:0, inv:0, ride:null, passed:false, step:0
   };
+
+  /* пыль из-под ног: отталкивание, приземление, разбег */
+  function puff(x, y, n, pow){
+    if(reduceMotion) return;
+    for(let i=0;i<n;i++){
+      dust.push({
+        x, y, vx:(Math.random()-.5)*2.2*pow, vy:-Math.random()*1.4*pow,
+        r:2 + Math.random()*3, t:0, life:16 + Math.random()*14
+      });
+    }
+    if(dust.length > 90) dust.splice(0, dust.length - 90);
+  }
 
   const keys = Object.create(null);
   const touch = { left:false, right:false, jump:false };
@@ -819,8 +952,49 @@
         if(dx > 0){ P.x = tx*TILE - P.w; P.vx = 0; }
         else if(dx < 0){ P.x = (tx+1)*TILE; P.vx = 0; }
         else if(dy > 0){ P.y = ty*TILE - P.h; P.vy = 0; P.onGround = true; P.ride = null; }
-        else if(dy < 0){ P.y = (ty+1)*TILE; P.vy = 0.4; }
+        else if(dy < 0){ P.y = (ty+1)*TILE; P.vy = 0.4; P.jumpHold = false; }
       }
+    }
+  }
+
+  /* Стоя на асфальте, Никита каждый второй кадр числился в воздухе: за кадр он
+     проседал на 0.95 px, а проверка столкновений округляла это вниз и промаха
+     не замечала. Из-за этого дёргалась анимация бега и сбивался «койот-тайм».
+     Здесь ноги подтягиваются к плите, если до неё осталось меньше двух пикселей. */
+  function snapToGround(){
+    if(P.onGround || P.vy < 0) return;
+    const feet = P.y + P.h;
+    const ty = Math.floor((feet + 2) / TILE);
+    const top = ty * TILE;
+    if(top < feet - 2 || top > feet + 2) return;
+    const x0 = Math.floor((P.x + 3) / TILE), x1 = Math.floor((P.x + P.w - 4) / TILE);
+    for(let tx=x0; tx<=x1; tx++){
+      if(solidAt(tx, ty)){ P.y = top - P.h; P.vy = 0; P.onGround = true; return; }
+    }
+  }
+
+  /* Игрок задел головой угол навеса — не гасим прыжок, а сдвигаем его в сторону.
+     Без этого половина прыжков «не допрыгивает»: макушка цепляет угол, скорость
+     обнуляется, и Никита сползает вниз ровно у края площадки. */
+  function cornerNudge(){
+    if(P.vy >= 0) return;
+    const ty = Math.floor((P.y + P.vy) / TILE);
+    const x0 = Math.floor(P.x / TILE), x1 = Math.floor((P.x + P.w - 1) / TILE);
+    if(x0 === x1) return;                       // строго в одной колонке — угла нет
+    const l = solidAt(x0, ty), r = solidAt(x1, ty);
+    if(l === r) return;                         // упёрся плитой целиком либо не упёрся
+    const free = (nx) => {                      // куда двигаем — там должно быть пусто
+      const a = Math.floor(nx / TILE), b = Math.floor((nx + P.w - 1) / TILE);
+      const yA = Math.floor(P.y / TILE), yB = Math.floor((P.y + P.h - 1) / TILE);
+      for(let y=yA; y<=yB; y++) for(let x=a; x<=b; x++) if(solidAt(x,y)) return false;
+      return true;
+    };
+    if(l){
+      const over = (x0 + 1) * TILE - P.x;       // насколько зашли левым плечом
+      if(over <= NUDGE && free(P.x + over + 1)) P.x += over + 1;
+    } else {
+      const over = P.x + P.w - x1 * TILE;
+      if(over <= NUDGE && free(P.x - over - 1)) P.x -= over + 1;
     }
   }
 
@@ -830,10 +1004,10 @@
     L = buildLevel(i);
     if(!keepScore){ /* очки копятся весь выезд */ }
     G.coins = 0;
-    G.time = LEVEL_TIME;
+    G.time = L.time || LEVEL_TIME;
     G.timer = 0;
     cam = 0;
-    poofs.length = 0; sparks.length = 0;
+    poofs.length = 0; sparks.length = 0; dust.length = 0; glints.length = 0;
     spawn(false);
     syncCards();
     hud();
@@ -843,7 +1017,11 @@
     const s = atCheckpoint && P.passed ? L.cp : { x:3*TILE, y:L.startY };
     P.x = s.x; P.y = s.y - P.h - 2;
     P.vx = 0; P.vy = 0; P.onGround = false; P.ride = null;
-    P.inv = 100; P.face = 1; P.run = 0;
+    P.inv = 100; P.face = 1; P.run = 0; P.jumpHold = false;
+    // без этого табло, дойдя до нуля, отнимало шарф раз в секунду и выносило
+    // все три за три секунды
+    G.timer = 0;
+    if(G.time <= 0) G.time = 60;
     cam = clamp(P.x - W/2, 0, COLS*TILE - W);
     for(const f of L.foes) if(f.dead > 40) f.dead = 0;
   }
@@ -855,26 +1033,32 @@
     const right = keys['ArrowRight'] || keys['d'] || keys['в'] || touch.right;
     const jump  = keys[' '] || keys['ArrowUp'] || keys['w'] || keys['ц'] || touch.jump;
 
-    // разгон
-    if(left && !right){ P.vx -= ACC; P.face = -1; }
-    else if(right && !left){ P.vx += ACC; P.face = 1; }
-    else P.vx *= FRIC;
+    // разгон: в воздухе слушается хуже, но слушается
+    const acc = P.onGround ? ACC : AIR_ACC;
+    if(left && !right){ P.vx -= acc; P.face = -1; }
+    else if(right && !left){ P.vx += acc; P.face = 1; }
+    else P.vx *= P.onGround ? FRIC : AIR_FRIC;
     P.vx = clamp(P.vx, -MAXSPD, MAXSPD);
     if(Math.abs(P.vx) < 0.06) P.vx = 0;
 
     // прыжок с буфером и «койот-тайм»
-    if(jump && !P.holding){ P.buffer = 7; P.holding = true; }
+    if(jump && !P.holding){ P.buffer = BUFFER; P.holding = true; }
     if(!jump) P.holding = false;
     if(P.buffer > 0) P.buffer--;
-    if(P.onGround) P.coyote = 7; else if(P.coyote > 0) P.coyote--;
+    if(P.onGround) P.coyote = COYOTE; else if(P.coyote > 0) P.coyote--;
 
+    const wasAir = !P.onGround;
     if(P.buffer > 0 && P.coyote > 0){
       P.vy = JUMP; P.buffer = 0; P.coyote = 0; P.onGround = false; P.ride = null;
+      P.jumpHold = true;
+      puff(P.x + P.w/2, P.y + P.h, 4, 1.1);
       sfx.jump();
     }
-    if(P.vy < 0 && !jump) P.vy *= 0.55;          // отпустил — прыжок ниже
+    // отпустил кнопку — срезаем подъём один раз, а не душим его каждый кадр
+    if(P.vy < 0 && !jump && P.jumpHold){ P.jumpHold = false; if(P.vy < JUMP_CUT) P.vy = JUMP_CUT; }
+    if(P.vy >= 0) P.jumpHold = false;
 
-    P.vy = Math.min(P.vy + GRAV, MAXFALL);
+    P.vy = Math.min(P.vy + (P.vy < 0 && P.jumpHold ? GRAV_UP : GRAV_DOWN), MAXFALL);
 
     // платформы двигаются первыми, всадник едет вместе с ними
     for(const m of L.movers){
@@ -887,7 +1071,11 @@
 
     P.onGround = false;
     collideAxis(P.vx, 0);
+    cornerNudge();
+    const fallSpeed = P.vy;
     collideAxis(0, P.vy);
+    snapToGround();
+    if(P.onGround && wasAir && fallSpeed > 5) puff(P.x + P.w/2, P.y + P.h, 6, 1.5);
 
     // верхняя грань движущихся платформ
     if(!P.onGround || P.vy >= 0){
@@ -901,7 +1089,11 @@
     }
     if(P.ride && (P.y + P.h < P.ride.y - 2 || P.x + P.w < P.ride.x || P.x > P.ride.x + P.ride.w)) P.ride = null;
 
-    if(Math.abs(P.vx) > 0.5 && P.onGround) P.run += Math.abs(P.vx) * 0.09; else P.run = 0;
+    if(Math.abs(P.vx) > 0.5 && P.onGround){
+      P.run += Math.abs(P.vx) * 0.09;
+      P.step += Math.abs(P.vx);
+      if(P.step > 46){ P.step = 0; puff(P.x + P.w/2 - P.face*8, P.y + P.h, 1, 0.55); }
+    } else { P.run = 0; P.step = 40; }
     P.x = clamp(P.x, 0, COLS*TILE - P.w);
     if(P.inv > 0) P.inv--;
 
@@ -911,6 +1103,7 @@
       if(Math.abs(c.x - (P.x + P.w/2)) < 26 && Math.abs(c.y - (P.y + P.h/2)) < 30){
         c.got = true; G.coins++; G.score += 100; sfx.coin();
         sparks.push({ x:c.x, y:c.y, t:26, txt:'+100' });
+        glints.push({ x:c.x, y:c.y, t:0 });
       }
     }
 
@@ -926,7 +1119,7 @@
                   P.y + P.h > f.y + 4 && P.y < f.y + f.h;
       if(!hit) continue;
 
-      if(P.vy > 1.2 && P.y + P.h - P.vy <= f.y + 14){
+      if(P.vy > 0.8 && P.y + P.h - P.vy <= f.y + 17){
         f.dead = 1; P.vy = -9.6; G.score += 200; G.shake = reduceMotion ? 0 : 6; buzz(18);
         poofs.push({ x:f.x + f.w/2, y:f.y, t:0 });
         sparks.push({ x:f.x + f.w/2, y:f.y - 6, t:30, txt:'+200' });
@@ -965,6 +1158,12 @@
 
     for(let i=poofs.length-1; i>=0; i--){ poofs[i].t++; if(poofs[i].t > 45) poofs.splice(i,1); }
     for(let i=sparks.length-1; i>=0; i--){ sparks[i].t--; if(sparks[i].t <= 0) sparks.splice(i,1); }
+    for(let i=dust.length-1; i>=0; i--){
+      const d = dust[i];
+      d.x += d.vx; d.y += d.vy; d.vy += 0.045; d.vx *= 0.94; d.t++;
+      if(d.t > d.life) dust.splice(i,1);
+    }
+    for(let i=glints.length-1; i>=0; i--){ glints[i].t++; if(glints[i].t > 20) glints.splice(i,1); }
     if(G.shake > 0) G.shake--;
     hud();
   }
@@ -984,6 +1183,10 @@
     G.mode = 'levelwin';
     const bonus = G.time * 10;
     G.score += bonus;
+    // Три шарфа на весь выезд из пяти городов — это пять минут игры за одну
+    // ошибку в четвёртом. За взятый город возвращаем один, но не выше трёх.
+    const scarf = G.lives < 3;
+    if(scarf) G.lives++;
     G.done[G.level] = true;
     if(G.level + 1 > G.unlocked) G.unlocked = clamp(G.level + 2, 1, 5);
     if(G.score > G.best) G.best = G.score;
@@ -998,8 +1201,9 @@
         'Очки: ' + G.score + '   ·   Рекорд: ' + G.best, 'Ещё раз', null);
     } else {
       show('Город взят', CITIES[G.level].name,
-        'Бонус за время: ' + bonus + ' очков. Дальше — ' + CITIES[G.level+1].name + '.',
-        'Очки: ' + G.score + '   ·   Билеты: ' + G.coins, 'Дальше', null);
+        'Бонус за время: ' + bonus + ' очков.' + (scarf ? ' За город вернулся шарф.' : '') +
+        ' Дальше — ' + CITIES[G.level+1].name + '.',
+        'Очки: ' + G.score + '   ·   Билеты: ' + G.coins + '   ·   Шарфы: ' + G.lives, 'Дальше', null);
     }
   }
 
@@ -1094,21 +1298,76 @@
     ctx.fillStyle = g; ctx.fillRect(0,0,W,H);
 
     if(c.skyline === 'sochi'){
-      ctx.fillStyle = 'rgba(255,214,150,.22)';
+      const sun = ctx.createRadialGradient(760, 210, 10, 760, 210, 150);
+      sun.addColorStop(0, 'rgba(255,196,120,.42)');
+      sun.addColorStop(1, 'rgba(255,196,120,0)');
+      ctx.fillStyle = sun;
+      ctx.beginPath(); ctx.arc(760, 210, 150, 0, 6.284); ctx.fill();
+      ctx.fillStyle = 'rgba(255,224,170,.34)';
       ctx.beginPath(); ctx.arc(760, 210, 52, 0, 6.284); ctx.fill();
     } else {
-      ctx.fillStyle = 'rgba(239,237,229,.14)';
+      const halo = ctx.createRadialGradient(820, 120, 12, 820, 120, 110);
+      halo.addColorStop(0, 'rgba(226,232,238,.16)');
+      halo.addColorStop(1, 'rgba(226,232,238,0)');
+      ctx.fillStyle = halo;
+      ctx.beginPath(); ctx.arc(820, 120, 110, 0, 6.284); ctx.fill();
+      ctx.fillStyle = 'rgba(232,236,240,.26)';
       ctx.beginPath(); ctx.arc(820, 120, 26, 0, 6.284); ctx.fill();
+      ctx.fillStyle = 'rgba(150,164,178,.22)';     // кратеры
+      ctx.beginPath(); ctx.arc(813, 113, 7, 0, 6.284); ctx.fill();
+      ctx.beginPath(); ctx.arc(828, 127, 5, 0, 6.284); ctx.fill();
+      ctx.beginPath(); ctx.arc(824, 108, 3.5, 0, 6.284); ctx.fill();
+    }
+    // звёзды
+    ctx.fillStyle = 'rgba(239,237,229,.5)';
+    for(let i=0;i<40;i++){
+      const sx = (hash(i*3.3)*W*1.6 - cam*0.04) % W;
+      ctx.fillRect(sx < 0 ? sx + W : sx, hash(i*7.7)*260, 2, 2);
     }
   }
 
   function band(par, period, color, fn){
     const off = cam * par;
     const first = Math.floor(off / period) - 1;
-    ctx.fillStyle = color;
     for(let i=first; i<first + Math.ceil(W/period) + 3; i++){
+      ctx.fillStyle = color;               // fn может менять цвет — возвращаем каждый раз
       fn(i*period - off, i);
     }
+  }
+
+  /* тёплые окна: без них силуэты города — просто серые пятна.
+     Цвет обязательно возвращаем: иначе остаток силуэта (шпили, трубы)
+     дорисовывается цветом окна. */
+  function lit(x, y, w, h, seed, step){
+    const sx = step || 14;
+    const keep = ctx.fillStyle;
+    for(let a = 6; a < w - 6; a += sx){
+      for(let b = 8; b < h - 8; b += sx){
+        const r = hash(seed*7.1 + a*0.37 + b*1.13);
+        if(r > 0.72){ ctx.fillStyle = 'rgba(244,206,128,.5)'; ctx.fillRect(x + a, y + b, 4, 5); }
+        else if(r > 0.66){ ctx.fillStyle = 'rgba(160,205,230,.28)'; ctx.fillRect(x + a, y + b, 4, 5); }
+      }
+    }
+    ctx.fillStyle = keep;
+  }
+
+  /* ближний слой: столбы с проводами — забирают пустое верхнее поле кадра */
+  function wires(c){
+    const base = 470;
+    band(0.52, 300, '#0E1418', (x, i) => {
+      if(hash(i*3.7) < 0.42) return;
+      ctx.fillRect(x + 40, base - 250, 7, 250);
+      ctx.fillRect(x + 26, base - 250, 35, 6);
+      ctx.fillRect(x + 30, base - 226, 27, 5);
+      ctx.strokeStyle = 'rgba(12,16,20,.85)';
+      ctx.lineWidth = 2.2;
+      for(const dy of [0, 24]){
+        ctx.beginPath();
+        ctx.moveTo(x + 44, base - 250 + dy);
+        ctx.quadraticCurveTo(x + 194, base - 216 + dy, x + 344, base - 250 + dy);
+        ctx.stroke();
+      }
+    });
   }
 
   function skyline(c){
@@ -1122,6 +1381,8 @@
         ctx.lineTo(x+90, base-h-46); ctx.lineTo(x+60, base-h-46); ctx.closePath(); ctx.fill();
         ctx.fillRect(x+170, base-120 - hash(i+7)*40, 34, 200);   // труба ЗИЛ
         ctx.fillRect(x+230, base-90, 70, 90);
+        lit(x+30, base-h, 90, h, i+1);
+        lit(x+230, base-90, 70, 90, i+4);
       });
       band(0.30, 240, c.near, (x,i) => {
         const h = 80 + hash(i+3)*70;
@@ -1129,6 +1390,9 @@
         ctx.fillRect(x+140, base-46, 70, 106);
         ctx.fillRect(x+150, base-96, 8, 50);                     // кран
         ctx.fillRect(x+120, base-96, 70, 7);
+        lit(x, base-h, 120, h, i+9, 16);
+        ctx.fillStyle = '#C8102E';                               // огонь на кране
+        if(Math.sin(G.frames*0.06 + i) > 0) ctx.fillRect(x+148, base-102, 6, 6);
       });
     }
     else if(c.skyline === 'spb'){
@@ -1137,6 +1401,7 @@
         ctx.beginPath(); ctx.arc(x+250, base-86, 42, Math.PI, 0); ctx.fill();  // Исаакий
         ctx.fillRect(x+208, base-86, 84, 86);
         ctx.fillRect(x+246, base-160, 8, 46);
+        lit(x+20, base-90, 150, 90, i+2, 16);
         ctx.fillRect(x+330, base-96, 10, 96);                    // шпиль Петропавловки
         ctx.beginPath(); ctx.moveTo(x+335, base-230);
         ctx.lineTo(x+345, base-96); ctx.lineTo(x+325, base-96); ctx.closePath(); ctx.fill();
@@ -1145,6 +1410,9 @@
         ctx.fillRect(x, base-60, 200, 120);
         ctx.fillRect(x+210, base-40, 70, 100);
         for(let k=0;k<4;k++) ctx.fillRect(x+20+k*46, base-96, 9, 40);  // фонари набережной
+        lit(x, base-60, 200, 60, i+6, 18);
+        ctx.fillStyle = 'rgba(244,206,128,.45)';                       // шары фонарей
+        for(let k=0;k<4;k++) ctx.fillRect(x+18+k*46, base-102, 13, 9);
       });
     }
     else if(c.skyline === 'kzn'){
@@ -1158,6 +1426,7 @@
         const h = 70 + hash(i+5)*60;
         ctx.fillRect(x, base-h, 140, h+60);
         ctx.fillRect(x+160, base-50, 80, 110);
+        lit(x, base-h, 140, h, i+5, 16);
       });
     }
     else if(c.skyline === 'ekb'){
@@ -1165,6 +1434,8 @@
         ctx.fillRect(x+20, base-210, 70, 210);                   // высотка
         ctx.fillRect(x+110, base-120, 120, 120);                 // конструктивизм
         ctx.fillRect(x+110, base-146, 40, 26);
+        lit(x+20, base-210, 70, 210, i+3, 15);
+        lit(x+110, base-120, 120, 120, i+8, 17);
         ctx.fillRect(x+270, base-96, 12, 96);
         ctx.beginPath(); ctx.moveTo(x+276, base-240);
         ctx.lineTo(x+288, base-96); ctx.lineTo(x+264, base-96); ctx.closePath(); ctx.fill();
@@ -1172,6 +1443,7 @@
       band(0.30, 250, c.near, (x,i) => {
         ctx.fillRect(x, base-72, 150, 132);
         ctx.fillRect(x+170, base-44, 60, 104);
+        lit(x, base-72, 150, 72, i+11, 16);
       });
     }
     else{
@@ -1187,7 +1459,133 @@
         ctx.fillRect(x-10, base-30, 240, 90);
         ctx.fillRect(x+250, base-30, 8, 90);                                               // пальма
         ctx.beginPath(); ctx.arc(x+254, base-36, 24, Math.PI, 0); ctx.fill();
+        ctx.fillStyle = 'rgba(214,196,158,.22)';                                           // мачты света
+        for(let k=0;k<2;k++) ctx.fillRect(x+30+k*150, base-128, 6, 98);
+        ctx.fillStyle = 'rgba(255,236,190,.45)';
+        for(let k=0;k<2;k++) ctx.fillRect(x+24+k*150, base-138, 18, 11);
       });
+    }
+  }
+
+  /* ——— опоры под навесами ———
+     Раньше плиты просто висели в воздухе. Теперь у каждой есть ноги до земли,
+     подзор и вывеска, а на асфальте — тень. */
+  function groundBelow(tx, ty){
+    for(let y=ty+1; y<ROWS; y++) if(solidAt(tx,y)) return y*TILE;
+    return ROWS*TILE;
+  }
+
+  function drawDecks(c){
+    for(const d of L.decks){
+      const px = d.x*TILE - cam, py = d.y*TILE, wpx = d.len*TILE;
+      if(px + wpx < -60 || px > W + 60) continue;
+      const gy = groundBelow(d.x, d.y);
+
+      // тень на асфальте
+      ctx.fillStyle = 'rgba(0,0,0,.30)';
+      ctx.fillRect(px + 8, gy, wpx - 16, 5);
+
+      if(d.kind === 'roof'){
+        // лёгкая ферма на двух мачтах — щит над улицей
+        ctx.fillStyle = '#39424A';
+        ctx.fillRect(px + 5, py + TILE, 6, gy - py - TILE);
+        ctx.fillRect(px + wpx - 11, py + TILE, 6, gy - py - TILE);
+        ctx.fillStyle = 'rgba(0,0,0,.35)';
+        ctx.fillRect(px + 4, py + TILE, wpx - 8, 7);
+        ctx.strokeStyle = 'rgba(239,237,229,.14)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        for(let i=0; i*46 < wpx - 20; i++){
+          const a = px + 10 + i*46;
+          ctx.moveTo(a, py + TILE + 7); ctx.lineTo(Math.min(a + 23, px + wpx - 10), gy - 10);
+          ctx.moveTo(Math.min(a + 46, px + wpx - 10), py + TILE + 7); ctx.lineTo(Math.min(a + 23, px + wpx - 10), gy - 10);
+        }
+        ctx.stroke();
+      } else {
+        // козырёк: две опоры, подзор в чёрно-белую полоску, вывеска
+        ctx.fillStyle = '#39424A';
+        ctx.fillRect(px + 6, py + TILE, 7, gy - py - TILE);
+        ctx.fillRect(px + wpx - 13, py + TILE, 7, gy - py - TILE);
+        ctx.fillStyle = 'rgba(0,0,0,.22)';
+        ctx.fillRect(px + 6, py + TILE, 7, gy - py - TILE);
+        ctx.fillRect(px + wpx - 13, py + TILE, 7, gy - py - TILE);
+        // косынки
+        ctx.strokeStyle = '#39424A'; ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.moveTo(px + 9, py + TILE + 26); ctx.lineTo(px + 30, py + TILE + 2);
+        ctx.moveTo(px + wpx - 9, py + TILE + 26); ctx.lineTo(px + wpx - 30, py + TILE + 2);
+        ctx.stroke();
+        // подзор
+        for(let i=0; i*14 < wpx; i++){
+          ctx.fillStyle = i % 2 ? '#15181B' : '#D9D6CC';
+          ctx.fillRect(px + i*14, py + TILE, Math.min(14, wpx - i*14), 8);
+        }
+        // вывеска на опоре
+        const sx = px + 16, sy = py + TILE + 20;
+        ctx.fillStyle = '#0F1316'; ctx.fillRect(sx, sy, 54, 20);
+        ctx.fillStyle = '#00A651'; ctx.fillRect(sx, sy, 54, 4);
+        ctx.fillStyle = 'rgba(239,237,229,.55)';
+        const words = [[6,3],[4,5,3],[7,4],[3,4,4]][d.sign] || [5,4];
+        let wx = sx + 5;
+        for(const ln of words){ ctx.fillRect(wx, sy + 10, ln*3, 3); wx += ln*3 + 4; }
+      }
+    }
+  }
+
+  /* ——— уличная мелочь: фонари, урны, ограждения, киоски, ленты ——— */
+  function drawProps(c, front){
+    for(const p of L.props){
+      const px = p.x - cam;
+      if(px < -160 || px > W + 160) continue;
+      const gy = p.y;
+
+      if(p.kind === 'lamp' && !front){
+        ctx.fillStyle = '#2C343A';
+        ctx.fillRect(px, gy - 116, 5, 116);
+        ctx.fillRect(px, gy - 116, 26, 5);
+        ctx.fillStyle = '#F2D48B';
+        ctx.fillRect(px + 20, gy - 113, 10, 7);
+        const g = ctx.createRadialGradient(px + 25, gy - 106, 2, px + 25, gy - 106, 84);
+        g.addColorStop(0, 'rgba(242,212,139,.26)');
+        g.addColorStop(1, 'rgba(242,212,139,0)');
+        ctx.fillStyle = g;
+        ctx.beginPath(); ctx.arc(px + 25, gy - 106, 84, 0, 6.284); ctx.fill();
+      }
+      else if(p.kind === 'bin' && !front){
+        ctx.fillStyle = '#2F373C'; ctx.fillRect(px, gy - 26, 18, 26);
+        ctx.fillStyle = '#3B454B'; ctx.fillRect(px - 2, gy - 30, 22, 5);
+      }
+      else if(p.kind === 'fence' && !front){
+        ctx.fillStyle = '#333B41';
+        ctx.fillRect(px, gy - 30, 76, 4);
+        for(let i=0;i<5;i++) ctx.fillRect(px + i*18, gy - 30, 4, 30);
+      }
+      else if(p.kind === 'kiosk' && !front){
+        ctx.fillStyle = '#242C31'; ctx.fillRect(px, gy - 74, 62, 74);
+        ctx.fillStyle = '#00A651'; ctx.fillRect(px, gy - 78, 62, 7);
+        ctx.fillStyle = 'rgba(242,212,139,.30)'; ctx.fillRect(px + 8, gy - 60, 46, 26);
+        ctx.fillStyle = 'rgba(10,13,15,.55)'; ctx.fillRect(px + 8, gy - 60, 46, 4);
+      }
+      else if(p.kind === 'pit' && front){
+        // предупредительные столбики по краям ямы
+        for(const bx of [px - 10, px + p.w + 2]){
+          ctx.fillStyle = '#D9D6CC'; ctx.fillRect(bx, gy - 34, 7, 34);
+          ctx.fillStyle = '#C8102E'; ctx.fillRect(bx, gy - 28, 7, 8);
+          ctx.fillRect(bx, gy - 14, 7, 8);
+        }
+      }
+      else if(p.kind === 'works' && front){
+        // лента над разрытой теплотрассой
+        ctx.strokeStyle = '#E8B910'; ctx.lineWidth = 3;
+        ctx.setLineDash([9, 7]);
+        ctx.beginPath();
+        ctx.moveTo(px - 6, gy - 26); ctx.lineTo(px + p.w + 6, gy - 32);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.fillStyle = '#7A4A1E';
+        ctx.fillRect(px - 10, gy - 12, 12, 12);
+        ctx.fillRect(px + p.w - 2, gy - 12, 12, 12);
+      }
     }
   }
 
@@ -1201,30 +1599,77 @@
         const px = tx*TILE - cam, py = ty*TILE;
         if(t === SOLID){
           const top = !solidAt(tx, ty-1);
+          const deep = ty - L.topRow[tx];            // насколько глубоко под поверхностью
           ctx.fillStyle = c.road;
           ctx.fillRect(px, py, TILE, TILE);
+          // фактура асфальта: чем глубже, тем темнее — плоская серая плита ушла
+          ctx.fillStyle = 'rgba(0,0,0,' + Math.min(0.42, 0.08 + deep * 0.13) + ')';
+          ctx.fillRect(px, py, TILE, TILE);
+          // крапинки щебня
+          for(let k=0;k<4;k++){
+            const h1 = hash(tx*31 + ty*7 + k), h2 = hash(tx*13 + ty*29 + k*3);
+            ctx.fillStyle = h1 > 0.5 ? 'rgba(239,237,229,.05)' : 'rgba(0,0,0,.18)';
+            ctx.fillRect(px + h1*(TILE-4), py + h2*(TILE-4), 2, 2);
+          }
           if(top){
             ctx.fillStyle = c.kerb;
-            ctx.fillRect(px, py, TILE, 7);
-            ctx.fillStyle = 'rgba(239,237,229,.10)';
+            ctx.fillRect(px, py, TILE, 8);
+            ctx.fillStyle = 'rgba(239,237,229,.14)';
             ctx.fillRect(px, py, TILE, 2);
+            // разметка и люки на поверхности
+            const r = hash(tx * 17.3);
+            if(r > 0.86){
+              ctx.fillStyle = 'rgba(10,13,15,.45)';
+              ctx.beginPath(); ctx.ellipse(px + TILE/2, py + 20, 13, 6, 0, 0, 6.284); ctx.fill();
+              ctx.strokeStyle = 'rgba(239,237,229,.10)'; ctx.lineWidth = 1;
+              ctx.beginPath(); ctx.ellipse(px + TILE/2, py + 20, 13, 6, 0, 0, 6.284); ctx.stroke();
+            } else if(r > 0.62){
+              ctx.fillStyle = 'rgba(239,237,229,.13)';
+              ctx.fillRect(px + 8, py + 18, 24, 3);
+            }
+            // трещина
+            if(r < 0.12){
+              ctx.strokeStyle = 'rgba(0,0,0,.35)'; ctx.lineWidth = 1;
+              ctx.beginPath(); ctx.moveTo(px + 6, py + 9);
+              ctx.lineTo(px + 17, py + 21); ctx.lineTo(px + 12, py + 34); ctx.stroke();
+            }
+            // снег на бордюре
+            if(c.weather === 'snow'){
+              ctx.fillStyle = 'rgba(239,237,229,.22)';
+              ctx.fillRect(px, py, TILE, 3);
+            }
           }
-          ctx.strokeStyle = 'rgba(0,0,0,.30)';
+          ctx.strokeStyle = 'rgba(0,0,0,.22)';
           ctx.lineWidth = 1;
           ctx.strokeRect(px + .5, py + .5, TILE - 1, TILE - 1);
-          if(!solidAt(tx-1,ty)){ ctx.fillStyle='rgba(239,237,229,.08)'; ctx.fillRect(px, py, 2, TILE); }
-          if(!solidAt(tx+1,ty)){ ctx.fillStyle='rgba(0,0,0,.28)'; ctx.fillRect(px+TILE-2, py, 2, TILE); }
+          if(!solidAt(tx-1,ty)){ ctx.fillStyle='rgba(239,237,229,.10)'; ctx.fillRect(px, py, 2, TILE); }
+          if(!solidAt(tx+1,ty)){ ctx.fillStyle='rgba(0,0,0,.34)'; ctx.fillRect(px+TILE-2, py, 2, TILE); }
         } else {
+          // разрытая теплотрасса
+          ctx.fillStyle = '#12171A';
+          ctx.fillRect(px, py + 8, TILE, TILE - 8);
           ctx.fillStyle = '#E8B910';
           ctx.fillRect(px + 2, py + 22, TILE - 4, 18);
           ctx.fillStyle = '#0A0D0F';
           for(let k=0;k<3;k++) ctx.fillRect(px + 4 + k*12, py + 22, 6, 18);
           ctx.fillStyle = '#E8B910';
           ctx.fillRect(px + 2, py + 16, TILE - 4, 4);
+          // пар из трубы
+          if(!reduceMotion){
+            const t = G.frames * 0.03 + hash(tx)*6;
+            ctx.fillStyle = 'rgba(239,237,229,.10)';
+            for(let k=0;k<3;k++){
+              const o = (t + k*0.8) % 3;
+              ctx.beginPath();
+              ctx.arc(px + 20 + Math.sin(t*2 + k)*7, py + 12 - o*14, 5 + o*4, 0, 6.284);
+              ctx.fill();
+            }
+          }
         }
       }
     }
   }
+
 
   function drawMovers(){
     for(const m of L.movers){
@@ -1246,8 +1691,15 @@
       const s = Math.cos(G.frames*0.07 + c.ph);
       const py = c.y + Math.sin(G.frames*0.05 + c.ph) * 3;
       ctx.save();
+      const glow = ctx.createRadialGradient(px, py, 2, px, py, 30);
+      glow.addColorStop(0, 'rgba(0,166,81,.22)');
+      glow.addColorStop(1, 'rgba(0,166,81,0)');
+      ctx.fillStyle = glow;
+      ctx.beginPath(); ctx.arc(px, py, 30, 0, 6.284); ctx.fill();
       ctx.translate(px, py);
       ctx.scale(Math.max(0.18, Math.abs(s)), 1);
+      ctx.fillStyle = 'rgba(8,11,13,.8)';
+      ctx.fillRect(-15, -11, 30, 22);
       ctx.fillStyle = '#EFEDE5';
       ctx.fillRect(-13, -9, 26, 18);
       ctx.fillStyle = '#00A651';
@@ -1272,6 +1724,16 @@
       return;
     }
     const bob = Math.sin(f.t) * 2;
+    // тень и контур — соперник тоже должен читаться на тёмном
+    const fgy = groundBelow(Math.floor((f.x + f.w/2) / TILE), Math.floor((f.y + f.h) / TILE) - 1);
+    if(fgy < ROWS*TILE){
+      ctx.fillStyle = 'rgba(0,0,0,.28)';
+      ctx.beginPath(); ctx.ellipse(px + f.w/2, fgy + 3, 14, 4, 0, 0, 6.284); ctx.fill();
+    }
+    ctx.fillStyle = 'rgba(8,11,13,.9)';
+    ctx.fillRect(px + 4, py - 5, 20, 16);
+    ctx.fillRect(px, py + 8, 28, 21);
+    ctx.fillRect(px + 2, py + 25, 24, 13);
     // ноги
     ctx.fillStyle = '#15181B';
     ctx.fillRect(px + 4, py + 26, 8, 10 - bob*0.5);
@@ -1298,6 +1760,23 @@
     const air = !P.onGround;
     const stride = Math.sin(P.run * 2) * 5;
 
+    // тень на земле: сразу видно, куда приземлишься
+    const gy = groundBelow(Math.floor((P.x + P.w/2) / TILE), Math.floor((P.y + P.h) / TILE) - 1);
+    const drop = clamp((gy - (P.y + P.h)) / 260, 0, 1);
+    if(gy < ROWS*TILE){
+      ctx.fillStyle = 'rgba(0,0,0,' + (0.34 * (1 - drop*0.75)) + ')';
+      ctx.beginPath();
+      ctx.ellipse(px + P.w/2, gy + 3, 15 * (1 - drop*0.35), 4.5 * (1 - drop*0.35), 0, 0, 6.284);
+      ctx.fill();
+    }
+
+    // тёмный контур по частям: чёрно-белая фигура на тёмном городе иначе не
+    // читается, а сплошной прямоугольник дал бы вокруг головы коробку
+    ctx.fillStyle = 'rgba(8,11,13,.9)';
+    ctx.fillRect(px + 3, py - 4, 20, 16);   // голова
+    ctx.fillRect(px - 1, py + 8, 28, 22);   // корпус
+    ctx.fillRect(px + 1, py + 26, 24, 14);  // ноги
+
     // шарф за спиной
     ctx.fillStyle = '#00A651';
     const sw = -P.face;
@@ -1315,15 +1794,15 @@
       ctx.fillRect(px + 15, py + 27, 8, 11 + stride);
     }
     // чёрно-белая футболка
-    ctx.fillStyle = '#EFEDE5';
+    ctx.fillStyle = '#F6F4EC';
     ctx.fillRect(px + 1, py + 10, 24, 18);
     ctx.fillStyle = '#15181B';
     for(let k=0;k<3;k++) ctx.fillRect(px + 3 + k*8, py + 10, 4, 18);
     // руки
-    ctx.fillStyle = '#D8A882';
+    ctx.fillStyle = '#E8BE96';
     ctx.fillRect(px + (P.face > 0 ? 24 : -2), py + 13, 4, air ? 6 : 10);
     // голова
-    ctx.fillStyle = '#D8A882';
+    ctx.fillStyle = '#E8BE96';
     ctx.fillRect(px + 5, py, 16, 11);
     ctx.fillStyle = '#3A2A20';
     ctx.fillRect(px + 4, py - 2, 18, 5);
@@ -1332,37 +1811,75 @@
     // зелёная повязка на шее
     ctx.fillStyle = '#00A651';
     ctx.fillRect(px + 5, py + 9, 16, 4);
+    // подсветка сверху — отрывает фигуру от фона
+    ctx.fillStyle = 'rgba(239,237,229,.16)';
+    ctx.fillRect(px + 1, py + 10, 24, 2);
+    ctx.fillRect(px + 5, py, 16, 2);
   }
 
   function drawFlag(){
     const px = L.flagX - cam, py = L.flagY;
-    ctx.fillStyle = '#EFEDE5';
-    ctx.fillRect(px, py - 190, 6, 190);
-    const wav = Math.sin(G.frames * 0.08) * 5;
-    ctx.fillStyle = '#15181B'; ctx.fillRect(px + 6, py - 186, 34, 22);
-    ctx.fillStyle = '#EFEDE5'; ctx.fillRect(px + 6, py - 164 + wav*0.2, 34, 20);
-    ctx.fillStyle = '#00A651'; ctx.fillRect(px + 6, py - 144 + wav*0.3, 34, 20);
-    ctx.fillStyle = 'rgba(239,237,229,.5)';
-    ctx.fillRect(px - 8, py - 4, 24, 4);
+    // столб
+    ctx.fillStyle = '#2C343A'; ctx.fillRect(px - 1, py - 200, 8, 200);
+    ctx.fillStyle = '#EFEDE5'; ctx.fillRect(px, py - 200, 6, 200);
+    ctx.fillStyle = 'rgba(0,0,0,.30)'; ctx.fillRect(px - 10, py, 26, 4);
+    // полотнище: рябь идёт волной по ширине
+    for(let i=0;i<34;i++){
+      const wav = Math.sin(G.frames * 0.11 - i * 0.26) * (2 + i * 0.22);
+      ctx.fillStyle = '#15181B'; ctx.fillRect(px + 6 + i, py - 186 + wav, 1, 22);
+      ctx.fillStyle = '#EFEDE5'; ctx.fillRect(px + 6 + i, py - 164 + wav, 1, 20);
+      ctx.fillStyle = '#00A651'; ctx.fillRect(px + 6 + i, py - 144 + wav, 1, 20);
+    }
+    // финишная арка на асфальте
+    ctx.fillStyle = 'rgba(239,237,229,.55)';
+    for(let i=0;i<8;i++) ctx.fillRect(px - 8 + (i%2)*8, py + 2 + i*3, 8, 3);
   }
 
   function drawCheckpoint(){
     const px = L.cp.x - cam, py = L.cp.y;
     if(px < -60 || px > W + 60) return;
-    ctx.fillStyle = P.passed ? '#00A651' : '#5A6468';
-    ctx.fillRect(px, py - 78, 5, 78);
-    ctx.fillStyle = P.passed ? '#00A651' : '#3C464A';
-    ctx.fillRect(px + 5, py - 78, 22, 15);
+    const on = P.passed;
+    ctx.fillStyle = 'rgba(0,0,0,.30)'; ctx.fillRect(px - 6, py, 22, 4);
+    ctx.fillStyle = '#39424A'; ctx.fillRect(px, py - 86, 6, 86);
+    if(on){
+      // шарф поднят: точка взята
+      for(let i=0;i<22;i++){
+        const wav = Math.sin(G.frames * 0.12 - i * 0.3) * 3;
+        ctx.fillStyle = '#EFEDE5'; ctx.fillRect(px + 6 + i, py - 86 + wav, 1, 9);
+        ctx.fillStyle = '#00A651'; ctx.fillRect(px + 6 + i, py - 77 + wav, 1, 9);
+      }
+      const g = ctx.createRadialGradient(px + 3, py - 86, 2, px + 3, py - 86, 60);
+      g.addColorStop(0, 'rgba(0,166,81,.30)'); g.addColorStop(1, 'rgba(0,166,81,0)');
+      ctx.fillStyle = g;
+      ctx.beginPath(); ctx.arc(px + 3, py - 86, 60, 0, 6.284); ctx.fill();
+    } else {
+      // шарф спущен и висит вдоль столба
+      ctx.fillStyle = '#5A6468'; ctx.fillRect(px + 6, py - 46, 9, 20);
+      ctx.fillStyle = '#48525A'; ctx.fillRect(px + 6, py - 26, 9, 10);
+    }
   }
 
   function weather(c){
     if(reduceMotion || c.weather === 'none') return;
-    ctx.fillStyle = c.weather === 'snow' ? 'rgba(239,237,229,.55)' : 'rgba(180,205,225,.45)';
-    for(let i=0;i<60;i++){
-      const sx = (hash(i)*W*2 + (c.weather === 'snow' ? G.frames*0.4 : G.frames*1.2)) % (W + 60) - 30;
-      const sy = (hash(i+99)*H + G.frames * (c.weather === 'snow' ? 1.1 : 5.2)) % (H + 40) - 20;
-      if(c.weather === 'snow') ctx.fillRect(sx, sy, 3, 3);
-      else ctx.fillRect(sx, sy, 1.5, 11);
+    // два слоя: дальний мелкий и ближний крупный — даёт глубину и ветер
+    for(let layer=0; layer<2; layer++){
+      const near = layer === 1;
+      const n = near ? 26 : 54;
+      const sz = near ? 1.9 : 1;
+      ctx.fillStyle = c.weather === 'snow'
+        ? (near ? 'rgba(244,242,236,.78)' : 'rgba(239,237,229,.38)')
+        : (near ? 'rgba(196,218,238,.55)' : 'rgba(180,205,225,.28)');
+      for(let i=0;i<n;i++){
+        const id = i + layer*97;
+        const drift = c.weather === 'snow'
+          ? G.frames * (near ? 0.75 : 0.35) + Math.sin(G.frames*0.02 + id) * (near ? 22 : 9)
+          : G.frames * (near ? 2.0 : 1.0);
+        const fall = G.frames * (c.weather === 'snow' ? (near ? 1.7 : 0.9) : (near ? 8.5 : 5.0));
+        const sx = (hash(id)*W*2 + drift) % (W + 60) - 30;
+        const sy = (hash(id+99)*H + fall) % (H + 40) - 20;
+        if(c.weather === 'snow') ctx.fillRect(sx, sy, 3*sz, 3*sz);
+        else ctx.fillRect(sx, sy, 1.5*sz, 11*sz);
+      }
     }
   }
 
@@ -1373,10 +1890,13 @@
 
     bg(c);
     skyline(c);
-    const scrim = ctx.createLinearGradient(0, 300, 0, H);
+    const scrim = ctx.createLinearGradient(0, 260, 0, H);
     scrim.addColorStop(0, 'rgba(8,11,13,0)');
-    scrim.addColorStop(1, 'rgba(8,11,13,.55)');
-    ctx.fillStyle = scrim; ctx.fillRect(0, 300, W, H - 300);
+    scrim.addColorStop(1, 'rgba(8,11,13,.62)');
+    ctx.fillStyle = scrim; ctx.fillRect(0, 260, W, H - 260);
+    wires(c);
+    drawProps(c, false);        // фонари и киоски — за игровым слоем
+    drawDecks(c);               // опоры навесов — до плит, чтобы плита легла сверху
     drawTiles(c);
     drawCheckpoint();
     drawFlag();
@@ -1384,6 +1904,19 @@
     drawCoins();
     for(const f of L.foes) drawFoe(f);
     drawPlayer();
+    drawProps(c, true);         // столбики и ленты — перед игроком
+    for(const d of dust){
+      ctx.globalAlpha = Math.max(0, 1 - d.t/d.life) * 0.5;
+      ctx.fillStyle = '#C9CFD3';
+      ctx.fillRect(d.x - cam - d.r/2, d.y - d.r/2, d.r, d.r);
+    }
+    ctx.globalAlpha = 1;
+    for(const g of glints){
+      const k = g.t / 20;
+      ctx.strokeStyle = 'rgba(0,166,81,' + (1 - k) + ')';
+      ctx.lineWidth = 3 * (1 - k);
+      ctx.beginPath(); ctx.arc(g.x - cam, g.y, 8 + k*26, 0, 6.284); ctx.stroke();
+    }
 
     for(const p of poofs){
       ctx.save();
@@ -1407,15 +1940,25 @@
 
     weather(c);
 
-    // виньетка, чтобы поле читалось на любом фоне
+    // виньетка по краям кадра, чтобы поле читалось на любом фоне
     const vg = ctx.createLinearGradient(0, H-140, 0, H);
-    vg.addColorStop(0, 'rgba(10,13,15,0)'); vg.addColorStop(1, 'rgba(10,13,15,.35)');
+    vg.addColorStop(0, 'rgba(10,13,15,0)'); vg.addColorStop(1, 'rgba(10,13,15,.40)');
     ctx.fillStyle = vg; ctx.fillRect(0, H-140, W, 140);
+    const sideL = ctx.createLinearGradient(0, 0, 130, 0);
+    sideL.addColorStop(0, 'rgba(10,13,15,.42)'); sideL.addColorStop(1, 'rgba(10,13,15,0)');
+    ctx.fillStyle = sideL; ctx.fillRect(0, 0, 130, H);
+    const sideR = ctx.createLinearGradient(W-130, 0, W, 0);
+    sideR.addColorStop(0, 'rgba(10,13,15,0)'); sideR.addColorStop(1, 'rgba(10,13,15,.42)');
+    ctx.fillStyle = sideR; ctx.fillRect(W-130, 0, 130, H);
 
     // индикатор пройденного пути
     const prog = clamp((P.x + P.w) / L.flagX, 0, 1);
     ctx.fillStyle = 'rgba(10,13,15,.55)'; ctx.fillRect(24, 24, 220, 10);
     ctx.fillStyle = '#00A651'; ctx.fillRect(24, 24, 220*prog, 10);
+    // отметка столба: видно, докуда откатит следующая ошибка
+    const cpAt = 24 + 220 * clamp(L.cp.x / L.flagX, 0, 1);
+    ctx.fillStyle = P.passed ? '#EFEDE5' : 'rgba(239,237,229,.45)';
+    ctx.fillRect(cpAt - 1, 22, 2, 14);
     ctx.fillStyle = '#EFEDE5'; ctx.fillRect(24 + 220*prog - 1, 20, 3, 18);
     ctx.font = '400 11px "PT Mono", monospace';
     ctx.fillStyle = 'rgba(239,237,229,.75)';
