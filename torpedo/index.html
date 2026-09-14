@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="description" content="Браузерный платформер про болельщика Торпедо (Москва) Никиту: пять городов, билеты, флаг на финише.">
 <meta name="theme-color" content="#0A0D0F">
+<meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Никита за Торпедо">
@@ -28,7 +29,7 @@
 
   *{box-sizing:border-box}
 
-  html{-webkit-text-size-adjust:100%}
+  html{-webkit-text-size-adjust:100%;overscroll-behavior:none}
 
   body{
     margin:0;
@@ -257,6 +258,85 @@
     padding:8px 10px;
   }
 
+  /* ——— полный экран: работает и через Fullscreen API, и как оверлей ——— */
+  .play{display:flex;flex-direction:column;gap:10px}
+  .fs-exit{display:none}
+
+  .fs-open{
+    display:none;
+    position:absolute;
+    top:8px;right:8px;
+    z-index:4;
+    width:38px;height:38px;
+    border-radius:50%;
+    border:1px solid rgba(239,237,229,.3);
+    background:rgba(10,13,15,.5);
+    -webkit-backdrop-filter:blur(3px);
+    backdrop-filter:blur(3px);
+    color:var(--paper);
+    font-size:17px;
+    line-height:1;
+    cursor:pointer;
+  }
+  @media (pointer:coarse){ .fs-open:not([hidden]){display:block} }
+  .play.fs .fs-open{display:none}
+
+  .play.fs{
+    position:fixed;
+    inset:0;
+    z-index:60;
+    gap:0;
+    background:var(--ink);
+    align-items:center;
+    justify-content:center;
+  }
+  .play.fs .stage{
+    width:min(100vw, calc(100vh * 1.6));
+    width:min(100vw, calc(100svh * 1.6));
+    border:0;
+  }
+  .play.fs .pad.on{
+    position:absolute;
+    inset:auto 0 0 0;
+    justify-content:space-between;
+    align-items:flex-end;
+    padding:14px 18px calc(14px + env(safe-area-inset-bottom));
+    pointer-events:none;
+    gap:0;
+  }
+  .play.fs .pad .side{flex:0 0 auto;gap:14px}
+  .play.fs .pad button{
+    pointer-events:auto;
+    flex:0 0 auto;
+    width:64px;height:64px;min-height:0;
+    border-radius:50%;
+    font-size:18px;
+    background:rgba(10,13,15,.5);
+    border-color:rgba(239,237,229,.35);
+    -webkit-backdrop-filter:blur(3px);
+    backdrop-filter:blur(3px);
+  }
+  .play.fs .pad .jump{
+    flex:0 0 auto;
+    width:80px;height:80px;
+    font-size:13px;
+    background:rgba(0,166,81,.85);
+    border-color:rgba(0,166,81,.9);
+  }
+  .play.fs .fs-exit{
+    display:block;
+    position:absolute;
+    top:10px;right:12px;
+    width:40px;height:40px;
+    border-radius:50%;
+    border:1px solid rgba(239,237,229,.3);
+    background:rgba(10,13,15,.5);
+    color:var(--paper);
+    font-size:22px;
+    line-height:1;
+    cursor:pointer;
+  }
+
   /* ——— строка под сценой ——— */
   .barrow{
     display:flex;
@@ -445,6 +525,7 @@
     <div class="cell"><b>Рекорд</b><span id="hud-best">0</span></div>
   </div>
 
+  <div class="play" id="play">
   <div class="stage">
     <canvas id="game" width="960" height="600" tabindex="0"
             aria-label="Игровое поле: Никита бежит по городу, прыгает через ямы и болельщиков Локомотива"></canvas>
@@ -461,6 +542,7 @@
       </div>
     </div>
 
+    <button class="fs-open" id="btn-fs2" aria-label="Во весь экран" hidden>⛶</button>
   </div>
 
   <div class="pad" id="touch">
@@ -471,6 +553,9 @@
     <button id="t-jump" class="jump" aria-label="Прыжок">Прыжок</button>
   </div>
 
+  <button class="fs-exit" id="fs-exit" aria-label="Выйти из полного экрана">×</button>
+  </div>
+
   <p class="rotate">Поверни телефон горизонтально — поле станет вдвое больше.</p>
 
   <div class="barrow">
@@ -478,9 +563,11 @@
       <span><kbd>←</kbd><kbd>→</kbd> или <kbd>A</kbd><kbd>D</kbd> — бежать</span>
       <span><kbd>Пробел</kbd> / <kbd>↑</kbd> — прыжок</span>
       <span><kbd>P</kbd> — пауза</span>
+      <span><kbd>F</kbd> — во весь экран</span>
       <span><kbd>R</kbd> — переиграть город</span>
     </div>
     <div class="acts">
+      <button id="btn-fs" hidden>Во весь экран</button>
       <button id="btn-sound" aria-pressed="true">Звук: вкл</button>
       <button id="btn-restart">Сначала</button>
     </div>
@@ -498,6 +585,9 @@
       зелёный столб, от него продолжаешь после падения.</p>
     <p><b>Жёлто-чёрная плитка</b> — разрытая теплотрасса, через неё только прыжком. В яму упал — шарф потерян.
       На разводном мосту и на трамвайной платформе Никита едет вместе с ними, прыгать можно прямо с хода.</p>
+    <p><b>На телефоне</b> снизу появляются кнопки, а на поле — значок ⛶: он разворачивает игру
+      на весь экран и, если телефон это умеет, поворачивает её в горизонт. Выход — крестик
+      в углу или «назад».</p>
     <p>Всё дружелюбно: никто никого не бьёт. Соперник, получив по кепке сверху, разводит руками и уходит
       в сторону вокзала.</p>
   </section>
@@ -704,6 +794,8 @@
       o.start(); o.stop(ac.currentTime + dur);
     }catch(e){}
   }
+  function buzz(ms){ try{ if(navigator.vibrate) navigator.vibrate(ms); }catch(e){} }
+
   const sfx = {
     jump(){ beep(430, .11, 'square', .05); },
     coin(){ beep(880, .07, 'triangle', .07); setTimeout(()=>beep(1320,.09,'triangle',.055), 55); },
@@ -835,7 +927,7 @@
       if(!hit) continue;
 
       if(P.vy > 1.2 && P.y + P.h - P.vy <= f.y + 14){
-        f.dead = 1; P.vy = -9.6; G.score += 200; G.shake = reduceMotion ? 0 : 6;
+        f.dead = 1; P.vy = -9.6; G.score += 200; G.shake = reduceMotion ? 0 : 6; buzz(18);
         poofs.push({ x:f.x + f.w/2, y:f.y, t:0 });
         sparks.push({ x:f.x + f.w/2, y:f.y - 6, t:30, txt:'+200' });
         sfx.stomp();
@@ -881,6 +973,7 @@
     if(P.inv > 0 && !fatal) return;
     G.lives--;
     sfx.hurt();
+    buzz(45);
     G.shake = reduceMotion ? 0 : 10;
     G.mode = 'dead';
     G.frames = 0;
@@ -1378,6 +1471,8 @@
         show('Пауза', 'Перекур', 'Табло стоит, соперники ждут.', null, 'Продолжить', null);
       } else { hide(); G.mode = 'play'; }
     }
+    if(k === 'f'){ toggleFS(); }
+    if(e.key === 'Escape' && play.classList.contains('fs')) leaveFS();
     if(k === 'r' && G.mode !== 'menu'){
       P.passed = false;
       loadLevel(G.level, true);
@@ -1436,6 +1531,47 @@
   addEventListener('pointerdown', unlockAudio);
   addEventListener('keydown', unlockAudio);
 
+  /* ——— полный экран: Fullscreen API там, где он есть, иначе оверлей ——— */
+  const play = document.getElementById('play');
+  const fsExit = document.getElementById('fs-exit');
+  const fsBtn = document.getElementById('btn-fs');
+  const fsBtn2 = document.getElementById('btn-fs2');
+  const canFS = !!(play.requestFullscreen || play.webkitRequestFullscreen);
+  fsBtn.hidden = false;
+  fsBtn2.hidden = false;
+
+  function enterFS(){
+    play.classList.add('fs');
+    fsBtn.textContent = 'Свернуть';
+    const req = play.requestFullscreen || play.webkitRequestFullscreen;
+    if(req){
+      try{
+        const r = req.call(play);
+        if(r && r.then) r.then(() => {
+          try{ if(screen.orientation && screen.orientation.lock) screen.orientation.lock('landscape').catch(() => {}); }catch(e){}
+        }).catch(() => {});
+      }catch(e){}
+    }
+    setTimeout(fit, 120);
+    cv.focus();
+  }
+  function leaveFS(){
+    play.classList.remove('fs');
+    fsBtn.textContent = 'Во весь экран';
+    try{ if(screen.orientation && screen.orientation.unlock) screen.orientation.unlock(); }catch(e){}
+    try{
+      if(document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(() => {});
+      else if(document.webkitFullscreenElement && document.webkitExitFullscreen) document.webkitExitFullscreen();
+    }catch(e){}
+  }
+  const toggleFS = () => play.classList.contains('fs') ? leaveFS() : enterFS();
+  fsBtn.addEventListener('click', toggleFS);
+  fsBtn2.addEventListener('click', e => { e.preventDefault(); unlockAudio(); toggleFS(); });
+  fsExit.addEventListener('click', leaveFS);
+  document.addEventListener('fullscreenchange', () => {
+    if(canFS && !document.fullscreenElement && play.classList.contains('fs')) leaveFS();
+  });
+
   const sndBtn = document.getElementById('btn-sound');
   sndBtn.textContent = 'Звук: ' + (G.sound ? 'вкл' : 'выкл');
   sndBtn.setAttribute('aria-pressed', String(G.sound));
@@ -1469,7 +1605,7 @@
     }
     syncCards(); hud();
     show('Чёрно-белый сектор', 'Никита за Торпедо',
-      'Стрелки или A/D — бежать, пробел — прыжок (держать дольше — выше). Сверху на болельщика Локомотива — он теряет кепку. Сбоку — теряешь шарф.',
+      'Стрелки или A/D — бежать, пробел — прыжок (держать дольше — выше). На телефоне — кнопки снизу, значок ⛶ разворачивает на весь экран. Сверху на болельщика Локомотива — он теряет кепку. Сбоку — теряешь шарф.',
       'Рекорд: ' + G.best, 'Поехали', null);
     requestAnimationFrame(loop);
   }
