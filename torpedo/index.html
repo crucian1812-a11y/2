@@ -450,7 +450,8 @@
     .wrap{gap:18px;padding-block:18px 40px}
     /* сцена в портрете всего ~240 px высотой — оверлей ужимаем под неё */
     .overlay{padding:10px 12px;gap:7px;font-size:13px;line-height:1.35}
-    .overlay h2{font-size:clamp(19px,6vw,26px)}
+    /* значок ⛶ висит в углу сцены — уводим от него заголовок */
+    .overlay h2{font-size:clamp(19px,6vw,26px);padding-inline:40px}
     .overlay p{max-width:none}
     .overlay .big{font-size:12px}
     .overlay .tag{font-size:10px}
@@ -543,7 +544,7 @@
     <div class="overlay" id="overlay">
       <p class="tag" id="ov-tag">Выезд первый</p>
       <h2 id="ov-title">Москва</h2>
-      <p id="ov-text">Стрелки или A/D — бежать. Пробел — прыжок, подольше держать — выше.
+      <p id="ov-text">Стрелки или A/D — бежать. Пробел — прыжок, подольше держать — выше. Ящики бьют снизу головой.
         Сверху на болельщика Локомотива — он теряет кепку и уходит. Сбоку — теряешь шарф.</p>
       <p class="big" id="ov-stats" hidden></p>
       <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center">
@@ -610,7 +611,7 @@
   "use strict";
 
   /* ====================== константы мира ====================== */
-  const W = 960, H = 600, TILE = 40, ROWS = 15, COLS = 190;
+  const W = 960, H = 600, TILE = 40, ROWS = 15, COLS = 170;
   // Прыжок разной тяжести вверх и вниз: подъём мягкий и высокий, падение цепкое.
   // Высота 143 px — это 3.6 тайла, так что на навес в три тайла запас 23 px,
   // а не два, как было раньше.
@@ -619,8 +620,9 @@
   const ACC = 1.05, AIR_ACC = 0.72, FRIC = 0.80, AIR_FRIC = 0.94, MAXSPD = 4.9;
   const COYOTE = 9, BUFFER = 9;   // кадров прощения на краю и перед приземлением
   const NUDGE = 12;               // на сколько px подталкивать из-под угла навеса
-  const EMPTY = 0, SOLID = 1, HAZ = 2;
+  const EMPTY = 0, SOLID = 1, HAZ = 2, BRICK = 3, BOX = 4, USED = 5;
   const LEVEL_TIME = 200;
+  const SMALL_H = 38, BIG_H = 52;   // Никита обычный и Никита после пирожка
 
   const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -656,13 +658,13 @@
   function difficulty(idx){
     return {
       pitMin: 2,
-      pitMax: idx >= 3 ? 4 : idx >= 1 ? 3 : 2,
-      pitChance: 0.18 + idx * 0.015,
-      foeSpeed: 1.0 + idx * 0.14,
-      foePair: 0.30 + idx * 0.11,
-      hazMax: idx >= 2 ? 2 : 1,
-      upper: idx >= 1 ? 0.45 + idx * 0.08 : 0.25,
-      time: 220 - idx * 8
+      pitMax: idx >= 1 ? 3 : 2,
+      pitChance: 0.16 + idx * 0.01,
+      foeSpeed: 0.85 + idx * 0.1,
+      foePair: 0.15 + idx * 0.08,
+      hazMax: 1,
+      upper: 0.45 + idx * 0.09,
+      time: 200 - idx * 5
     };
   }
 
@@ -671,6 +673,8 @@
     const D = difficulty(idx);
     const grid = new Uint8Array(COLS * ROWS);
     const coins = [], foes = [], movers = [], props = [], decks = [];
+    const boxes = {};          // что лежит в ящике: 'pie' или 'coin'
+    let pies = 2;              // пирожков на город
     const set = (x,y,v) => { if(x>=0 && x<COLS && y>=0 && y<ROWS) grid[y*COLS + x] = v; };
     const fillCol = (x, top) => { for(let y=top; y<ROWS; y++) set(x,y,SOLID); };
     const coin = (tx, ty) => coins.push({ x:tx*TILE + TILE/2, y:ty*TILE + TILE/2, got:false, ph:rng()*6.28 });
@@ -697,7 +701,7 @@
     };
     // уличная мелочь для фона переднего плана
     const street = (run) => {
-      const n = 1 + Math.floor(rng()*2);
+      const n = rng() < 0.55 ? 1 : 0;
       for(let i=0;i<n;i++){
         const tx = run.a + 1 + Math.floor(rng()*Math.max(1, run.b - run.a - 2));
         const r = rng();
@@ -720,10 +724,17 @@
       props.push({ x:(p1-0.15)*TILE, y:floorY*TILE, kind:'pit', w:2.3*TILE, seed:0.4 });
       const r1 = flat(9);                             // один соперник
       foe(r1.a + 4, floorY, r1.a + 1, r1.b - 1);
-      const r2 = flat(12);                            // первый навес
+      const r2 = flat(13);                            // первый навес
       deck(r2.a + 4, floorY - 3, 4, 'awning');
       for(let i=0;i<4;i++) coin(r2.a + 4 + i, floorY - 4);
       props.push({ x:(r2.a + 10)*TILE, y:floorY*TILE, kind:'lamp', seed:0.6 });
+      const rb = flat(14);                            // первые кирпичи и ящик
+      set(rb.a + 4, floorY - 3, BRICK);
+      set(rb.a + 5, floorY - 3, BOX);
+      set(rb.a + 6, floorY - 3, BRICK);
+      boxes[(floorY - 3)*COLS + rb.a + 5] = 'pie';
+      pies--;
+      props.push({ x:(rb.a + 4)*TILE, y:floorY*TILE, kind:'shade', w:3*TILE, seed:0.5 });
       const r3 = flat(8);                             // теплотрасса
       set(r3.a + 3, floorY - 1, HAZ);
       coin(r3.a + 3, floorY - 3);
@@ -731,7 +742,7 @@
       flat(5);
     } else {
       // остальные города тоже открываются навесом — он учит высоте прыжка
-      const r = flat(12);
+      const r = flat(13);
       deck(r.a + 4, floorY - 3, 4, 'awning');
       for(let i=0;i<4;i++) coin(r.a + 4 + i, floorY - 4);
     }
@@ -742,7 +753,7 @@
     const bag = [];
     const nextKind = () => {
       if(!bag.length){
-        const b = ['pit','step','awning','foe','haz', rng() < 0.5 ? 'foe' : 'awning'];
+        const b = ['pit','step','awning','foe','haz','bricks','pit', rng() < 0.5 ? 'foe' : 'bricks'];
         for(let i=b.length-1;i>0;i--){ const j=Math.floor(rng()*(i+1)); const t=b[i]; b[i]=b[j]; b[j]=t; }
         bag.push.apply(bag, b);
       }
@@ -765,7 +776,7 @@
             vx:(rng()<.5?-1:1)*1.25, dx:0
           });
         }
-        flat(4 + Math.floor(rng()*3));
+        flat(6 + Math.floor(rng()*3));   // передышка после ямы: две подряд читались зло
       }
       else if(kind === 'step'){                        // ступень вверх/вниз
         const d = rng() < 0.5 ? -1 : 1;
@@ -778,8 +789,11 @@
         if(rng() < 0.5) street(r);
       }
       else if(kind === 'awning'){                      // навес с билетами
-        const run = flat(10 + Math.floor(rng()*3));
-        const len = 3 + Math.floor(rng()*3);
+        // длина участка считается от плиты: четыре тайла разбега перед ней и
+        // пять свободных после. Иначе следующая секция (например, яма) липнет
+        // к навесу, и прыжок через неё гасится макушкой об его край.
+        const len = 4 + Math.floor(rng()*2);   // от четырёх тайлов помещается второй ярус
+        const run = flat(len + 9);
         // четыре тайла разбега перед опорой: на подъёме прыжок проходит два,
         // с двух тайлов разбега навес брался только впритирку
         const px = run.a + 4, py = floorY - 3;
@@ -796,15 +810,32 @@
         if(rng() < 0.6) foe(run.a + 1, floorY, run.a, run.b);
         if(rng() < 0.6) street(run);
       }
+      else if(kind === 'bricks'){                      // кирпичная кладка и ящики
+        const len = 4 + Math.floor(rng()*3);
+        const run = flat(len + 9);                     // разбег до кладки и чистое место после
+        const px = run.a + 4, py = floorY - 3;
+        const boxAt = 1 + Math.floor(rng()*(len - 2));
+        for(let i=0; i<len; i++){
+          const isBox = i === boxAt || (i !== boxAt - 1 && i !== boxAt + 1 && rng() < 0.18);
+          set(px+i, py, isBox ? BOX : BRICK);
+          if(isBox){
+            const pie = pies > 0 && i === boxAt;
+            if(pie) pies--;
+            boxes[py*COLS + px + i] = pie ? 'pie' : 'coin';
+          }
+        }
+        props.push({ x:px*TILE, y:floorY*TILE, kind:'shade', w:len*TILE, seed:rng() });
+        if(rng() < 0.5) foe(run.a + 1, floorY, run.a, run.b);
+      }
       else if(kind === 'foe'){                         // локомотивские
-        const run = flat(8 + Math.floor(rng()*3));
+        const run = flat(7 + Math.floor(rng()*3));
         const n = 1 + (rng() < D.foePair ? 1 : 0);
         for(let i=0; i<n; i++) foe(run.a + 2 + i*3, floorY, run.a, run.b);
         if(rng() < 0.5) coin(run.a + 4, floorY - 2);
         street(run);
       }
       else{                                            // разрытая теплотрасса
-        const run = flat(7 + Math.floor(rng()*3));
+        const run = flat(6 + Math.floor(rng()*3));
         run.safe = false;                              // на трубах чекпоинт не ставим
         const hx = run.a + 2, hw = 1 + (rng() < 0.45 ? D.hazMax - 1 : 0);
         for(let i=0; i<hw; i++) set(hx+i, floorY-1, HAZ);
@@ -838,7 +869,7 @@
       for(let ty=0; ty<ROWS; ty++)
         if(grid[ty*COLS + tx] === SOLID){ topRow[tx] = ty; break; }
 
-    return { grid, coins, foes, movers, props, decks, topRow, flagX, flagY, cp,
+    return { grid, coins, foes, movers, props, decks, boxes, topRow, flagX, flagY, cp,
              startY:(ROWS-3)*TILE, finishA:finish.a, time:D.time };
   }
 
@@ -865,10 +896,11 @@
   let L = null;                   // текущий уровень
   let cam = 0;
   const poofs = [], sparks = [], dust = [], glints = [];
+  const pies = [], bumps = [], debris = [];
   const P = {
-    x:0, y:0, w:26, h:38, vx:0, vy:0,
+    x:0, y:0, w:26, h:SMALL_H, vx:0, vy:0,
     face:1, onGround:false, coyote:0, buffer:0, holding:false, jumpHold:false,
-    run:0, inv:0, ride:null, passed:false, step:0
+    run:0, inv:0, ride:null, passed:false, step:0, big:false, grew:0
   };
 
   /* пыль из-под ног: отталкивание, приземление, разбег */
@@ -940,7 +972,7 @@
 
   /* ====================== тайлы ====================== */
   const tileAt = (tx,ty) => (tx<0 || tx>=COLS || ty<0 || ty>=ROWS) ? EMPTY : L.grid[ty*COLS + tx];
-  const solidAt = (tx,ty) => tileAt(tx,ty) === SOLID;
+  const solidAt = (tx,ty) => { const t = tileAt(tx,ty); return t === SOLID || t === BRICK || t === BOX || t === USED; };
 
   function collideAxis(dx, dy){
     P.x += dx; P.y += dy;
@@ -952,9 +984,76 @@
         if(dx > 0){ P.x = tx*TILE - P.w; P.vx = 0; }
         else if(dx < 0){ P.x = (tx+1)*TILE; P.vx = 0; }
         else if(dy > 0){ P.y = ty*TILE - P.h; P.vy = 0; P.onGround = true; P.ride = null; }
-        else if(dy < 0){ P.y = (ty+1)*TILE; P.vy = 0.4; P.jumpHold = false; }
+        else if(dy < 0){ P.y = (ty+1)*TILE; P.vy = 0.4; P.jumpHold = false; headBump(tx, ty); }
       }
     }
+  }
+
+  /* ——— кирпичи и ящики ———
+     Бьём головой снизу: ящик отдаёт билет или пирожок и гаснет, кирпич
+     разлетается, но только если Никита большой. Маленький просто подбивает
+     кладку — как в старых платформерах. */
+  function headBump(tx, ty){
+    const t = tileAt(tx, ty);
+    if(t !== BRICK && t !== BOX) { if(t === USED) bumps.push({ tx, ty, t:0 }); return; }
+    bumps.push({ tx, ty, t:0 });
+    buzz(12);
+
+    if(t === BOX){
+      L.grid[ty*COLS + tx] = USED;
+      const what = L.boxes[ty*COLS + tx];
+      const cx = tx*TILE + TILE/2, cy = ty*TILE;
+      if(what === 'pie'){
+        pies.push({ x:cx - 13, y:cy - 4, w:26, h:24, vx:1.25, vy:0, rise:20 });
+        beep(520, .12, 'triangle', .06);
+        setTimeout(() => beep(780, .12, 'triangle', .05), 90);
+      } else {
+        G.coins++; G.score += 100;
+        sparks.push({ x:cx, y:cy - 10, t:32, txt:'+100' });
+        glints.push({ x:cx, y:cy - 10, t:0 });
+        sfx.coin();
+      }
+      hud();
+      return;
+    }
+
+    // кирпич
+    if(!P.big){ sfx.stomp(); return; }
+    L.grid[ty*COLS + tx] = EMPTY;
+    G.score += 50;
+    G.shake = reduceMotion ? 0 : 5;
+    sfx.stomp();
+    for(let i=0;i<6;i++){
+      debris.push({
+        x:tx*TILE + 8 + (i%3)*12, y:ty*TILE + 6 + Math.floor(i/3)*18,
+        vx:(i%2 ? 1 : -1) * (1 + Math.random()*1.8), vy:-2.6 - Math.random()*2.4,
+        r:7 + Math.random()*4, t:0, spin:(Math.random()-.5)*0.4, a:0
+      });
+    }
+    hud();
+  }
+
+  /* Пирожок: Никита выше на тайл, ломает кладку и держит один удар. */
+  function grow(){
+    if(P.big) return;
+    P.big = true;
+    P.h = BIG_H;
+    P.y -= (BIG_H - SMALL_H);
+    for(let k=0; k<16 && stuck(); k++) P.y++;   // если упёрся макушкой — выдавливаем вниз
+    P.grew = 14;
+  }
+  function shrink(){
+    P.big = false;
+    P.h = SMALL_H;
+    P.y += (BIG_H - SMALL_H);
+    P.inv = 96;
+    P.grew = 14;
+  }
+  function stuck(){
+    const x0 = Math.floor(P.x / TILE), x1 = Math.floor((P.x + P.w - 1) / TILE);
+    const y0 = Math.floor(P.y / TILE), y1 = Math.floor((P.y + P.h - 1) / TILE);
+    for(let ty=y0; ty<=y1; ty++) for(let tx=x0; tx<=x1; tx++) if(solidAt(tx,ty)) return true;
+    return false;
   }
 
   /* Стоя на асфальте, Никита каждый второй кадр числился в воздухе: за кадр он
@@ -1008,6 +1107,7 @@
     G.timer = 0;
     cam = 0;
     poofs.length = 0; sparks.length = 0; dust.length = 0; glints.length = 0;
+    pies.length = 0; bumps.length = 0; debris.length = 0;
     spawn(false);
     syncCards();
     hud();
@@ -1018,6 +1118,8 @@
     P.x = s.x; P.y = s.y - P.h - 2;
     P.vx = 0; P.vy = 0; P.onGround = false; P.ride = null;
     P.inv = 100; P.face = 1; P.run = 0; P.jumpHold = false;
+    P.big = false; P.h = SMALL_H; P.grew = 0;
+    pies.length = 0; bumps.length = 0; debris.length = 0;
     // без этого табло, дойдя до нуля, отнимало шарф раз в секунду и выносило
     // все три за три секунды
     G.timer = 0;
@@ -1096,6 +1198,7 @@
     } else { P.run = 0; P.step = 40; }
     P.x = clamp(P.x, 0, COLS*TILE - P.w);
     if(P.inv > 0) P.inv--;
+    if(P.grew > 0) P.grew--;
 
     // билеты
     for(const c of L.coins){
@@ -1104,6 +1207,38 @@
         c.got = true; G.coins++; G.score += 100; sfx.coin();
         sparks.push({ x:c.x, y:c.y, t:26, txt:'+100' });
         glints.push({ x:c.x, y:c.y, t:0 });
+      }
+    }
+
+    // пирожки: выезжают из ящика, потом идут по улице и падают в ямы
+    for(let i=pies.length-1; i>=0; i--){
+      const m = pies[i];
+      if(m.rise > 0){ m.rise--; m.y -= 1.2; continue; }
+      m.x += m.vx;
+      // стена по ходу — разворот
+      const ahead = Math.floor((m.x + (m.vx > 0 ? m.w : 0)) / TILE);
+      const row = Math.floor((m.y + m.h/2) / TILE);
+      if(solidAt(ahead, row)){
+        m.x -= m.vx; m.vx *= -1;
+      }
+      m.vy = Math.min(m.vy + 0.6, 14);
+      m.y += m.vy;
+      const foot = Math.floor((m.y + m.h) / TILE);
+      const c0 = Math.floor((m.x + 3) / TILE), c1 = Math.floor((m.x + m.w - 4) / TILE);
+      for(let tx=c0; tx<=c1; tx++){
+        if(solidAt(tx, foot) && m.vy >= 0){ m.y = foot*TILE - m.h; m.vy = 0; break; }
+      }
+      if(m.y > H + 80){ pies.splice(i,1); continue; }
+      if(P.x + P.w > m.x + 2 && P.x < m.x + m.w - 2 &&
+         P.y + P.h > m.y + 2 && P.y < m.y + m.h){
+        pies.splice(i,1);
+        grow();
+        G.score += 500;
+        sparks.push({ x:m.x + m.w/2, y:m.y, t:36, txt:'+500' });
+        glints.push({ x:m.x + m.w/2, y:m.y + m.h/2, t:0 });
+        G.shake = reduceMotion ? 0 : 5;
+        sfx.win();
+        hud();
       }
     }
 
@@ -1164,12 +1299,25 @@
       if(d.t > d.life) dust.splice(i,1);
     }
     for(let i=glints.length-1; i>=0; i--){ glints[i].t++; if(glints[i].t > 20) glints.splice(i,1); }
+    for(let i=bumps.length-1; i>=0; i--){ bumps[i].t++; if(bumps[i].t > 12) bumps.splice(i,1); }
+    for(let i=debris.length-1; i>=0; i--){
+      const d = debris[i];
+      d.x += d.vx; d.y += d.vy; d.vy += 0.52; d.a += d.spin; d.t++;
+      if(d.t > 46) debris.splice(i,1);
+    }
     if(G.shake > 0) G.shake--;
     hud();
   }
 
   function hurt(fatal){
     if(P.inv > 0 && !fatal) return;
+    if(P.big && !fatal){          // пирожок держит один удар
+      shrink();
+      G.shake = reduceMotion ? 0 : 7;
+      sfx.hurt(); buzz(25);
+      puff(P.x + P.w/2, P.y + P.h, 7, 1.2);
+      return;
+    }
     G.lives--;
     sfx.hurt();
     buzz(45);
@@ -1320,7 +1468,7 @@
     }
     // звёзды
     ctx.fillStyle = 'rgba(239,237,229,.5)';
-    for(let i=0;i<40;i++){
+    for(let i=0;i<22;i++){
       const sx = (hash(i*3.3)*W*1.6 - cam*0.04) % W;
       ctx.fillRect(sx < 0 ? sx + W : sx, hash(i*7.7)*260, 2, 2);
     }
@@ -1574,6 +1722,10 @@
           ctx.fillRect(bx, gy - 14, 7, 8);
         }
       }
+      else if(p.kind === 'shade' && !front){
+        ctx.fillStyle = 'rgba(0,0,0,.26)';
+        ctx.fillRect(px + 6, gy, p.w - 12, 5);
+      }
       else if(p.kind === 'works' && front){
         // лента над разрытой теплотрассой
         ctx.strokeStyle = '#E8B910'; ctx.lineWidth = 3;
@@ -1589,6 +1741,75 @@
     }
   }
 
+  /* кирпичная кладка ЗИЛа и ящики с сюрпризом */
+  function drawBlock(t, px, py, tx, ty){
+    if(t === BRICK){
+      ctx.fillStyle = '#7C3B2A';
+      ctx.fillRect(px, py, TILE, TILE);
+      ctx.fillStyle = 'rgba(255,255,255,.10)';
+      ctx.fillRect(px, py, TILE, 3);
+      ctx.fillStyle = 'rgba(0,0,0,.30)';
+      ctx.fillRect(px, py + TILE - 4, TILE, 4);
+      ctx.fillStyle = 'rgba(20,12,10,.55)';               // швы
+      for(let r=0;r<4;r++){
+        ctx.fillRect(px, py + r*10 + 9, TILE, 2);
+        ctx.fillRect(px + (r % 2 ? 12 : 28), py + r*10, 2, 9);
+      }
+      ctx.strokeStyle = 'rgba(0,0,0,.35)'; ctx.lineWidth = 1;
+      ctx.strokeRect(px + .5, py + .5, TILE - 1, TILE - 1);
+      return;
+    }
+    if(t === USED){                                       // пустой ящик — гаснет
+      ctx.fillStyle = '#5A4520';
+      ctx.fillRect(px, py, TILE, TILE);
+      ctx.fillStyle = 'rgba(0,0,0,.42)';
+      ctx.fillRect(px + 3, py + 3, TILE - 6, TILE - 6);
+      ctx.fillStyle = 'rgba(255,255,255,.07)';
+      ctx.fillRect(px, py, TILE, 3);
+      return;
+    }
+    // ящик с сюрпризом — мигает, чтобы его было видно
+    const k = (Math.sin(G.frames * 0.09 + tx) + 1) / 2;
+    ctx.fillStyle = '#C9960E';
+    ctx.fillRect(px, py, TILE, TILE);
+    ctx.fillStyle = 'rgba(255,240,180,' + (0.10 + k * 0.22) + ')';
+    ctx.fillRect(px, py, TILE, TILE);
+    ctx.fillStyle = 'rgba(255,255,255,.22)';
+    ctx.fillRect(px, py, TILE, 3);
+    ctx.fillStyle = 'rgba(0,0,0,.32)';
+    ctx.fillRect(px, py + TILE - 4, TILE, 4);
+    ctx.fillStyle = '#2A1D06';                            // заклёпки
+    for(const [a,b] of [[5,5],[TILE-9,5],[5,TILE-9],[TILE-9,TILE-9]]) ctx.fillRect(px+a, py+b, 4, 4);
+    ctx.fillStyle = '#2A1D06';                            // знак вопроса
+    ctx.fillRect(px + 14, py + 11, 12, 4);
+    ctx.fillRect(px + 22, py + 15, 4, 5);
+    ctx.fillRect(px + 18, py + 20, 8, 4);
+    ctx.fillRect(px + 18, py + 27, 5, 4);
+    ctx.strokeStyle = 'rgba(0,0,0,.35)'; ctx.lineWidth = 1;
+    ctx.strokeRect(px + .5, py + .5, TILE - 1, TILE - 1);
+  }
+
+  /* пирожок с лотка — он же «гриб» */
+  function drawPie(m){
+    const px = m.x - cam;
+    if(px < -60 || px > W + 60) return;
+    const bob = m.rise > 0 ? 0 : Math.sin(G.frames * 0.18) * 1.2;
+    const g = ctx.createRadialGradient(px + m.w/2, m.y + m.h/2, 2, px + m.w/2, m.y + m.h/2, 26);
+    g.addColorStop(0, 'rgba(240,190,90,.30)'); g.addColorStop(1, 'rgba(240,190,90,0)');
+    ctx.fillStyle = g;
+    ctx.beginPath(); ctx.arc(px + m.w/2, m.y + m.h/2, 26, 0, 6.284); ctx.fill();
+    ctx.fillStyle = 'rgba(8,11,13,.85)';
+    ctx.fillRect(px - 1, m.y + bob - 1, m.w + 2, m.h + 2);
+    ctx.fillStyle = '#D8A247';
+    ctx.fillRect(px, m.y + bob + 4, m.w, m.h - 4);
+    ctx.fillStyle = '#E8BC69';
+    ctx.fillRect(px + 2, m.y + bob, m.w - 4, 8);
+    ctx.fillStyle = 'rgba(90,50,20,.55)';                 // надрезы
+    for(let i=0;i<3;i++) ctx.fillRect(px + 5 + i*7, m.y + bob + 11, 4, 3);
+    ctx.fillStyle = 'rgba(255,240,210,.5)';
+    ctx.fillRect(px + 3, m.y + bob + 2, 7, 3);
+  }
+
   function drawTiles(c){
     const x0 = Math.max(0, Math.floor(cam / TILE) - 1);
     const x1 = Math.min(COLS - 1, Math.ceil((cam + W) / TILE) + 1);
@@ -1596,7 +1817,13 @@
       for(let ty=0; ty<ROWS; ty++){
         const t = L.grid[ty*COLS + tx];
         if(!t) continue;
-        const px = tx*TILE - cam, py = ty*TILE;
+        let px = tx*TILE - cam, py = ty*TILE;
+        for(const b of bumps) if(b.tx === tx && b.ty === ty) py -= Math.sin(b.t / 12 * Math.PI) * 10;
+
+        if(t === BRICK || t === BOX || t === USED){
+          drawBlock(t, px, py, tx, ty);
+          continue;
+        }
         if(t === SOLID){
           const top = !solidAt(tx, ty-1);
           const deep = ty - L.topRow[tx];            // насколько глубоко под поверхностью
@@ -1756,24 +1983,50 @@
 
   function drawPlayer(){
     if(P.inv > 0 && Math.floor(G.frames/4) % 2 === 0 && G.mode === 'play') return;
-    const px = P.x - cam, py = P.y;
+    // большой Никита — та же фигура, растянутая по вертикали; при превращении
+    // её ещё и потряхивает, чтобы момент был заметен
+    const sc = P.h / SMALL_H;
+    const wob = P.grew > 0 ? 1 + Math.sin(P.grew * 0.9) * 0.10 : 1;
+    if(sc !== 1 || wob !== 1){
+      // тянем только корпус и ноги, голову потом ставим сверху в натуральную
+      // величину — иначе большой Никита получается с вытянутым лицом
+      ctx.save();
+      ctx.translate(P.x - cam + P.w/2, P.y + P.h);
+      ctx.scale(wob, sc * (2 - wob));
+      ctx.translate(-(P.x - cam + P.w/2), -(P.y + P.h));
+      drawPlayerBody(P.x - cam, P.y + P.h - SMALL_H);
+      ctx.restore();
+      drawPlayerHead(P.x - cam, P.y);
+      return;
+    }
+    drawPlayerBody(P.x - cam, P.y);
+    drawPlayerHead(P.x - cam, P.y);
+  }
+
+  function drawPlayerHead(px, py){
+    const air = !P.onGround;
+    ctx.fillStyle = 'rgba(8,11,13,.9)';
+    ctx.fillRect(px + 3, py - 4, 20, 16);
+    ctx.fillStyle = '#E8BE96';
+    ctx.fillRect(px + (P.face > 0 ? 24 : -2), py + 13, 4, air ? 6 : 10);   // рука
+    ctx.fillRect(px + 5, py, 16, 11);
+    ctx.fillStyle = '#3A2A20';
+    ctx.fillRect(px + 4, py - 2, 18, 5);
+    ctx.fillStyle = '#0A0D0F';
+    ctx.fillRect(px + (P.face > 0 ? 16 : 7), py + 4, 2, 3);
+    ctx.fillStyle = '#00A651';
+    ctx.fillRect(px + 5, py + 9, 16, 4);
+    ctx.fillStyle = 'rgba(239,237,229,.16)';
+    ctx.fillRect(px + 5, py, 16, 2);
+  }
+
+  function drawPlayerBody(px, py){
     const air = !P.onGround;
     const stride = Math.sin(P.run * 2) * 5;
-
-    // тень на земле: сразу видно, куда приземлишься
-    const gy = groundBelow(Math.floor((P.x + P.w/2) / TILE), Math.floor((P.y + P.h) / TILE) - 1);
-    const drop = clamp((gy - (P.y + P.h)) / 260, 0, 1);
-    if(gy < ROWS*TILE){
-      ctx.fillStyle = 'rgba(0,0,0,' + (0.34 * (1 - drop*0.75)) + ')';
-      ctx.beginPath();
-      ctx.ellipse(px + P.w/2, gy + 3, 15 * (1 - drop*0.35), 4.5 * (1 - drop*0.35), 0, 0, 6.284);
-      ctx.fill();
-    }
 
     // тёмный контур по частям: чёрно-белая фигура на тёмном городе иначе не
     // читается, а сплошной прямоугольник дал бы вокруг головы коробку
     ctx.fillStyle = 'rgba(8,11,13,.9)';
-    ctx.fillRect(px + 3, py - 4, 20, 16);   // голова
     ctx.fillRect(px - 1, py + 8, 28, 22);   // корпус
     ctx.fillRect(px + 1, py + 26, 24, 14);  // ноги
 
@@ -1798,23 +2051,20 @@
     ctx.fillRect(px + 1, py + 10, 24, 18);
     ctx.fillStyle = '#15181B';
     for(let k=0;k<3;k++) ctx.fillRect(px + 3 + k*8, py + 10, 4, 18);
-    // руки
-    ctx.fillStyle = '#E8BE96';
-    ctx.fillRect(px + (P.face > 0 ? 24 : -2), py + 13, 4, air ? 6 : 10);
-    // голова
-    ctx.fillStyle = '#E8BE96';
-    ctx.fillRect(px + 5, py, 16, 11);
-    ctx.fillStyle = '#3A2A20';
-    ctx.fillRect(px + 4, py - 2, 18, 5);
-    ctx.fillStyle = '#0A0D0F';
-    ctx.fillRect(px + (P.face > 0 ? 16 : 7), py + 4, 2, 3);
-    // зелёная повязка на шее
-    ctx.fillStyle = '#00A651';
-    ctx.fillRect(px + 5, py + 9, 16, 4);
     // подсветка сверху — отрывает фигуру от фона
     ctx.fillStyle = 'rgba(239,237,229,.16)';
     ctx.fillRect(px + 1, py + 10, 24, 2);
-    ctx.fillRect(px + 5, py, 16, 2);
+  }
+
+  // тень под игроком: сразу видно, куда приземлишься
+  function playerShadow(){
+    const gy = groundBelow(Math.floor((P.x + P.w/2) / TILE), Math.floor((P.y + P.h) / TILE) - 1);
+    if(gy >= ROWS*TILE) return;
+    const drop = clamp((gy - (P.y + P.h)) / 260, 0, 1);
+    ctx.fillStyle = 'rgba(0,0,0,' + (0.34 * (1 - drop*0.75)) + ')';
+    ctx.beginPath();
+    ctx.ellipse(P.x - cam + P.w/2, gy + 3, 15 * (1 - drop*0.35), 4.5 * (1 - drop*0.35), 0, 0, 6.284);
+    ctx.fill();
   }
 
   function drawFlag(){
@@ -1864,7 +2114,7 @@
     // два слоя: дальний мелкий и ближний крупный — даёт глубину и ветер
     for(let layer=0; layer<2; layer++){
       const near = layer === 1;
-      const n = near ? 26 : 54;
+      const n = near ? 16 : 34;
       const sz = near ? 1.9 : 1;
       ctx.fillStyle = c.weather === 'snow'
         ? (near ? 'rgba(244,242,236,.78)' : 'rgba(239,237,229,.38)')
@@ -1903,7 +2153,21 @@
     drawMovers();
     drawCoins();
     for(const f of L.foes) drawFoe(f);
+    for(const m of pies) drawPie(m);
+    playerShadow();
     drawPlayer();
+    for(const d of debris){
+      ctx.save();
+      ctx.globalAlpha = Math.max(0, 1 - d.t/46);
+      ctx.translate(d.x - cam, d.y);
+      ctx.rotate(d.a);
+      ctx.fillStyle = '#7C3B2A';
+      ctx.fillRect(-d.r/2, -d.r/2, d.r, d.r);
+      ctx.fillStyle = 'rgba(0,0,0,.30)';
+      ctx.fillRect(-d.r/2, d.r/2 - 2, d.r, 2);
+      ctx.restore();
+    }
+    ctx.globalAlpha = 1;
     drawProps(c, true);         // столбики и ленты — перед игроком
     for(const d of dust){
       ctx.globalAlpha = Math.max(0, 1 - d.t/d.life) * 0.5;
@@ -2148,7 +2412,7 @@
     }
     syncCards(); hud();
     show('Чёрно-белый сектор', 'Никита за Торпедо',
-      'Стрелки или A/D — бежать, пробел — прыжок (держать дольше — выше). На телефоне — кнопки снизу, значок ⛶ разворачивает на весь экран. Сверху на болельщика Локомотива — он теряет кепку. Сбоку — теряешь шарф.',
+      'Стрелки или A/D — бежать, пробел — прыжок (держать дольше — выше). На телефоне — кнопки снизу, значок ⛶ разворачивает на весь экран. Бей ящики снизу головой: оттуда падают билеты и пирожки. С пирожком Никита становится большим, ломает кирпичи и держит один удар.',
       'Рекорд: ' + G.best, 'Поехали', null);
     requestAnimationFrame(loop);
   }
