@@ -246,8 +246,10 @@
     color:#05140B;
     font-weight:600;
   }
-  .pad button:active{background:var(--paper);color:var(--ink);border-color:var(--paper)}
-  .pad .jump:active{background:#12BE62;color:#05140B}
+  .pad button:active,
+  .pad button.held{background:var(--paper);color:var(--ink);border-color:var(--paper)}
+  .pad .jump:active,
+  .pad .jump.held{background:#12BE62;color:#05140B;border-color:#12BE62}
 
   .rotate{
     display:none;
@@ -585,6 +587,9 @@
       зелёный столб, от него продолжаешь после падения.</p>
     <p><b>Жёлто-чёрная плитка</b> — разрытая теплотрасса, через неё только прыжком. В яму упал — шарф потерян.
       На разводном мосту и на трамвайной платформе Никита едет вместе с ними, прыгать можно прямо с хода.</p>
+    <p><b>Пальцем</b> можно вести, не отрывая: палец едет с «влево» на «вправо» — направление
+      меняется на ходу. Тап по самому полю — тоже прыжок, так что одним большим пальцем держишь
+      бег, вторым бьёшь куда попало.</p>
     <p><b>На телефоне</b> снизу появляются кнопки, а на поле — значок ⛶: он разворачивает игру
       на весь экран и, если телефон это умеет, поворачивает её в горизонт. Выход — крестик
       в углу или «назад».</p>
@@ -602,7 +607,7 @@
   /* ====================== константы мира ====================== */
   const W = 960, H = 600, TILE = 40, ROWS = 15, COLS = 190;
   const GRAV = 0.78, JUMP = -14.2, MAXFALL = 16.5;
-  const ACC = 0.95, FRIC = 0.80, MAXSPD = 4.6;
+  const ACC = 1.30, FRIC_GROUND = 0.70, FRIC_AIR = 0.92, MAXSPD = 4.6;
   const EMPTY = 0, SOLID = 1, HAZ = 2;
   const LEVEL_TIME = 200;
 
@@ -752,6 +757,7 @@
 
   const keys = Object.create(null);
   const touch = { left:false, right:false, jump:false };
+  let tapJump = 0;
 
   /* ——— память браузера ——— */
   try{
@@ -824,6 +830,26 @@
     }
   }
 
+  /* Взлетая впритирку к краю платформы, игрок бился макушкой об угол и падал.
+     Если мешает меньше 8 px, подвинем его вбок и пустим наверх. */
+  function cornerAssist(){
+    if(P.vy >= 0) return;
+    const ty = Math.floor((P.y + P.vy) / TILE);
+    const lx = Math.floor((P.x + 2) / TILE);
+    const rx = Math.floor((P.x + P.w - 3) / TILE);
+    if(lx === rx) return;
+    const hitL = solidAt(lx, ty), hitR = solidAt(rx, ty);
+    if(hitL === hitR) return;
+    const footRow = Math.floor((P.y + P.h - 1) / TILE);
+    if(hitL){
+      const push = (lx + 1) * TILE - (P.x + 2);
+      if(push > 0 && push <= 8 && !solidAt(Math.floor((P.x + P.w + push) / TILE), footRow)) P.x += push + 0.5;
+    } else {
+      const push = (P.x + P.w - 3) - rx * TILE;
+      if(push > 0 && push <= 8 && !solidAt(Math.floor((P.x - push) / TILE), footRow)) P.x -= push + 0.5;
+    }
+  }
+
   /* ====================== старт уровня ====================== */
   function loadLevel(i, keepScore){
     G.level = i;
@@ -853,20 +879,27 @@
     G.frames++;
     const left  = keys['ArrowLeft'] || keys['a'] || keys['ф'] || touch.left;
     const right = keys['ArrowRight'] || keys['d'] || keys['в'] || touch.right;
-    const jump  = keys[' '] || keys['ArrowUp'] || keys['w'] || keys['ц'] || touch.jump;
+    const jump  = keys[' '] || keys['ArrowUp'] || keys['w'] || keys['ц'] || touch.jump || tapJump > 0;
+    if(tapJump > 0) tapJump--;
 
-    // разгон
-    if(left && !right){ P.vx -= ACC; P.face = -1; }
-    else if(right && !left){ P.vx += ACC; P.face = 1; }
-    else P.vx *= FRIC;
+    // разгон: разворот гасит инерцию, иначе на кнопках всё едет юзом
+    if(left && !right){
+      if(P.vx > 0) P.vx *= 0.45;
+      P.vx -= ACC; P.face = -1;
+    }
+    else if(right && !left){
+      if(P.vx < 0) P.vx *= 0.45;
+      P.vx += ACC; P.face = 1;
+    }
+    else P.vx *= P.onGround ? FRIC_GROUND : FRIC_AIR;
     P.vx = clamp(P.vx, -MAXSPD, MAXSPD);
     if(Math.abs(P.vx) < 0.06) P.vx = 0;
 
     // прыжок с буфером и «койот-тайм»
-    if(jump && !P.holding){ P.buffer = 7; P.holding = true; }
+    if(jump && !P.holding){ P.buffer = 10; P.holding = true; }
     if(!jump) P.holding = false;
     if(P.buffer > 0) P.buffer--;
-    if(P.onGround) P.coyote = 7; else if(P.coyote > 0) P.coyote--;
+    if(P.onGround) P.coyote = 9; else if(P.coyote > 0) P.coyote--;
 
     if(P.buffer > 0 && P.coyote > 0){
       P.vy = JUMP; P.buffer = 0; P.coyote = 0; P.onGround = false; P.ride = null;
@@ -887,6 +920,7 @@
 
     P.onGround = false;
     collideAxis(P.vx, 0);
+    cornerAssist();
     collideAxis(0, P.vy);
 
     // верхняя грань движущихся платформ
@@ -922,11 +956,16 @@
       if(f.x < f.min || f.x > f.max) f.vx *= -1;
       f.x = clamp(f.x, f.min, f.max);
 
-      const hit = P.x + P.w > f.x + 3 && P.x < f.x + f.w - 3 &&
-                  P.y + P.h > f.y + 4 && P.y < f.y + f.h;
+      const hit = P.x + P.w > f.x + 6 && P.x < f.x + f.w - 6 &&
+                  P.y + P.h > f.y + 6 && P.y < f.y + f.h - 2;
       if(!hit) continue;
 
-      if(P.vy > 1.2 && P.y + P.h - P.vy <= f.y + 14){
+      // по кепке — значит по кепке: засчитываем и когда Никита ещё идёт вверх,
+      // лишь бы ноги были на уровне головы соперника, а не в его корпусе
+      const feet = P.y + P.h;
+      const fromAbove = (P.vy > 0.4 && (feet - P.vy <= f.y + 20 || feet <= f.y + 20)) ||
+                        feet <= f.y + 15;
+      if(fromAbove){
         f.dead = 1; P.vy = -9.6; G.score += 200; G.shake = reduceMotion ? 0 : 6; buzz(18);
         poofs.push({ x:f.x + f.w/2, y:f.y, t:0 });
         sparks.push({ x:f.x + f.w/2, y:f.y - 6, t:30, txt:'+200' });
@@ -934,12 +973,20 @@
       } else hurt();
     }
 
-    // теплотрасса
-    const tx0 = Math.floor((P.x + 5) / TILE), tx1 = Math.floor((P.x + P.w - 5) / TILE);
-    const ty0 = Math.floor((P.y + 8) / TILE), ty1 = Math.floor((P.y + P.h - 1) / TILE);
-    for(let ty=ty0; ty<=ty1; ty++)
-      for(let tx=tx0; tx<=tx1; tx++)
-        if(tileAt(tx,ty) === HAZ) hurt();
+    // теплотрасса: бьёт ровно по нарисованной полосе (нижние 24 px тайла),
+    // и только ногами — раньше игрок ловил урон головой о пустой воздух
+    const hx0 = P.x + 6, hx1 = P.x + P.w - 6;
+    const hy0 = P.y + 16, hy1 = P.y + P.h;
+    const tx0 = Math.floor(hx0 / TILE), tx1 = Math.floor(hx1 / TILE);
+    const ty0 = Math.floor(hy0 / TILE), ty1 = Math.floor(hy1 / TILE);
+    for(let ty=ty0; ty<=ty1; ty++){
+      for(let tx=tx0; tx<=tx1; tx++){
+        if(tileAt(tx,ty) !== HAZ) continue;
+        const bx0 = tx*TILE + 2, bx1 = tx*TILE + TILE - 2;
+        const by0 = ty*TILE + 16, by1 = ty*TILE + TILE;
+        if(hx1 > bx0 && hx0 < bx1 && hy1 > by0 && hy0 < by1) hurt();
+      }
+    }
 
     // столб-чекпоинт
     if(!P.passed && P.x + P.w > L.cp.x && P.x < L.cp.x + 20){
@@ -1208,6 +1255,11 @@
             ctx.fillRect(px, py, TILE, 7);
             ctx.fillStyle = 'rgba(239,237,229,.10)';
             ctx.fillRect(px, py, TILE, 2);
+            // предупреждение об открытой теплотрассе по соседству
+            if(tileAt(tx-1, ty-1) === HAZ || tileAt(tx+1, ty-1) === HAZ){
+              ctx.fillStyle = 'rgba(232,185,16,.85)';
+              for(let k=0;k<4;k++) ctx.fillRect(px + 3 + k*10, py + 2, 5, 3);
+            }
           }
           ctx.strokeStyle = 'rgba(0,0,0,.30)';
           ctx.lineWidth = 1;
@@ -1221,6 +1273,8 @@
           for(let k=0;k<3;k++) ctx.fillRect(px + 4 + k*12, py + 22, 6, 18);
           ctx.fillStyle = '#E8B910';
           ctx.fillRect(px + 2, py + 16, TILE - 4, 4);
+          ctx.fillStyle = 'rgba(239,237,229,.75)';
+          ctx.fillRect(px + 2, py + 16, TILE - 4, 1);
         }
       }
     }
@@ -1506,27 +1560,72 @@
   ovBtn.addEventListener('click', () => { unlockAudio(); primary(); });
   ovBtn2.addEventListener('click', fullRestart);
 
-  function bindTouch(id, prop){
-    const b = document.getElementById(id);
-    b.addEventListener('pointerdown', e => {
-      e.preventDefault();
-      unlockAudio();
-      touch[prop] = true;
-      try{ b.setPointerCapture(e.pointerId); }catch(err){}
-    });
-    const off = e => { touch[prop] = false; };
-    b.addEventListener('pointerup', off);
-    b.addEventListener('pointercancel', off);
-    b.addEventListener('lostpointercapture', off);
-    b.addEventListener('contextmenu', e => e.preventDefault());
+  /* Пальцем управляем по зонам, а не по кнопкам: захват указателя не давал
+     перевести палец с «влево» на «вправо» — направление залипало на первой
+     кнопке. Теперь каждый касающийся палец на каждом движении заново ищет
+     свою зону, у зон есть запас в 18 px по краям, и работает несколько
+     пальцев сразу. */
+  const PAD_SLACK = 18;
+  const ZONES = [
+    ['left',  document.getElementById('t-left')],
+    ['right', document.getElementById('t-right')],
+    ['jump',  document.getElementById('t-jump')]
+  ];
+  const held = new Map();   // pointerId → зона
+
+  function zoneAt(x, y){
+    let best = null, bestD = Infinity;
+    for(const [name, el] of ZONES){
+      const r = el.getBoundingClientRect();
+      if(!r.width) continue;
+      const dx = x < r.left ? r.left - x : x > r.right ? x - r.right : 0;
+      const dy = y < r.top ? r.top - y : y > r.bottom ? y - r.bottom : 0;
+      const d = Math.sqrt(dx*dx + dy*dy);
+      if(d <= PAD_SLACK && d < bestD){ bestD = d; best = name; }
+    }
+    return best;
   }
-  bindTouch('t-left','left'); bindTouch('t-right','right'); bindTouch('t-jump','jump');
+  function applyHeld(){
+    touch.left = touch.right = touch.jump = false;
+    for(const z of held.values()) if(z) touch[z] = true;
+    for(const [name, el] of ZONES) el.classList.toggle('held', touch[name]);
+  }
+
+  addEventListener('pointerdown', e => {
+    const z = zoneAt(e.clientX, e.clientY);
+    if(!z) return;
+    e.preventDefault();
+    unlockAudio();
+    held.set(e.pointerId, z);
+    applyHeld();
+  }, { passive:false });
+
+  addEventListener('pointermove', e => {
+    if(!held.has(e.pointerId)) return;
+    e.preventDefault();
+    const z = zoneAt(e.clientX, e.clientY);
+    if(z !== held.get(e.pointerId)){ held.set(e.pointerId, z); applyHeld(); }
+  }, { passive:false });
+
+  const release = e => { if(held.delete(e.pointerId)) applyHeld(); };
+  addEventListener('pointerup', release);
+  addEventListener('pointercancel', release);
+  document.getElementById('touch').addEventListener('contextmenu', e => e.preventDefault());
+
   if(matchMedia('(pointer: coarse)').matches || innerWidth < 720){
     document.getElementById('touch').classList.add('on');
   }
+
+  // тап по полю — тоже прыжок: одним большим пальцем держишь направление,
+  // вторым бьёшь куда попало
   cv.addEventListener('pointerdown', e => {
     unlockAudio();
-    if(!overlay.hidden){ e.preventDefault(); primary(); } else cv.focus();
+    if(!overlay.hidden){ e.preventDefault(); primary(); return; }
+    cv.focus();
+    if(G.mode === 'play' && e.pointerType !== 'mouse' && !zoneAt(e.clientX, e.clientY)){
+      e.preventDefault();
+      tapJump = 4;
+    }
   });
   addEventListener('pointerdown', unlockAudio);
   addEventListener('keydown', unlockAudio);
@@ -1609,6 +1708,8 @@
       'Рекорд: ' + G.best, 'Поехали', null);
     requestAnimationFrame(loop);
   }
+
+  window.__nikita = () => ({ G, P, L, touch, CITIES });   // отладка: состояние из консоли
 
   if(window.claude && window.claude.hot){
     window.claude.hot.snapshot(() => ({ level:G.level, score:G.score, lives:G.lives }));
