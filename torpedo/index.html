@@ -175,6 +175,8 @@
     text-align:center;
     padding:24px;
     line-height:1.45;
+    overflow-y:auto;
+    overscroll-behavior:contain;
     background:rgba(8,11,13,.82);
     -webkit-backdrop-filter:blur(2px);
     backdrop-filter:blur(2px);
@@ -441,6 +443,21 @@
     font-size:11px;
     letter-spacing:.06em;
     color:var(--muted);
+  }
+
+  /* на низком поле телефона в оверлей влезает немного: жмём всё подряд */
+  @media (max-width:620px){
+    .overlay{padding:10px 12px;gap:6px;line-height:1.3}
+    .overlay .tag{font-size:9px;letter-spacing:.12em}
+    .overlay h2{font-size:clamp(18px,5.4vw,26px)}
+    .overlay p{font-size:12px;max-width:36ch}
+    .overlay .big{font-size:11px}
+    .overlay .btn{font-size:14px;padding:8px 18px}
+  }
+  @media (max-height:560px) and (orientation:landscape){
+    .overlay{padding:10px 14px;gap:8px}
+    .overlay h2{font-size:24px}
+    .overlay p{font-size:13px}
   }
 
   @media (max-width:560px){
@@ -1349,7 +1366,8 @@
     if(last){
       G.mode = 'victory';
       show('Выезд закрыт', 'Кубок у чёрно-белых',
-        'Пять городов позади. Никита вернулся на Восточную с билетами, шарфом на шее и голосом, посаженным до вторника.',
+        tip('Пять городов позади. Никита вернулся на Восточную с билетами, шарфом на шее и голосом, посаженным до вторника.',
+            'Пять городов позади. Кубок у чёрно-белых.'),
         'Очки: ' + G.score + '   ·   Рекорд: ' + G.best, 'Ещё раз', null);
     } else {
       show('Город взят', CITIES[G.level].name,
@@ -1358,7 +1376,12 @@
     }
   }
 
-  /* ====================== оверлей ====================== */
+  /* ====================== оверлей ======================
+     На телефоне поле низкое, и длинный текст выдавливал кнопку за край.
+     Поэтому для узкого экрана держим сокращённый вариант подсказки. */
+  const narrow = () => matchMedia('(max-width: 620px)').matches;
+  const tip = (full, short) => narrow() ? short : full;
+
   function show(tag, title, text, stats, btn, btn2){
     ovTag.textContent = tag;
     ovTitle.textContent = title;
@@ -2455,24 +2478,41 @@
 
       if(b.kind === 'car'){                            // легковая у парка
         const cw = 104, ch = 30, top = b.y - ch;
-        ctx.fillStyle = '#E4EAF0';                     // бело-голубая
+        ctx.fillStyle = '#16191E';                     // чёрная, чтобы не путали с патрульной
         ctx.fillRect(px, top, cw, ch);
         ctx.fillRect(px + 24, top - 20, 54, 20);
-        ctx.fillStyle = '#1B62AE';
-        ctx.fillRect(px, top + ch - 11, cw, 6);
-        ctx.fillStyle = 'rgba(126,150,170,.5)';        // стёкла
+        ctx.fillStyle = '#39424B';                     // окантовка, иначе чёрное тонет в ночи
+        ctx.fillRect(px, top, cw, 2);
+        ctx.fillRect(px + 24, top - 20, 54, 2);
+        ctx.fillRect(px, top, 2, ch);
+        ctx.fillRect(px + cw - 2, top, 2, ch);
+        ctx.fillStyle = '#1B62AE';                     // клубная полоса вдоль борта
+        ctx.fillRect(px, top + ch - 10, cw, 4);
+        ctx.fillStyle = 'rgba(126,150,170,.42)';       // стёкла
         ctx.fillRect(px + 28, top - 16, 22, 14);
-        ctx.fillStyle = b.open > 0 ? 'rgba(255,214,150,.7)' : 'rgba(126,150,170,.5)';
+        ctx.fillStyle = b.open > 0 ? 'rgba(255,214,150,.7)' : 'rgba(126,150,170,.42)';
         ctx.fillRect(px + 54, top - 16, 20, 14);
-        ctx.fillStyle = '#AFBAC4';
+        ctx.fillStyle = '#2E343C';
         ctx.fillRect(px + 50, top + 4, 3, 16);         // стойка двери
+        ctx.fillStyle = '#EFEDE5';                     // эмблема на двери
+        ctx.beginPath(); ctx.arc(px + 36, top + 14, 9, 0, 6.284); ctx.fill();
+        ctx.fillStyle = '#1B62AE';
+        ctx.beginPath(); ctx.arc(px + 36, top + 14, 7, 0, 6.284); ctx.fill();
+        ctx.fillStyle = '#EFEDE5';
+        ctx.font = '700 12px Oswald, "Arial Narrow", sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('Д', px + 36, top + 19);
+        ctx.textAlign = 'left';
         ctx.fillStyle = '#E8B910';
         ctx.fillRect(px + cw - 5, top + 9, 5, 6);      // фары
         ctx.fillStyle = '#C8102E';
         ctx.fillRect(px, top + 9, 4, 6);
-        ctx.fillStyle = '#15191D';
+        ctx.fillStyle = '#0E1114';
         ctx.beginPath(); ctx.arc(px + 22, b.y, 9, Math.PI, 0); ctx.fill();
         ctx.beginPath(); ctx.arc(px + cw - 22, b.y, 9, Math.PI, 0); ctx.fill();
+        ctx.fillStyle = '#3A4149';
+        ctx.beginPath(); ctx.arc(px + 22, b.y, 4, Math.PI, 0); ctx.fill();
+        ctx.beginPath(); ctx.arc(px + cw - 22, b.y, 4, Math.PI, 0); ctx.fill();
         if(b.open > 0 && !G.lite){
           ctx.save();
           ctx.globalCompositeOperation = 'lighter';
@@ -2848,7 +2888,8 @@
             if(G.score > G.best){ G.best = G.score; save(); }
             sfx.over();
             show('Матч окончен', 'Шарфы кончились',
-              'Никита сел на скамейку у турникета и пересчитал билеты. Ничего, следующий выезд через неделю.',
+              tip('Никита сел на скамейку у турникета и пересчитал билеты. Ничего, следующий выезд через неделю.',
+                  'Ничего, следующий выезд через неделю.'),
               'Очки: ' + G.score + '   ·   Рекорд: ' + G.best, 'Начать сначала', null);
           } else {
             G.gear = 0;
@@ -3061,7 +3102,8 @@
     }
     syncCards(); hud();
     show('Чёрно-белый сектор', 'Никита за Торпедо',
-      'Стрелки или A/D — бежать, пробел — прыжок (держать дольше — выше). Сверху на соперника — он теряет кепку, сбоку — теряешь шарф. Ящики с вопросом бей снизу головой: оттуда падают билеты и куртки, а куртка принимает удар на себя.',
+      tip('Стрелки или A/D — бежать, пробел — прыжок (держать дольше — выше). Сверху на соперника — он теряет кепку, сбоку — теряешь шарф. Ящики с вопросом бей снизу головой: оттуда падают билеты и куртки, а куртка принимает удар на себя.',
+          'Кнопки снизу: ◀ ▶ — бежать, «Прыжок» — прыгать. Тап по полю — тоже прыжок. Сверху на соперника, ящики бей снизу головой.'),
       'Рекорд: ' + G.best, 'Поехали', null);
     requestAnimationFrame(loop);
   }
