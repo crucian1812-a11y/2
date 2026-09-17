@@ -759,11 +759,38 @@
       }
     }
 
+    // высота земли берётся из готовой сетки: floorY к этому моменту уже
+    // может не совпадать с рельефом в нужной колонке, и машина висла в воздухе
+    const surfaceAt = tx => {
+      let y = ROWS - 1;
+      if(tx < 0 || tx >= COLS || grid[y*COLS + tx] !== SOLID) return -1;
+      while(y > 0 && grid[(y-1)*COLS + tx] === SOLID) y--;
+      return y;
+    };
+    const flatSpot = (from, span, back) => {
+      for(let d = 0; d < 60; d++){
+        const tx = back ? from - d : from + d;
+        if(tx < 2 || tx > COLS - span - 2) continue;
+        const t = surfaceAt(tx);
+        if(t < 1) continue;
+        let ok = true;
+        for(let k = 1; k < span; k++){
+          if(surfaceAt(tx + k) !== t) ok = false;
+          if(grid[(t-1)*COLS + tx + k] !== EMPTY) ok = false;
+        }
+        if(ok) return { tx, y:t*TILE };
+      }
+      return null;
+    };
+
     const finish = flat(COLS - x, true);
     // в конце Москвы у парка стоят две машины — оттуда подтягиваются бело-голубые
     if(CITIES[idx].endCars)
-      for(const cx of [COLS - 33, COLS - 21])
-        buses.push({ x:cx*TILE, y:floorY*TILE, kind:'car', club:'dynamo', from:0.72, open:0, t:0 });
+      for(const cx of [COLS - 33, COLS - 21]){
+        const spot = flatSpot(cx, 4);
+        if(spot) buses.push({ x:spot.tx*TILE, y:spot.y,
+                              kind:'car', club:'dynamo', from:0.72, open:0, t:0 });
+      }
     const flagX = (COLS - 9) * TILE;
     const flagY = floorY * TILE;
 
@@ -786,7 +813,9 @@
           if(r.b - r.a < 7) continue;
           if(!best || r.b - r.a > best.b - best.a) best = r;
         }
-        if(best) buses.push({ x:(best.a + 2)*TILE, y:best.y*TILE,
+        if(!best) continue;
+        const spot = flatSpot(best.a + 2, 4);
+        if(spot) buses.push({ x:spot.tx*TILE, y:spot.y,
                               kind:'bus', club:CITIES[idx].foe, from:0.25, open:0, t:0 });
       }
     }
@@ -1964,9 +1993,9 @@
       if(c.skyline === 'msk'){
         house(x + 8, base - 250, 92, 250, wall, c, i+1);            // сталинская высотка
         ctx.fillStyle = wall;
-        ctx.fillRect(x + 38, base - 300, 32, 50);
-        ctx.beginPath(); ctx.moveTo(x + 54, base - 366);
-        ctx.lineTo(x + 72, base - 300); ctx.lineTo(x + 36, base - 300); ctx.closePath(); ctx.fill();
+        ctx.fillRect(x + 34, base - 300, 40, 50);
+        ctx.beginPath(); ctx.moveTo(x + 54, base - 362);
+        ctx.lineTo(x + 78, base - 300); ctx.lineTo(x + 30, base - 300); ctx.closePath(); ctx.fill();
         ctx.fillStyle = '#C8102E';
         ctx.fillRect(x + 52, base - 374, 4, 10);                    // звезда на шпиле
 
@@ -1975,23 +2004,25 @@
         ctx.fillStyle = wall;
         ctx.fillRect(tw - 46, base - 56, 46, 56);                   // прясло стены
         for(let k = 0; k < 6; k++) ctx.fillRect(tw - 46 + k*8, base - 64, 5, 10);
-        ctx.fillRect(tw, base - 124, 50, 124);                      // тело башни
+        ctx.fillRect(tw, base - 128, 64, 128);                      // тело башни
         ctx.fillStyle = 'rgba(0,0,0,.35)';
-        for(let k = 0; k < 3; k++) ctx.fillRect(tw + 12 + k*14, base - 96, 5, 14);  // бойницы
+        for(let k = 0; k < 3; k++) ctx.fillRect(tw + 16 + k*16, base - 98, 6, 16);  // бойницы
         ctx.fillStyle = wall;
-        ctx.fillRect(tw - 5, base - 134, 60, 12);                   // машикули
-        for(let k = 0; k < 7; k++) ctx.fillRect(tw - 3 + k*8, base - 146, 5, 13);
+        ctx.fillRect(tw - 7, base - 140, 78, 14);                   // машикули
+        for(let k = 0; k < 8; k++) ctx.fillRect(tw - 5 + k*10, base - 154, 6, 15);
         ctx.beginPath();                                            // шатёр
-        ctx.moveTo(tw + 25, base - 226);
-        ctx.lineTo(tw + 56, base - 146); ctx.lineTo(tw - 6, base - 146);
+        ctx.moveTo(tw + 32, base - 232);
+        ctx.lineTo(tw + 74, base - 154); ctx.lineTo(tw - 10, base - 154);
         ctx.closePath(); ctx.fill();
-        ctx.fillRect(tw + 16, base - 252, 18, 28);                  // дозорная вышка
+        ctx.fillRect(tw + 18, base - 262, 28, 32);                  // дозорная вышка
+        ctx.fillRect(tw + 14, base - 266, 36, 6);
         ctx.beginPath();
-        ctx.moveTo(tw + 25, base - 282);
-        ctx.lineTo(tw + 37, base - 252); ctx.lineTo(tw + 13, base - 252);
+        ctx.moveTo(tw + 32, base - 300);
+        ctx.lineTo(tw + 50, base - 262); ctx.lineTo(tw + 14, base - 262);
         ctx.closePath(); ctx.fill();
         ctx.fillStyle = '#C6B27A';
-        ctx.fillRect(tw + 23, base - 296, 3, 16);                   // крест
+        ctx.fillRect(tw + 30, base - 318, 5, 20);                   // крест
+        ctx.fillRect(tw + 25, base - 310, 15, 5);
 
         // завод ЗИЛ: корпус с пилообразной кровлей, ворота, газгольдер
         const zx = x + 212;
