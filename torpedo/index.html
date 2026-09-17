@@ -516,7 +516,7 @@
       <p class="eyebrow">Чёрно-белый сектор · выезд</p>
       <h1>Никита за Торпедо</h1>
       <p class="lede">Никита едет за командой через пять городов — от заводских труб Восточной улицы до моря.
-        Прыгать через ямы и турникеты, собирать билеты, приземляться на кепки болельщиков Локомотива. Мяч в игре.</p>
+        Прыгать через ямы и турникеты, собирать билеты, приземляться на кепки соперников. Мяч в игре.</p>
     </div>
   </header>
 
@@ -533,13 +533,13 @@
   <div class="play" id="play">
   <div class="stage">
     <canvas id="game" width="960" height="600" tabindex="0"
-            aria-label="Игровое поле: Никита бежит по городу, прыгает через ямы и болельщиков Локомотива"></canvas>
+            aria-label="Игровое поле: Никита бежит по городу, прыгает через ямы и соперников"></canvas>
 
     <div class="overlay" id="overlay">
       <p class="tag" id="ov-tag">Выезд первый</p>
       <h2 id="ov-title">Москва</h2>
       <p id="ov-text">Стрелки или A/D — бежать. Пробел — прыжок, подольше держать — выше.
-        Сверху на болельщика Локомотива — он теряет кепку и уходит. Сбоку — теряешь шарф.</p>
+        Сверху на соперника — он теряет кепку и уходит. Сбоку — теряешь шарф.</p>
       <p class="big" id="ov-stats" hidden></p>
       <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center">
         <button class="btn" id="ov-btn">Поехали</button>
@@ -590,10 +590,14 @@
       зелёный столб, от него продолжаешь после падения.</p>
     <p><b>Жёлто-чёрная плитка</b> — разрытая теплотрасса, через неё только прыжком. В яму упал — шарф потерян.
       На разводном мосту и на трамвайной платформе Никита едет вместе с ними, прыгать можно прямо с хода.</p>
+    <p><b>Соперники у каждого города свои.</b> В Москве, Казани и Екатеринбурге навстречу идут
+      красно-зелёные, на Неве — сине-бело-голубые. В Сочи по маршруту сперва пусто: гости
+      приезжают автобусами, и после четверти пути из двух автобусов по очереди выходят
+      красно-синие. Всего приедет шестнадцать, больше пяти разом на улице не бывает.</p>
     <p><b>Ящики с вопросом</b> бьются снизу головой, как кирпичи в Марио. Внутри либо билет,
       либо куртка: олива с нашивкой на рукаве — Stone Island, песочная с линзами на капюшоне —
       C.P. Company. Подобрал — Никита переоделся, и это видно на экране.</p>
-    <p><b>Куртка держит удар вместо шарфа.</b> Налетел на болельщика Локомотива в куртке — рвётся
+    <p><b>Куртка держит удар вместо шарфа.</b> Налетел на соперника в куртке — рвётся
       куртка, шарф остаётся. В C.P. Company вдобавок прыгается выше. В яму или по времени куртка
       не спасает, и со смертью гардероб теряется весь.</p>
     <p><b>Пальцем</b> можно вести, не отрывая: палец едет с «влево» на «вправо» — направление
@@ -623,19 +627,19 @@
   const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   const CITIES = [
-    { name:'Москва',           place:'Восточная улица, ЗИЛ',       skyline:'msk',
+    { name:'Москва',           place:'Восточная улица, ЗИЛ',       skyline:'msk', foe:'loko',
       sky:['#141C24','#3B4A54'], far:'#151C21', near:'#1F2A30', road:'#48525A', kerb:'#606C73',
       win:'#FFD98A', neon:'#00A651', glow:'#FFC46B', fog:'#1E2A32', weather:'snow' },
-    { name:'Санкт-Петербург',  place:'Набережная, разводной мост', skyline:'spb',
+    { name:'Санкт-Петербург',  place:'Набережная, разводной мост', skyline:'spb', foe:'zenit',
       sky:['#1B2330','#4A5364'], far:'#191F2A', near:'#232B37', road:'#4B515E', kerb:'#626A78',
       win:'#FFE3B0', neon:'#7FB4E8', glow:'#FFD79A', fog:'#232E3C', weather:'rain' },
-    { name:'Казань',           place:'Кремль и Кабан',             skyline:'kzn',
+    { name:'Казань',           place:'Кремль и Кабан',             skyline:'kzn', foe:'loko',
       sky:['#241B26','#6A4638'], far:'#201825', near:'#2B2029', road:'#50454C', kerb:'#685A62',
       win:'#FFCF8A', neon:'#E8B910', glow:'#FFB870', fog:'#32222E', weather:'none' },
-    { name:'Екатеринбург',     place:'Конструктивизм, Плотинка',   skyline:'ekb',
+    { name:'Екатеринбург',     place:'Конструктивизм, Плотинка',   skyline:'ekb', foe:'loko',
       sky:['#101A1E','#2F4348'], far:'#111A1E', near:'#1A2428', road:'#465055', kerb:'#5C686D',
       win:'#CFE6FF', neon:'#7FE3C0', glow:'#BFD8F5', fog:'#172226', weather:'snow' },
-    { name:'Сочи',             place:'Стадион у моря',             skyline:'sochi',
+    { name:'Сочи',             place:'Стадион у моря',             skyline:'sochi', foe:'cska', foeSpawn:'bus',
       sky:['#1A2440','#C9713E'], far:'#191E30', near:'#222739', road:'#4C4F5C', kerb:'#646776',
       win:'#FFD3A0', neon:'#FF8A5B', glow:'#FFB27A', fog:'#2A2B44', weather:'none' }
   ];
@@ -656,11 +660,12 @@
   function buildLevel(idx){
     const rng = mulberry32(0x7A0BE + idx * 9176);
     const grid = new Uint8Array(COLS * ROWS);
-    const coins = [], foes = [], movers = [], boxes = [];
+    const coins = [], foes = [], movers = [], boxes = [], buses = [];
+    const byBus = CITIES[idx].foeSpawn === 'bus';
     const set = (x,y,v) => { if(x>=0 && x<COLS && y>=0 && y<ROWS) grid[y*COLS + x] = v; };
     const fillCol = (x, top) => { for(let y=top; y<ROWS; y++) set(x,y,SOLID); };
     const coin = (tx, ty) => coins.push({ x:tx*TILE + TILE/2, y:ty*TILE + TILE/2, got:false, ph:rng()*6.28 });
-    const foe  = (tx, ty, a, b) => foes.push({
+    const foe  = (tx, ty, a, b) => byBus ? null : foes.push({
       x:tx*TILE + 6, y:ty*TILE - 36, w:28, h:36, vx:(rng()<.5?-1:1)*1.15,
       min:a*TILE, max:b*TILE - 28, dead:0, t:rng()*6.28
     });
@@ -747,6 +752,20 @@
     }
     if(!cp) cp = { x:20*TILE, y:(ROWS-3)*TILE };
 
+    // два автобуса на длинных ровных участках — из них и пойдут гости
+    if(byBus){
+      for(const zone of [[0.30, 0.52], [0.58, 0.84]]){
+        let best = null;
+        for(const r of flatRuns){
+          const mid = (r.a + r.b) / 2 / COLS;
+          if(mid < zone[0] || mid > zone[1]) continue;
+          if(r.b - r.a < 7) continue;
+          if(!best || r.b - r.a > best.b - best.a) best = r;
+        }
+        if(best) buses.push({ x:(best.a + 2)*TILE, y:best.y*TILE, open:0, t:0 });
+      }
+    }
+
     // где ящиков вышло мало, доставим их на ровных участках
     let guard = 0;
     while(boxes.length < 7 && guard++ < 60 && flatRuns.length){
@@ -779,7 +798,7 @@
     const boxKind = new Map();
     for(const b of boxes) boxKind.set(b.ty*COLS + b.tx, b.kind);
 
-    return { grid, coins, foes, movers, boxKind, items:[], bumps:[],
+    return { grid, coins, foes, movers, boxKind, buses, items:[], bumps:[],
              flagX, flagY, cp, startY:(ROWS-3)*TILE, finishA:finish.a };
   }
 
@@ -850,7 +869,8 @@
     time:LEVEL_TIME, frames:0, timer:0,
     best:0, unlocked:1, done:[false,false,false,false,false],
     shake:0, sound:true, lite:false,
-    gear:0, dress:0
+    gear:0, dress:0,
+    busT:0, busIdx:0, busLeft:0
   };
 
   let L = null;                   // текущий уровень
@@ -981,6 +1001,7 @@
     L.props = decorate(L, i);
     if(!keepScore){ /* очки копятся весь выезд */ }
     G.coins = 0;
+    G.busT = 0; G.busIdx = 0; G.busLeft = 16;
     G.time = LEVEL_TIME;
     G.timer = 0;
     cam = 0;
@@ -1039,6 +1060,24 @@
     sparks.push({ x:P.x + P.w/2, y:P.y - 4, t:44, txt:GEAR[G.gear].short });
     spawnBits(P.x + P.w/2, P.y + 12, 16, G.gear === 2 ? '#C7B58C' : '#6E8250', 5, 3);
     return was !== G.gear;
+  }
+
+  /* В Сочи по маршруту пусто, пока не пройдёшь четверть пути: дальше от
+     автобусов по очереди подтягиваются гости в красно-синем. */
+  function busSpawn(b){
+    const ty = Math.floor(b.y / TILE);
+    let a = Math.floor(b.x / TILE), c = a;
+    while(a > 1 && groundAt(a - 1, ty) && !solidAt(a - 1, ty - 1)) a--;
+    while(c < COLS - 2 && groundAt(c + 1, ty) && !solidAt(c + 1, ty - 1)) c++;
+    L.foes.push({
+      x:b.x + 14, y:b.y - 36, w:28, h:36,
+      vx:(P.x > b.x ? 1 : -1) * 1.2,
+      min:a*TILE, max:c*TILE - 28, dead:0, t:Math.random()*6.28
+    });
+    b.open = 34;
+    G.busLeft--;
+    beep(210, .14, 'sawtooth', .05);
+    spawnBits(b.x + 20, b.y - 12, 6, '#123C8C', 3, 1.6);
   }
 
   /* ====================== шаг физики ====================== */
@@ -1142,7 +1181,8 @@
       if(fromAbove){
         f.dead = 1; P.vy = -9.6; G.score += 200; G.shake = reduceMotion ? 0 : 6; buzz(18);
         poofs.push({ x:f.x + f.w/2, y:f.y, t:0 });
-        spawnBits(f.x + f.w/2, f.y + 10, 12, '#C8102E', 5.5, 2.6);
+        spawnBits(f.x + f.w/2, f.y + 10, 12,
+                  CITIES[G.level].foe === 'zenit' ? '#1A5DAB' : '#C8102E', 5.5, 2.6);
         sparks.push({ x:f.x + f.w/2, y:f.y - 6, t:30, txt:'+200' });
         sfx.stomp();
       } else hurt();
@@ -1197,6 +1237,20 @@
     for(let i = L.bumps.length-1; i >= 0; i--)
       if(++L.bumps[i].t > 12) L.bumps.splice(i, 1);
     if(G.dress > 0) G.dress--;
+
+    // автобусы: дверь открылась — вышел ещё один
+    if(L.buses.length){
+      for(const b of L.buses) if(b.open > 0){ b.open--; b.t++; }
+      if(P.x > L.flagX * 0.25 && G.busLeft > 0){
+        G.busT++;
+        const alive = L.foes.reduce((n, f) => n + (f.dead ? 0 : 1), 0);
+        if(G.busT > 140 && alive < 5){
+          G.busT = 0;
+          busSpawn(L.buses[G.busIdx % L.buses.length]);
+          G.busIdx++;
+        }
+      }
+    }
 
     if(!P.passed && P.x + P.w > L.cp.x && P.x < L.cp.x + 20){
       P.passed = true;
@@ -1397,6 +1451,12 @@
          o:'#5C6B44', O:'#3E4A2E', y:'#E8891A',        // олива и нашивка на рукаве
          c:'#C6B48A', C:'#7A6B4C', l:'#8FD4EF', L:'#2A3138' },  // песок и линзы капюшона
     f: { R:'#C8102E', D:'#8E0A20', G:'#0C7A46', s:'#D8A882', S:'#B0805C',
+         j:'#2C3540', r:'#1E2126', k:'#12151A' },
+    // Зенит: сине-бело-голубые
+    fz:{ R:'#1A5DAB', D:'#103F7C', G:'#EFEDE5', s:'#D8A882', S:'#B0805C',
+         j:'#2C3540', r:'#1E2126', k:'#12151A' },
+    // ЦСКА: красно-синие
+    fc:{ R:'#C8102E', D:'#8E0A20', G:'#123C8C', s:'#D8A882', S:'#B0805C',
          j:'#2C3540', r:'#1E2126', k:'#12151A' }
   };
 
@@ -1492,7 +1552,7 @@
 
   const nikita = (head, body, legs) => makeSprite(head.concat(body, N_LEGS[legs]), PAL.n, 2, '#0C0F12');
 
-  // Болельщик Локомотива: красная роза, зелёная полоса, кепка с козырьком
+  // Соперник: роза, полоса поперёк и кепка с козырьком; цвета берутся по городу
   const F_TOP = [
     '................',
     '....RRRRRRR.....',
@@ -1559,8 +1619,14 @@
       kit(N_HEAD,    N_SI,   N_SI_AIR),
       kit(N_HEAD_CP, N_CP,   N_CP_AIR)
     ],
-    foe:  ['a','b'].map(k => makeSprite(F_TOP.concat(F_LEGS[k]), PAL.f, 2, '#0C0F12')),
-    foeSad: makeSprite(F_SAD, PAL.f, 2, '#0C0F12'),
+    foes: {
+      loko:  { walk:['a','b'].map(k => makeSprite(F_TOP.concat(F_LEGS[k]), PAL.f,  2, '#0C0F12')),
+               sad: makeSprite(F_SAD, PAL.f,  2, '#0C0F12') },
+      zenit: { walk:['a','b'].map(k => makeSprite(F_TOP.concat(F_LEGS[k]), PAL.fz, 2, '#0C0F12')),
+               sad: makeSprite(F_SAD, PAL.fz, 2, '#0C0F12') },
+      cska:  { walk:['a','b'].map(k => makeSprite(F_TOP.concat(F_LEGS[k]), PAL.fc, 2, '#0C0F12')),
+               sad: makeSprite(F_SAD, PAL.fc, 2, '#0C0F12') }
+    },
     itemSI: makeSprite(ITEM_SI, PAL.n, 2, '#0C0F12'),
     itemCP: makeSprite(ITEM_CP, PAL.n, 2, '#0C0F12')
   };
@@ -1580,7 +1646,7 @@
     k.jumpL = flipped(k.jump);
     k.fallL = flipped(k.fall);
   }
-  SPR.foeL = SPR.foe.map(flipped);
+  for(const k in SPR.foes) SPR.foes[k].walkL = SPR.foes[k].walk.map(flipped);
 
   /* ====================== рисование ====================== */
 
@@ -1829,6 +1895,8 @@
     ctx.fillStyle = fog; ctx.fillRect(0, base - 200, W, 200);
   }
 
+  const zy0 = base => base - 92;
+
   /* ——— средний план: то, по чему город узнаётся ——— */
   function layerMid(c){
     const base = 486;
@@ -1836,24 +1904,83 @@
     band(0.15, 470, (x, i) => {
       ctx.fillStyle = wall;
       if(c.skyline === 'msk'){
-        house(x + 20, base - 250, 96, 250, wall, c, i+1);          // сталинская высотка
+        house(x + 8, base - 250, 92, 250, wall, c, i+1);            // сталинская высотка
         ctx.fillStyle = wall;
-        ctx.fillRect(x + 52, base - 300, 32, 50);
-        ctx.beginPath(); ctx.moveTo(x + 68, base - 366);
-        ctx.lineTo(x + 86, base - 300); ctx.lineTo(x + 50, base - 300); ctx.closePath(); ctx.fill();
+        ctx.fillRect(x + 38, base - 300, 32, 50);
+        ctx.beginPath(); ctx.moveTo(x + 54, base - 366);
+        ctx.lineTo(x + 72, base - 300); ctx.lineTo(x + 36, base - 300); ctx.closePath(); ctx.fill();
         ctx.fillStyle = '#C8102E';
-        ctx.fillRect(x + 66, base - 374, 4, 10);                    // звезда на шпиле
-        // заводские трубы ЗИЛа с дымом
+        ctx.fillRect(x + 52, base - 374, 4, 10);                    // звезда на шпиле
+
+        // башня Дуло Симонова монастыря: зубцы, шатёр, дозорная вышка
+        const tw = x + 126;
         ctx.fillStyle = wall;
-        ctx.fillRect(x + 250, base - 230, 30, 230);
-        ctx.fillRect(x + 300, base - 190, 26, 190);
+        ctx.fillRect(tw - 46, base - 56, 46, 56);                   // прясло стены
+        for(let k = 0; k < 6; k++) ctx.fillRect(tw - 46 + k*8, base - 64, 5, 10);
+        ctx.fillRect(tw, base - 124, 50, 124);                      // тело башни
+        ctx.fillStyle = 'rgba(0,0,0,.35)';
+        for(let k = 0; k < 3; k++) ctx.fillRect(tw + 12 + k*14, base - 96, 5, 14);  // бойницы
+        ctx.fillStyle = wall;
+        ctx.fillRect(tw - 5, base - 134, 60, 12);                   // машикули
+        for(let k = 0; k < 7; k++) ctx.fillRect(tw - 3 + k*8, base - 146, 5, 13);
+        ctx.beginPath();                                            // шатёр
+        ctx.moveTo(tw + 25, base - 226);
+        ctx.lineTo(tw + 56, base - 146); ctx.lineTo(tw - 6, base - 146);
+        ctx.closePath(); ctx.fill();
+        ctx.fillRect(tw + 16, base - 252, 18, 28);                  // дозорная вышка
+        ctx.beginPath();
+        ctx.moveTo(tw + 25, base - 282);
+        ctx.lineTo(tw + 37, base - 252); ctx.lineTo(tw + 13, base - 252);
+        ctx.closePath(); ctx.fill();
+        ctx.fillStyle = '#C6B27A';
+        ctx.fillRect(tw + 23, base - 296, 3, 16);                   // крест
+
+        // завод ЗИЛ: корпус с пилообразной кровлей, ворота, газгольдер
+        const zx = x + 212;
+        ctx.fillStyle = wall;
+        ctx.fillRect(zx, zy0(base), 168, 92);
+        for(let k = 0; k < 7; k++){                                 // шедовая кровля
+          ctx.beginPath();
+          ctx.moveTo(zx + k*24, base - 92);
+          ctx.lineTo(zx + k*24 + 13, base - 116);
+          ctx.lineTo(zx + k*24 + 24, base - 92);
+          ctx.closePath(); ctx.fill();
+        }
+        ctx.fillStyle = 'rgba(255,217,138,.35)';                    // фонари цеха
+        for(let k = 0; k < 7; k++) ctx.fillRect(zx + k*24 + 6, base - 104, 10, 10);
+        ctx.fillStyle = 'rgba(255,217,138,.28)';
+        for(let k = 0; k < 9; k++) ctx.fillRect(zx + 8 + k*18, base - 76, 11, 16);  // ряд окон
+        ctx.fillStyle = 'rgba(0,0,0,.4)';
+        ctx.fillRect(zx + 62, base - 44, 44, 44);                   // заводские ворота
+        ctx.globalAlpha = 0.85 + (reduceMotion ? 0 : 0.15*Math.sin(G.frames*0.06 + i));
+        ctx.fillStyle = 'rgba(10,13,15,.8)';                        // вывеска над воротами
+        ctx.fillRect(zx + 44, base - 66, 80, 22);
+        ctx.fillStyle = c.neon;
+        ctx.fillRect(zx + 44, base - 66, 80, 2);
+        ctx.fillRect(zx + 44, base - 46, 80, 2);
+        ctx.font = '700 19px Oswald, "Arial Narrow", sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('ЗИЛ', zx + 84, base - 50);
+        ctx.textAlign = 'left';
+        ctx.globalAlpha = 1;
+
+        ctx.fillStyle = wall;                                       // трубы
+        ctx.fillRect(zx + 186, base - 236, 30, 236);
+        ctx.fillRect(zx + 226, base - 196, 25, 196);
+        ctx.fillStyle = '#C8102E';
+        ctx.fillRect(zx + 186, base - 214, 30, 8);
+        ctx.fillRect(zx + 226, base - 176, 25, 7);
         ctx.fillStyle = 'rgba(239,237,229,.07)';
         for(let k = 0; k < (G.lite ? 0 : 4); k++){
           const t = reduceMotion ? 0 : G.frames*0.25;
-          const sy = base - 236 - (k*26 + t % 26);
-          ctx.beginPath(); ctx.arc(x + 265 + Math.sin((sy+i)*0.04)*9, sy, 9 + k*3, 0, 6.284); ctx.fill();
+          const sy = base - 242 - (k*26 + t % 26);
+          ctx.beginPath(); ctx.arc(zx + 201 + Math.sin((sy+i)*0.04)*9, sy, 9 + k*3, 0, 6.284); ctx.fill();
         }
-        house(x + 340, base - 150, 110, 150, wall, c, i+5);
+        ctx.fillStyle = wall;                                       // газгольдер
+        ctx.beginPath(); ctx.arc(zx + 282, base - 44, 34, Math.PI, 0); ctx.fill();
+        ctx.fillRect(zx + 248, base - 44, 68, 44);
+        ctx.fillStyle = 'rgba(0,0,0,.3)';
+        ctx.fillRect(zx + 248, base - 30, 68, 4);
       }
       else if(c.skyline === 'spb'){
         house(x + 4, base - 110, 150, 110, wall, c, i+2, 15);       // фасады набережной
@@ -1980,8 +2107,12 @@
     band(0.32, 260, (x, i) => {
       const v = i & 15;
       const seaside = c.skyline === 'sochi';
-      if(hash(v + 91) > (seaside ? 0.55 : 0.82)) return;            // переулок
-      const h = ((seaside ? 40 : 90) + hash(v + 40)*(seaside ? 44 : 120)) | 0;
+      // в Москве и у моря ближняя застройка ниже и реже, иначе она закрывает
+      // то, ради чего город узнаётся: завод, башню, стадион, воду
+      const open = seaside || c.skyline === 'msk';
+      if(hash(v + 91) > (seaside ? 0.55 : open ? 0.66 : 0.82)) return;
+      const h = ((seaside ? 40 : open ? 58 : 90)
+               + hash(v + 40)*(seaside ? 44 : open ? 58 : 120)) | 0;
       const w = (110 + hash(v + 17)*80) | 0;
       const wall = i % 2 ? c.near : c.far;
       house(x, base - h, w, h + 90, wall, c, v + 70, 12 + (hash(v+8)*6|0));
@@ -2004,7 +2135,7 @@
         ctx.globalAlpha = 1;
       }
       ctx.fillStyle = wall;
-      ctx.fillRect(x + w + 14, base - (seaside ? 34 : 56), 62, 146);
+      ctx.fillRect(x + w + 14, base - (open ? 34 : 56), 62, 146);
       ctx.fillStyle = 'rgba(0,0,0,.3)';
       for(let k = 0; k < 3; k++) ctx.fillRect(x + w + 22 + k*18, base - 46, 11, 16);
     });
@@ -2245,6 +2376,42 @@
     }
   }
 
+  /* ——— автобус гостей ——— */
+  function drawBuses(){
+    if(!L.buses) return;
+    for(const b of L.buses){
+      const px = b.x - cam;
+      if(px < -200 || px > W + 200) continue;
+      const bw = 132, bh = 54, top = b.y - bh;
+      ctx.fillStyle = '#B3122E';                       // корпус
+      ctx.fillRect(px, top, bw, bh);
+      ctx.fillStyle = '#123C8C';                       // синяя полоса
+      ctx.fillRect(px, top + bh - 20, bw, 10);
+      ctx.fillStyle = '#8E0A20';
+      ctx.fillRect(px, top, bw, 5);
+      ctx.fillStyle = 'rgba(180,206,228,.55)';         // окна
+      for(let k = 0; k < 4; k++) ctx.fillRect(px + 10 + k*28, top + 10, 20, 16);
+      ctx.fillStyle = 'rgba(255,214,150,.75)';         // лобовое
+      ctx.fillRect(px + bw - 18, top + 10, 14, 16);
+      const open = b.open > 0;                         // дверь
+      ctx.fillStyle = open ? 'rgba(255,214,150,.65)' : '#2A2F36';
+      ctx.fillRect(px + 46, top + 28, 18, 26);
+      ctx.fillStyle = '#1B2026';
+      ctx.fillRect(px + 55, top + 28, 2, 26);
+      ctx.fillStyle = '#E8B910';                       // фары
+      ctx.fillRect(px + bw - 6, top + 34, 6, 7);
+      ctx.fillStyle = '#15191D';
+      ctx.beginPath(); ctx.arc(px + 28, b.y, 10, Math.PI, 0); ctx.fill();
+      ctx.beginPath(); ctx.arc(px + bw - 28, b.y, 10, Math.PI, 0); ctx.fill();
+      if(open && !G.lite){
+        ctx.save();
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.drawImage(TEX_LAMP, px + 20, b.y - 70, 70, 70);
+        ctx.restore();
+      }
+    }
+  }
+
   /* ——— фонари светят по-настоящему ——— */
   function drawLights(c){
     if(G.lite) return;
@@ -2327,17 +2494,18 @@
   function drawFoe(f){
     const px = Math.round(f.x - cam), py = Math.round(f.y);
     if(px < -80 || px > W + 80) return;
+    const kit = SPR.foes[CITIES[G.level].foe] || SPR.foes.loko;
     if(f.dead){
       const t = f.dead;
       ctx.save();
       ctx.globalAlpha = Math.max(0, 1 - t/45);
-      ctx.drawImage(SPR.foeSad, px - 3, py - 6 + t*0.7);
+      ctx.drawImage(kit.sad, px - 3, py - 6 + t*0.7);
       ctx.restore();
       return;
     }
     shadow(f.x + f.w/2, f.y + f.h, f.w);
     const fr = Math.floor(G.frames/9 + f.t) % 2;
-    ctx.drawImage(f.vx > 0 ? SPR.foe[fr] : SPR.foeL[fr], px - 3, py - 6);
+    ctx.drawImage(f.vx > 0 ? kit.walk[fr] : kit.walkL[fr], px - 3, py - 6);
   }
 
   /* ——— Никита ——— */
@@ -2499,6 +2667,7 @@
 
     drawTiles(c);
     drawProps(c);
+    drawBuses();
     drawCheckpoint();
     drawFlag();
     drawMovers(c);
@@ -2514,8 +2683,9 @@
       ctx.globalAlpha = Math.max(0, 1 - p.t/45);
       ctx.translate(p.x - cam, p.y - p.t*1.7);
       ctx.rotate(p.t*0.14);
-      ctx.fillStyle = '#C8102E'; ctx.fillRect(-11, -4, 22, 7);
-      ctx.fillStyle = '#8E0A20'; ctx.fillRect(2, -4, 9, 3);
+      const fp = CITIES[G.level].foe === 'zenit' ? PAL.fz : CITIES[G.level].foe === 'cska' ? PAL.fc : PAL.f;
+      ctx.fillStyle = fp.R; ctx.fillRect(-11, -4, 22, 7);
+      ctx.fillStyle = fp.D; ctx.fillRect(2, -4, 9, 3);
       ctx.restore();
     }
     ctx.font = '600 18px Oswald, sans-serif';
@@ -2791,7 +2961,7 @@
     }
     syncCards(); hud();
     show('Чёрно-белый сектор', 'Никита за Торпедо',
-      'Стрелки или A/D — бежать, пробел — прыжок (держать дольше — выше). Сверху на болельщика Локомотива — он теряет кепку, сбоку — теряешь шарф. Ящики с вопросом бей снизу головой: оттуда падают билеты и куртки, а куртка принимает удар на себя.',
+      'Стрелки или A/D — бежать, пробел — прыжок (держать дольше — выше). Сверху на соперника — он теряет кепку, сбоку — теряешь шарф. Ящики с вопросом бей снизу головой: оттуда падают билеты и куртки, а куртка принимает удар на себя.',
       'Рекорд: ' + G.best, 'Поехали', null);
     requestAnimationFrame(loop);
   }
