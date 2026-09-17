@@ -812,12 +812,16 @@
       : ['bin','bench','tree','stop','kiosk','sign','fence','box'];
 
     const props = [];
+    const wantTsar = c.skyline === 'spb' ? 2 : 0;
+    let tsar = 0;
     let x = 5, sinceLamp = 0;
     while(x < COLS - 12){
       x += 3 + Math.floor(rng()*4);
       if(!freeAt(x, 3)) continue;
-      const type = sinceLamp >= 2 ? 'lamp' : kinds[Math.floor(rng()*kinds.length)];
+      let type = sinceLamp >= 2 ? 'lamp' : kinds[Math.floor(rng()*kinds.length)];
+      if(tsar < wantTsar && x > 25 && rng() < 0.12){ type = 'tsar'; tsar++; }
       sinceLamp = type === 'lamp' ? 0 : sinceLamp + 1;
+      if(type === 'tsar') sinceLamp = 0;
       props.push({
         type,
         x: x*TILE + Math.floor(rng()*10),
@@ -1440,17 +1444,17 @@
   const N_SI = [
     '....gggggggg....',
     '...oooooooooo...',
-    '..sooooooooos...',
-    '..soooooooyos...',
+    '..sooooooo' + 'yoos..',
+    '..soooooo'  + 'ybyos..',
+    '...ooooooo' + 'yoo...',
     '...ooOoooOooo...',
-    '...oooooooooo...',
     '...OOOOOOOOOO...'
   ];
   const N_SI_AIR = [
     '....gggggggg....',
-    '...ooooooooos...',
-    '...ooooooooos...',
-    '..soooooooyoo...',
+    '...ooooooo' + 'yoos..',
+    '...oooooo'  + 'ybyos..',
+    '..soooooo'  + 'yooo...',
     '..sooOoooOooo...',
     '...oooooooooo...',
     '...OOOOOOOOOO...'
@@ -1525,10 +1529,10 @@
   const ITEM_SI = [
     '..oooooooooo..',
     '.oooooooooooo.',
-    'oooOoooooOoooo',
-    'ooooooooooyooo',
-    'oooooooooooooo',
-    '.oooooooooooo.',
+    'oooooooyoooooo',
+    'ooooooybyooooo',
+    'oooooooyoooooo',
+    '.oooOoooooOoo.',
     '..OOOOOOOOOO..'
   ];
   const ITEM_CP = [
@@ -1540,6 +1544,7 @@
     '.cccccccccccc.',
     '..CCCCCCCCCC..'
   ];
+
 
   const kit = (head, body, air) => ({
     idle: nikita(head, body, 'idle'),
@@ -1760,20 +1765,63 @@
     ctx.globalAlpha = 1;
   }
 
+  /* ——— море: горизонт, дорожка от солнца, рябь ——— */
+  function sea(c){
+    const top = 330, shore = 462;
+    const g = ctx.createLinearGradient(0, top, 0, shore);
+    g.addColorStop(0, '#7A5A5E');                     // у горизонта вода забирает закат
+    g.addColorStop(0.18, '#43455E');
+    g.addColorStop(0.6, '#2A3350');
+    g.addColorStop(1, '#1D2540');
+    ctx.fillStyle = g; ctx.fillRect(0, top, W, shore - top);
+    ctx.fillStyle = 'rgba(255,196,140,.55)';
+    ctx.fillRect(0, top, W, 2);                       // линия горизонта
+
+    // дорожка ровно под солнцем: сначала световой клин, потом блики по нему
+    const lx = 790 - cam*0.03;
+    const road = ctx.createLinearGradient(0, top, 0, shore);
+    road.addColorStop(0, 'rgba(255,214,150,.50)');
+    road.addColorStop(0.5, 'rgba(255,200,140,.22)');
+    road.addColorStop(1, 'rgba(255,190,130,0)');
+    ctx.fillStyle = road;
+    ctx.beginPath();
+    ctx.moveTo(lx - 24, top); ctx.lineTo(lx + 24, top);
+    ctx.lineTo(lx + 130, shore); ctx.lineTo(lx - 130, shore);
+    ctx.closePath(); ctx.fill();
+    for(let i = 0; i < 26; i++){
+      const t = i/26;
+      const y = top + 4 + i*(shore - top - 8)/26;
+      const w = 16 + t*96;
+      const sway = reduceMotion ? 0 : Math.sin(G.frames*0.05 + i*0.7)*9;
+      ctx.fillStyle = 'rgba(255,232,190,' + (0.42*(1 - t)) + ')';
+      ctx.fillRect(lx - w/2 + sway, y, w, 2);
+    }
+    if(!G.lite){
+      for(let i = 0; i < 70; i++){
+        const t = hash(i);
+        const wy = top + 8 + t*(shore - top - 12);
+        const drift = reduceMotion ? 0 : G.frames*0.1*(0.4 + t);
+        const wx = (hash(i+7)*1500 - cam*0.07 + drift) % (W + 90) - 45;
+        ctx.fillStyle = 'rgba(239,237,229,' + (0.05 + hash(i+3)*0.09) + ')';
+        ctx.fillRect(wx, wy, 10 + hash(i+11)*(16 + t*40), 1 + (t > 0.7 ? 1 : 0));
+      }
+    }
+    // берег: город стоит на суше, а не в воде
+    ctx.fillStyle = '#2A2B44';
+    ctx.fillRect(0, shore, W, H - shore);
+    ctx.fillStyle = 'rgba(255,208,150,.10)';
+    ctx.fillRect(0, shore - 3, W, 4);                 // прибой
+  }
+
   /* ——— дальний план: только тон и дымка ——— */
   function layerFar(c){
     const base = 500;
+    if(c.skyline === 'sochi'){ sea(c); return; }
     band(0.06, 300, (x, i) => {
       ctx.fillStyle = c.far;
-      if(c.skyline === 'sochi'){
-        ctx.beginPath(); ctx.moveTo(x, base);
-        ctx.lineTo(x + 160, base - 210 - hash(i)*60); ctx.lineTo(x + 330, base);
-        ctx.closePath(); ctx.fill();
-      } else {
-        const h = 120 + hash(i)*110;
-        ctx.fillRect(x, base - h, 140, h);
-        ctx.fillRect(x + 150, base - h*0.7, 110, h);
-      }
+      const h = 120 + hash(i)*110;
+      ctx.fillRect(x, base - h, 140, h);
+      ctx.fillRect(x + 150, base - h*0.7, 110, h);
     });
     const fog = ctx.createLinearGradient(0, base - 200, 0, base);
     fog.addColorStop(0, 'rgba(0,0,0,0)');
@@ -1808,20 +1856,39 @@
         house(x + 340, base - 150, 110, 150, wall, c, i+5);
       }
       else if(c.skyline === 'spb'){
-        house(x + 10, base - 120, 190, 120, wall, c, i+2, 15);     // фасады набережной
+        house(x + 4, base - 110, 150, 110, wall, c, i+2, 15);       // фасады набережной
+
+        // Исаакиевский: портик с колоннами, барабан-колоннада, золотой купол
+        const ix = x + 196, iy = base;
         ctx.fillStyle = wall;
-        ctx.fillRect(x + 224, base - 110, 92, 110);                 // Исаакий
-        ctx.beginPath(); ctx.arc(x + 270, base - 110, 46, Math.PI, 0); ctx.fill();
+        ctx.fillRect(ix, iy - 104, 108, 104);                       // основной объём
+        ctx.fillStyle = 'rgba(0,0,0,.28)';
+        for(let k = 0; k < 7; k++) ctx.fillRect(ix + 6 + k*14, iy - 92, 7, 92);   // колоннада портика
+        ctx.fillStyle = wall;
+        ctx.fillRect(ix - 6, iy - 112, 120, 10);                    // фронтон
+        for(const bx of [ix + 2, ix + 92]){                         // угловые звонницы
+          ctx.fillRect(bx, iy - 150, 14, 46);
+          ctx.beginPath(); ctx.arc(bx + 7, iy - 150, 7, Math.PI, 0); ctx.fill();
+        }
+        ctx.fillRect(ix + 30, iy - 150, 48, 40);                    // барабан
+        ctx.fillStyle = 'rgba(0,0,0,.3)';
+        for(let k = 0; k < 5; k++) ctx.fillRect(ix + 34 + k*10, iy - 146, 5, 36); // колонны барабана
+        ctx.fillStyle = '#C6B27A';                                  // золотой купол
+        ctx.beginPath(); ctx.arc(ix + 54, iy - 150, 30, Math.PI, 0); ctx.fill();
+        ctx.fillStyle = 'rgba(255,240,190,.35)';
+        ctx.beginPath(); ctx.arc(ix + 46, iy - 154, 12, Math.PI, 0); ctx.fill();  // блик
         ctx.fillStyle = '#C6B27A';
-        ctx.beginPath(); ctx.arc(x + 270, base - 110, 40, Math.PI, 0); ctx.fill();
-        ctx.fillStyle = wall; ctx.fillRect(x + 266, base - 186, 8, 30);
+        ctx.fillRect(ix + 50, iy - 198, 8, 18);                     // фонарик
+        ctx.fillRect(ix + 52, iy - 212, 4, 16);                     // крест
+        ctx.fillRect(ix + 47, iy - 206, 14, 4);
+
         ctx.fillStyle = wall;                                       // Петропавловка
-        ctx.fillRect(x + 360, base - 110, 26, 110);
-        ctx.beginPath(); ctx.moveTo(x + 373, base - 290);
-        ctx.lineTo(x + 386, base - 110); ctx.lineTo(x + 360, base - 110); ctx.closePath(); ctx.fill();
+        ctx.fillRect(x + 412, base - 110, 26, 110);
+        ctx.beginPath(); ctx.moveTo(x + 425, base - 290);
+        ctx.lineTo(x + 438, base - 110); ctx.lineTo(x + 412, base - 110); ctx.closePath(); ctx.fill();
         ctx.fillStyle = '#C6B27A';
-        ctx.beginPath(); ctx.moveTo(x + 373, base - 286);
-        ctx.lineTo(x + 380, base - 170); ctx.lineTo(x + 366, base - 170); ctx.closePath(); ctx.fill();
+        ctx.beginPath(); ctx.moveTo(x + 425, base - 286);
+        ctx.lineTo(x + 432, base - 170); ctx.lineTo(x + 418, base - 170); ctx.closePath(); ctx.fill();
       }
       else if(c.skyline === 'kzn'){
         ctx.fillStyle = wall;                                       // башня Сююмбике
@@ -1854,13 +1921,46 @@
         }
       }
       else{
-        ctx.fillStyle = wall;                                       // чаша стадиона
-        ctx.beginPath(); ctx.ellipse(x + 130, base - 40, 140, 70, 0, Math.PI, 0); ctx.fill();
-        ctx.fillRect(x - 10, base - 40, 280, 40);
-        ctx.fillStyle = 'rgba(255,211,160,.18)';
-        ctx.beginPath(); ctx.ellipse(x + 130, base - 44, 120, 54, 0, Math.PI, 0); ctx.fill();
+        // «Фишт»: чаша трибун и белая кровля двумя крыльями, как снежная вершина
+        const sx = x + 30, sy = base;
+        ctx.fillStyle = '#20283C';
+        ctx.beginPath(); ctx.ellipse(sx + 150, sy, 168, 54, 0, Math.PI, 0); ctx.fill();
+        ctx.fillRect(sx - 18, sy - 12, 336, 12);
+        ctx.fillStyle = 'rgba(255,214,160,.22)';                   // свет с поля
+        ctx.beginPath(); ctx.ellipse(sx + 150, sy - 10, 132, 40, 0, Math.PI, 0); ctx.fill();
+
+        ctx.fillStyle = '#D7DBE0';                                 // кровля-раковина
+        ctx.beginPath();
+        ctx.moveTo(sx - 20, sy - 18);
+        ctx.quadraticCurveTo(sx + 150, sy - 196, sx + 320, sy - 18);
+        ctx.closePath(); ctx.fill();
+        ctx.fillStyle = '#1C2434';                                 // раскрытая часть над полем
+        ctx.beginPath();
+        ctx.moveTo(sx + 34, sy - 18);
+        ctx.quadraticCurveTo(sx + 150, sy - 142, sx + 266, sy - 18);
+        ctx.closePath(); ctx.fill();
+        ctx.fillStyle = 'rgba(255,214,160,.28)';                   // зарево с поля
+        ctx.beginPath();
+        ctx.moveTo(sx + 52, sy - 18);
+        ctx.quadraticCurveTo(sx + 150, sy - 118, sx + 248, sy - 18);
+        ctx.closePath(); ctx.fill();
+        ctx.strokeStyle = 'rgba(30,40,60,.30)'; ctx.lineWidth = 1;  // рёбра кровли
+        for(let k = 1; k < 10; k++){
+          const t = k/10, tx2 = sx - 20 + t*340;
+          const outer = sy - 18 - Math.sin(t*Math.PI)*178*0.5 - Math.sin(t*Math.PI)*0;
+          ctx.beginPath();
+          ctx.moveTo(tx2, sy - 18);
+          ctx.lineTo(tx2, outer);
+          ctx.stroke();
+        }
+        ctx.fillStyle = '#EFEDE5';
+        for(const mx2 of [sx + 10, sx + 290]){                     // мачты освещения
+          ctx.fillRect(mx2, sy - 120, 5, 40);
+          ctx.fillRect(mx2 - 7, sy - 126, 19, 7);
+        }
+
         ctx.fillStyle = wall;
-        for(const px of [x + 300, x + 360]){                        // пальмы
+        for(const px of [x + 372, x + 424]){                       // пальмы у входа
           ctx.fillRect(px, base - 96, 9, 96);
           for(let k = 0; k < 5; k++){
             const a = Math.PI + k*0.5;
@@ -1879,8 +1979,9 @@
     const base = 512;
     band(0.32, 260, (x, i) => {
       const v = i & 15;
-      if(hash(v + 91) > 0.82) return;                               // переулок
-      const h = (90 + hash(v + 40)*120) | 0;
+      const seaside = c.skyline === 'sochi';
+      if(hash(v + 91) > (seaside ? 0.55 : 0.82)) return;            // переулок
+      const h = ((seaside ? 40 : 90) + hash(v + 40)*(seaside ? 44 : 120)) | 0;
       const w = (110 + hash(v + 17)*80) | 0;
       const wall = i % 2 ? c.near : c.far;
       house(x, base - h, w, h + 90, wall, c, v + 70, 12 + (hash(v+8)*6|0));
@@ -1903,7 +2004,7 @@
         ctx.globalAlpha = 1;
       }
       ctx.fillStyle = wall;
-      ctx.fillRect(x + w + 14, base - 56, 62, 146);
+      ctx.fillRect(x + w + 14, base - (seaside ? 34 : 56), 62, 146);
       ctx.fillStyle = 'rgba(0,0,0,.3)';
       for(let k = 0; k < 3; k++) ctx.fillRect(x + w + 22 + k*18, base - 46, 11, 16);
     });
@@ -2093,6 +2194,48 @@
           ctx.fillRect(px, y - 22, 46, 3); ctx.fillRect(px, y - 12, 46, 3);
           for(let k = 0; k < 4; k++) ctx.fillRect(px + k*14, y - 24, 3, 24);
           break;
+        case 'tsar': {
+          // Медный всадник: гранитная волна, конь с поднятым передом и Пётр
+          // с простёртой рукой. Каждый блок задан нижним краем и высотой,
+          // поэтому детали стыкуются, а не разъезжаются.
+          ctx.fillStyle = '#4A5462';
+          ctx.beginPath();
+          ctx.moveTo(px - 56, y);
+          ctx.quadraticCurveTo(px - 30, y - 30, px + 10, y - 36);
+          ctx.quadraticCurveTo(px + 54, y - 30, px + 78, y);
+          ctx.closePath(); ctx.fill();
+          ctx.fillStyle = 'rgba(239,237,229,.10)';
+          ctx.fillRect(px - 44, y - 22, 34, 3);
+
+          const B = '#5C7864', S = '#8CAA93';
+          const base = y - 28, k = 0.78;             // статуя стоит на вершине камня
+          const blk = (bx, bot, bw, bh, col) => {
+            ctx.fillStyle = col || B;
+            ctx.fillRect(px + bx*k, base - (bot + bh)*k, bw*k, bh*k);
+          };
+
+          blk(6, 0, 10, 44);                         // задние ноги
+          blk(20, 0, 9, 42);
+          blk(-2, 44, 36, 26);                       // круп
+          blk(-36, 54, 38, 26);                      // грудь приподнята — конь встаёт
+          blk(-46, 42, 10, 22);                      // поджатые передние ноги
+          blk(-34, 38, 9, 20);
+          blk(-52, 72, 16, 30);                      // шея
+          blk(-70, 94, 24, 13);                      // голова
+          blk(-76, 96, 8, 8);                        // морда
+          blk(-52, 102, 5, 9);                       // ухо
+          blk(-50, 88, 16, 6, S);                    // грива
+          blk(32, 36, 9, 34);                        // хвост
+          blk(30, 62, 12, 10);
+
+          blk(-16, 72, 15, 28);                      // всадник
+          ctx.fillStyle = B;
+          ctx.beginPath(); ctx.arc(px - 8*k, base - 106*k, 8*k, 0, 6.284); ctx.fill();
+          blk(-38, 90, 24, 6);                       // простёртая рука от плеча
+          blk(-16, 68, 14, 5, S);                    // блик на плечах
+          blk(-14, 52, 11, 18);                      // нога в стремени
+          break;
+        }
         case 'box':
           ctx.fillStyle = '#5F6A74'; ctx.fillRect(px, y - 30, 30, 30);
           ctx.fillStyle = '#E8B910'; ctx.fillRect(px + 10, y - 22, 10, 10);
