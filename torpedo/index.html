@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="description" content="Браузерный платформер про болельщика Торпедо (Москва) Никиту: пять городов, билеты, флаг на финише.">
+<meta name="description" content="Браузерный платформер про болельщика Торпедо (Москва) Никиту: пять городов, билеты, куртки из ящиков, флаг на финише.">
 <meta name="theme-color" content="#0A0D0F">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -136,6 +136,8 @@
     letter-spacing:.02em;
   }
   .cell.time span.low{color:var(--hazard)}
+  .cell.gear span{font-family:"Oswald",sans-serif;font-size:15px;text-transform:uppercase;letter-spacing:.02em;color:var(--muted)}
+  .cell.gear span.worn{color:var(--green)}
   .scarves{letter-spacing:2px;font-size:19px}
 
   /* ——— сцена ——— */
@@ -523,6 +525,7 @@
     <div class="cell"><b>Очки</b><span id="hud-score">0</span></div>
     <div class="cell"><b>Билеты</b><span id="hud-coins">0</span></div>
     <div class="cell"><b>Шарфы</b><span class="scarves" id="hud-lives">▮▮▮</span></div>
+    <div class="cell gear"><b>Куртка</b><span id="hud-gear">нет</span></div>
     <div class="cell time"><b>Время</b><span id="hud-time">200</span></div>
     <div class="cell"><b>Рекорд</b><span id="hud-best">0</span></div>
   </div>
@@ -587,6 +590,12 @@
       зелёный столб, от него продолжаешь после падения.</p>
     <p><b>Жёлто-чёрная плитка</b> — разрытая теплотрасса, через неё только прыжком. В яму упал — шарф потерян.
       На разводном мосту и на трамвайной платформе Никита едет вместе с ними, прыгать можно прямо с хода.</p>
+    <p><b>Ящики с вопросом</b> бьются снизу головой, как кирпичи в Марио. Внутри либо билет,
+      либо куртка: олива с нашивкой на рукаве — Stone Island, песочная с линзами на капюшоне —
+      C.P. Company. Подобрал — Никита переоделся, и это видно на экране.</p>
+    <p><b>Куртка держит удар вместо шарфа.</b> Налетел на болельщика Локомотива в куртке — рвётся
+      куртка, шарф остаётся. В C.P. Company вдобавок прыгается выше. В яму или по времени куртка
+      не спасает, и со смертью гардероб теряется весь.</p>
     <p><b>Пальцем</b> можно вести, не отрывая: палец едет с «влево» на «вправо» — направление
       меняется на ходу. Тап по самому полю — тоже прыжок, так что одним большим пальцем держишь
       бег, вторым бьёшь куда попало.</p>
@@ -608,7 +617,7 @@
   const W = 960, H = 600, TILE = 40, ROWS = 15, COLS = 190;
   const GRAV = 0.78, JUMP = -14.2, MAXFALL = 16.5;
   const ACC = 1.30, FRIC_GROUND = 0.70, FRIC_AIR = 0.92, MAXSPD = 4.6;
-  const EMPTY = 0, SOLID = 1, HAZ = 2;
+  const EMPTY = 0, SOLID = 1, HAZ = 2, BOX = 3, BOX_USED = 4;
   const LEVEL_TIME = 200;
 
   const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -647,7 +656,7 @@
   function buildLevel(idx){
     const rng = mulberry32(0x7A0BE + idx * 9176);
     const grid = new Uint8Array(COLS * ROWS);
-    const coins = [], foes = [], movers = [];
+    const coins = [], foes = [], movers = [], boxes = [];
     const set = (x,y,v) => { if(x>=0 && x<COLS && y>=0 && y<ROWS) grid[y*COLS + x] = v; };
     const fillCol = (x, top) => { for(let y=top; y<ROWS; y++) set(x,y,SOLID); };
     const coin = (tx, ty) => coins.push({ x:tx*TILE + TILE/2, y:ty*TILE + TILE/2, got:false, ph:rng()*6.28 });
@@ -708,6 +717,15 @@
         for(let i=0; i<n; i++) foe(run.a + 2 + i*3, floorY, run.a, run.b);
         if(rng() < 0.5) coin(run.a + 4, floorY - 2);
       }
+      else if(roll < 0.93){                            // ящики над головой
+        const run = flat(8 + Math.floor(rng()*3));
+        const n = 2 + Math.floor(rng()*3);
+        const bx = run.a + 2, by = floorY - 4;
+        for(let i = 0; i < n; i++){
+          set(bx + i*2, by, BOX);
+          boxes.push({ tx:bx + i*2, ty:by, kind:'coin' });
+        }
+      }
       else{                                            // разрытая теплотрасса
         const run = flat(6 + Math.floor(rng()*3));
         const hx = run.a + 2, hw = 1 + (rng() < 0.4 ? 1 : 0);
@@ -720,6 +738,7 @@
     const flagX = (COLS - 9) * TILE;
     const flagY = floorY * TILE;
 
+
     // столб-чекпоинт — на ровном участке ближе к середине
     let cp = null, bestD = 1e9;
     for(const r of flatRuns){
@@ -728,7 +747,40 @@
     }
     if(!cp) cp = { x:20*TILE, y:(ROWS-3)*TILE };
 
-    return { grid, coins, foes, movers, flagX, flagY, cp, startY:(ROWS-3)*TILE, finishA:finish.a };
+    // где ящиков вышло мало, доставим их на ровных участках
+    let guard = 0;
+    while(boxes.length < 7 && guard++ < 60 && flatRuns.length){
+      const r = flatRuns[Math.floor(rng()*flatRuns.length)];
+      if(r.b - r.a < 6) continue;
+      const bx = r.a + 2, by = r.y - 4;
+      if(by < 1) continue;
+      let free = true;
+      for(let i = 0; i < 3; i++)
+        if(grid[by*COLS + bx + i*2] !== EMPTY) free = false;
+      if(!free) continue;
+      const n = 2 + Math.floor(rng()*2);
+      for(let i = 0; i < n; i++){
+        set(bx + i*2, by, BOX);
+        boxes.push({ tx:bx + i*2, ty:by, kind:'coin' });
+      }
+    }
+
+    // содержимое ящиков: по одной куртке каждой марки на город гарантированно
+    if(boxes.length){
+      for(const b of boxes) b.kind = rng() < 0.22 ? 'si' : rng() < 0.12 ? 'cp' : 'coin';
+      const pick = k => {
+        if(boxes.some(b => b.kind === k)) return;
+        const free = boxes.filter(b => b.kind === 'coin');
+        if(free.length) free[Math.floor(rng()*free.length)].kind = k;
+        else boxes[Math.floor(rng()*boxes.length)].kind = k;
+      };
+      pick('si'); pick('cp');
+    }
+    const boxKind = new Map();
+    for(const b of boxes) boxKind.set(b.ty*COLS + b.tx, b.kind);
+
+    return { grid, coins, foes, movers, boxKind, items:[], bumps:[],
+             flagX, flagY, cp, startY:(ROWS-3)*TILE, finishA:finish.a };
   }
 
   /* ====================== уличный декор ======================
@@ -793,7 +845,8 @@
     level:0, score:0, coins:0, lives:3,
     time:LEVEL_TIME, frames:0, timer:0,
     best:0, unlocked:1, done:[false,false,false,false,false],
-    shake:0, sound:true, lite:false
+    shake:0, sound:true, lite:false,
+    gear:0, dress:0
   };
 
   let L = null;                   // текущий уровень
@@ -875,7 +928,8 @@
 
   /* ====================== тайлы ====================== */
   const tileAt = (tx,ty) => (tx<0 || tx>=COLS || ty<0 || ty>=ROWS) ? EMPTY : L.grid[ty*COLS + tx];
-  const solidAt = (tx,ty) => tileAt(tx,ty) === SOLID;
+  const solidAt = (tx,ty) => { const t = tileAt(tx,ty); return t === SOLID || t === BOX || t === BOX_USED; };
+  const groundAt = (tx,ty) => tileAt(tx,ty) === SOLID;
 
   function collideAxis(dx, dy){
     P.x += dx; P.y += dy;
@@ -887,7 +941,11 @@
         if(dx > 0){ P.x = tx*TILE - P.w; P.vx = 0; }
         else if(dx < 0){ P.x = (tx+1)*TILE; P.vx = 0; }
         else if(dy > 0){ P.y = ty*TILE - P.h; P.vy = 0; P.onGround = true; P.ride = null; }
-        else if(dy < 0){ P.y = (ty+1)*TILE; P.vy = 0.4; }
+        else if(dy < 0){
+          P.y = (ty+1)*TILE; P.vy = 0.4;
+          if(tileAt(tx,ty) === BOX) popBox(tx, ty);
+          else if(tileAt(tx,ty) === BOX_USED) L.bumps.push({ tx, ty, t:0, dull:true });
+        }
       }
     }
   }
@@ -937,6 +995,48 @@
     for(const f of L.foes) if(f.dead > 40) f.dead = 0;
   }
 
+  /* Ящик вскрывается ударом снизу — как в Марио. Внутри либо билет, либо
+     куртка: она выезжает наружу и дальше живёт своей физикой. */
+  const GEAR = [
+    null,
+    { id:'si', name:'Stone Island', short:'Stone Island' },
+    { id:'cp', name:'C.P. Company', short:'C.P. Company' }
+  ];
+
+  function popBox(tx, ty){
+    const idx = ty*COLS + tx;
+    L.grid[idx] = BOX_USED;
+    L.bumps.push({ tx, ty, t:0 });
+    G.shake = reduceMotion ? 0 : 3;
+    const kind = L.boxKind.get(idx) || 'coin';
+    const x = tx*TILE, y = ty*TILE;
+    if(kind === 'coin'){
+      G.coins++; G.score += 100;
+      sfx.coin();
+      sparks.push({ x:x + TILE/2, y:y - 6, t:30, txt:'+100' });
+      spawnBits(x + TILE/2, y - 4, 10, '#EFEDE5', 4, 2.6);
+      return;
+    }
+    L.items.push({
+      kind, x:x + 6, y:y - 6, w:28, h:16,
+      vx:0, vy:-3.2, out:14, got:false, t:0
+    });
+    beep(520, .1, 'square', .05); setTimeout(() => beep(780, .12, 'square', .05), 90);
+  }
+
+  function wearGear(level){
+    const was = G.gear;
+    G.gear = Math.max(G.gear, level);
+    G.score += 500;
+    G.dress = 26;
+    P.inv = Math.max(P.inv, 30);
+    buzz(25);
+    [660, 880, 1170].forEach((f,i) => setTimeout(() => beep(f, .13, 'triangle', .06), i*90));
+    sparks.push({ x:P.x + P.w/2, y:P.y - 4, t:44, txt:GEAR[G.gear].short });
+    spawnBits(P.x + P.w/2, P.y + 12, 16, G.gear === 2 ? '#C7B58C' : '#6E8250', 5, 3);
+    return was !== G.gear;
+  }
+
   /* ====================== шаг физики ====================== */
   function step(){
     G.frames++;
@@ -965,7 +1065,8 @@
     if(P.onGround) P.coyote = 9; else if(P.coyote > 0) P.coyote--;
 
     if(P.buffer > 0 && P.coyote > 0){
-      P.vy = JUMP; P.buffer = 0; P.coyote = 0; P.onGround = false; P.ride = null;
+      P.vy = JUMP * (G.gear === 2 ? 1.08 : 1); P.buffer = 0; P.coyote = 0;
+      P.onGround = false; P.ride = null;
       sfx.jump();
     }
     if(P.vy < 0 && !jump) P.vy *= 0.55;          // отпустил — прыжок ниже
@@ -1059,6 +1160,40 @@
     }
 
     // столб-чекпоинт
+    // куртки: выехали из ящика, упали, поехали вбок, подобрались
+    for(const it of L.items){
+      if(it.got) continue;
+      it.t++;
+      if(it.out > 0){                                  // выезжает наружу
+        it.out--; it.y -= 1.6;
+        if(it.out === 0) it.vx = 1.5;
+        continue;
+      }
+      it.vy = Math.min(it.vy + 0.5, 12);
+      it.x += it.vx;
+      const sideTx = Math.floor((it.vx > 0 ? it.x + it.w : it.x) / TILE);
+      const midTy = Math.floor((it.y + it.h/2) / TILE);
+      if(solidAt(sideTx, midTy)){
+        it.x -= it.vx; it.vx *= -1;
+      }
+      it.y += it.vy;
+      const footTy = Math.floor((it.y + it.h) / TILE);
+      const cTx = Math.floor((it.x + it.w/2) / TILE);
+      if(it.vy > 0 && solidAt(cTx, footTy)){
+        it.y = footTy*TILE - it.h; it.vy = 0;
+      }
+      if(it.y > H + 80){ it.got = true; continue; }
+
+      if(P.x + P.w > it.x + 2 && P.x < it.x + it.w - 2 &&
+         P.y + P.h > it.y + 2 && P.y < it.y + it.h - 2){
+        it.got = true;
+        wearGear(it.kind === 'cp' ? 2 : 1);
+      }
+    }
+    for(let i = L.bumps.length-1; i >= 0; i--)
+      if(++L.bumps[i].t > 12) L.bumps.splice(i, 1);
+    if(G.dress > 0) G.dress--;
+
     if(!P.passed && P.x + P.w > L.cp.x && P.x < L.cp.x + 20){
       P.passed = true;
       sparks.push({ x:L.cp.x + 8, y:L.cp.y - 70, t:50, txt:'ТОЧКА' });
@@ -1093,6 +1228,17 @@
 
   function hurt(fatal){
     if(P.inv > 0 && !fatal) return;
+    if(G.gear > 0 && !fatal){                          // куртку порвали, шарф цел
+      G.gear--;
+      P.inv = 100;
+      G.dress = 20;
+      sfx.hurt(); buzz(30);
+      G.shake = reduceMotion ? 0 : 7;
+      spawnBits(P.x + P.w/2, P.y + 16, 14, '#8E7E5C', 5, 2.6);
+      sparks.push({ x:P.x + P.w/2, y:P.y - 2, t:34, txt:'КУРТКА!' });
+      hud();
+      return;
+    }
     G.lives--;
     sfx.hurt();
     buzz(45);
@@ -1161,7 +1307,7 @@
   }
 
   function fullRestart(){
-    G.score = 0; G.lives = 3; P.passed = false;
+    G.score = 0; G.lives = 3; G.gear = 0; P.passed = false;
     loadLevel(0, false);
     startCity();
   }
@@ -1180,7 +1326,8 @@
     coins: document.getElementById('hud-coins'),
     lives: document.getElementById('hud-lives'),
     time:  document.getElementById('hud-time'),
-    best:  document.getElementById('hud-best')
+    best:  document.getElementById('hud-best'),
+    gear:  document.getElementById('hud-gear')
   };
   function hud(){
     el.city.textContent  = CITIES[G.level].name;
@@ -1190,6 +1337,8 @@
     el.time.textContent  = G.time;
     el.time.classList.toggle('low', G.time <= 30);
     el.best.textContent  = Math.max(G.best, G.score);
+    el.gear.textContent  = G.gear ? GEAR[G.gear].short : 'нет';
+    el.gear.className    = G.gear ? 'worn' : '';
   }
 
   function syncCards(){
@@ -1240,7 +1389,9 @@
   const PAL = {
     n: { h:'#4A3123', H:'#33221A', s:'#E6B489', S:'#C08A5E',
          w:'#EFEDE5', b:'#1B2026', g:'#00A651', G:'#04703A',
-         j:'#31415A', J:'#22304A', r:'#23262B' },
+         j:'#31415A', J:'#22304A', r:'#23262B',
+         o:'#5C6B44', O:'#3E4A2E', y:'#E8891A',        // олива и нашивка на рукаве
+         c:'#C6B48A', C:'#7A6B4C', l:'#8FD4EF', L:'#2A3138' },  // песок и линзы капюшона
     f: { R:'#C8102E', D:'#8E0A20', G:'#0C7A46', s:'#D8A882', S:'#B0805C',
          j:'#2C3540', r:'#1E2126', k:'#12151A' }
   };
@@ -1285,7 +1436,57 @@
     jump: ['....jjjjjjj.....','...jjjj.jjj.....','..jjj....jjj....','..jjj.....jjj...','..rrrr....rrrr..','................'],
     fall: ['....jjjjjjj.....','...jjjj.jjjj....','...jjj...jjj....','...jj.....jj....','..rrrr...rrrr...','................']
   };
-  const nikita = (body, legs) => makeSprite(N_HEAD.concat(body, N_LEGS[legs]), PAL.n, 2, '#0C0F12');
+  // куртка в оливе с нашивкой на рукаве
+  const N_SI = [
+    '....gggggggg....',
+    '...oooooooooo...',
+    '..sooooooooos...',
+    '..soooooooyos...',
+    '...ooOoooOooo...',
+    '...oooooooooo...',
+    '...OOOOOOOOOO...'
+  ];
+  const N_SI_AIR = [
+    '....gggggggg....',
+    '...ooooooooos...',
+    '...ooooooooos...',
+    '..soooooooyoo...',
+    '..sooOoooOooo...',
+    '...oooooooooo...',
+    '...OOOOOOOOOO...'
+  ];
+  // песочная куртка, а линзы — на капюшоне
+  const N_CP = [
+    '....gggggggg....',
+    '...cccccccccc...',
+    '..scccccccccs...',
+    '..scccccccccs...',
+    '...ccCcccCccc...',
+    '...cccccccccc...',
+    '...CCCCCCCCCC...'
+  ];
+  const N_CP_AIR = [
+    '....gggggggg....',
+    '...cccccccccs...',
+    '...cccccccccs...',
+    '..sccccccccc....',
+    '..sccCcccCcc....',
+    '...cccccccccc...',
+    '...CCCCCCCCCC...'
+  ];
+  const N_HEAD_CP = [
+    '................',
+    '....CCCCCCCC....',
+    '...CCCCCCCCCC...',
+    '...CllCCllCCC...',
+    '...CllCCllCCC...',
+    '...CssssssssC...',
+    '....ssssHss.....',
+    '....sssssss.....',
+    '.....gggggggg...'
+  ];
+
+  const nikita = (head, body, legs) => makeSprite(head.concat(body, N_LEGS[legs]), PAL.n, 2, '#0C0F12');
 
   // Болельщик Локомотива: красная роза, зелёная полоса, кепка с козырьком
   const F_TOP = [
@@ -1320,13 +1521,43 @@
     '...jjj..jjj.....','..rrrr..rrrr....','................','................'
   ];
 
+  // куртки, которые валяются на асфальте
+  const ITEM_SI = [
+    '..oooooooooo..',
+    '.oooooooooooo.',
+    'oooOoooooOoooo',
+    'ooooooooooyooo',
+    'oooooooooooooo',
+    '.oooooooooooo.',
+    '..OOOOOOOOOO..'
+  ];
+  const ITEM_CP = [
+    '..cccccccccc..',
+    '.cLLcccccLLcc.',
+    'cclLcccccLlccc',
+    'cccccccccccccc',
+    'ccCccccccccCcc',
+    '.cccccccccccc.',
+    '..CCCCCCCCCC..'
+  ];
+
+  const kit = (head, body, air) => ({
+    idle: nikita(head, body, 'idle'),
+    run:  ['run0','run1','run2','run3'].map(k => nikita(head, body, k)),
+    jump: nikita(head, air, 'jump'),
+    fall: nikita(head, air, 'fall')
+  });
+
   const SPR = {
-    idle: nikita(N_BODY, 'idle'),
-    run:  ['run0','run1','run2','run3'].map(k => nikita(N_BODY, k)),
-    jump: nikita(N_BODY_AIR, 'jump'),
-    fall: nikita(N_BODY_AIR, 'fall'),
+    kits: [
+      kit(N_HEAD,    N_BODY, N_BODY_AIR),
+      kit(N_HEAD,    N_SI,   N_SI_AIR),
+      kit(N_HEAD_CP, N_CP,   N_CP_AIR)
+    ],
     foe:  ['a','b'].map(k => makeSprite(F_TOP.concat(F_LEGS[k]), PAL.f, 2, '#0C0F12')),
-    foeSad: makeSprite(F_SAD, PAL.f, 2, '#0C0F12')
+    foeSad: makeSprite(F_SAD, PAL.f, 2, '#0C0F12'),
+    itemSI: makeSprite(ITEM_SI, PAL.n, 2, '#0C0F12'),
+    itemCP: makeSprite(ITEM_CP, PAL.n, 2, '#0C0F12')
   };
 
   // Зеркалим один раз, а не через ctx.scale на каждом кадре
@@ -1338,11 +1569,13 @@
     g.drawImage(src, 0, 0);
     return cv;
   }
-  SPR.idleL = flipped(SPR.idle);
-  SPR.runL  = SPR.run.map(flipped);
-  SPR.jumpL = flipped(SPR.jump);
-  SPR.fallL = flipped(SPR.fall);
-  SPR.foeL  = SPR.foe.map(flipped);
+  for(const k of SPR.kits){
+    k.idleL = flipped(k.idle);
+    k.runL  = k.run.map(flipped);
+    k.jumpL = flipped(k.jump);
+    k.fallL = flipped(k.fall);
+  }
+  SPR.foeL = SPR.foe.map(flipped);
 
   /* ====================== рисование ====================== */
 
@@ -1742,6 +1975,28 @@
           }
           if(!solidAt(tx - 1, ty)){ ctx.fillStyle = 'rgba(239,237,229,.07)'; ctx.fillRect(px, py, 2, TILE); }
           if(!solidAt(tx + 1, ty)){ ctx.fillStyle = 'rgba(0,0,0,.30)'; ctx.fillRect(px + TILE - 2, py, 2, TILE); }
+        } else if(t === BOX || t === BOX_USED){
+          let lift = 0;
+          for(const bp of L.bumps)
+            if(bp.tx === tx && bp.ty === ty) lift = -Math.sin(bp.t/12*Math.PI)*9;
+          const by = py + lift;
+          ctx.fillStyle = t === BOX ? '#3A3F46' : '#2B3036';
+          ctx.fillRect(px + 2, by + 2, TILE - 4, TILE - 4);
+          ctx.fillStyle = t === BOX ? '#E8B910' : '#4A515A';
+          ctx.fillRect(px + 2, by + 2, TILE - 4, 3);
+          ctx.fillRect(px + 2, by + TILE - 5, TILE - 4, 3);
+          ctx.fillRect(px + 2, by + 2, 3, TILE - 4);
+          ctx.fillRect(px + TILE - 5, by + 2, 3, TILE - 4);
+          if(t === BOX){
+            ctx.fillStyle = '#E8B910';
+            ctx.font = '700 22px Oswald, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('?', px + TILE/2, by + 29);
+            ctx.textAlign = 'left';
+          } else {
+            ctx.fillStyle = '#3A3F46';
+            ctx.fillRect(px + 12, by + 18, 16, 4);
+          }
         } else {
           // разрытая теплотрасса: труба, ограждение, пар
           ctx.fillStyle = '#20252A'; ctx.fillRect(px + 2, py + 26, TILE - 4, 14);
@@ -1947,31 +2202,56 @@
     if(P.inv > 0 && Math.floor(G.frames/4) % 2 === 0 && G.mode === 'play') return;
     const px = Math.round(P.x - cam) - 3, py = Math.round(P.y) - 6;
     const right = P.face > 0;
+    const K = SPR.kits[G.gear] || SPR.kits[0];
     let spr;
-    if(!P.onGround) spr = P.vy < 0 ? (right ? SPR.jump : SPR.jumpL) : (right ? SPR.fall : SPR.fallL);
+    if(!P.onGround) spr = P.vy < 0 ? (right ? K.jump : K.jumpL) : (right ? K.fall : K.fallL);
     else if(Math.abs(P.vx) > 0.4){
       const fr = Math.floor(P.run) % 4;
-      spr = right ? SPR.run[fr] : SPR.runL[fr];
+      spr = right ? K.run[fr] : K.runL[fr];
     }
-    else spr = right ? SPR.idle : SPR.idleL;
+    else spr = right ? K.idle : K.idleL;
 
     shadow(P.x + P.w/2, P.y + P.h, P.w);
 
     // шарф живёт отдельно: тянется за спиной и подпрыгивает
     const back = right ? -1 : 1;
     const drag = Math.abs(P.vx) * 1.5;
-    let sx = px + 16 + back*7, sy = py + 19;
+    let sx = px + 16 + back*4, sy = py + 20;
     for(let k = 0; k < 4; k++){
-      const wob = reduceMotion ? 0 : Math.sin(G.frames*0.2 + k*0.85) * (P.onGround ? 1.8 : 4);
-      const seg = 7 + drag*0.45;
-      sx += back*seg; sy += 2.2 + wob*0.5;
-      const w = 8 - k*1.4, h = 6 - k;
+      const wob = reduceMotion ? 0 : Math.sin(G.frames*0.2 + k*0.85) * (P.onGround ? 1.6 : 3.6);
+      const seg = 5 + drag*0.4;
+      sx += back*seg; sy += 1.8 + wob*0.4;
+      const w = 6 - k*1.1, h = 5 - k*0.9;
       ctx.fillStyle = '#04703A';
       ctx.fillRect(sx - (back < 0 ? w : 0), sy + wob + 1, w, h);
       ctx.fillStyle = '#00A651';
       ctx.fillRect(sx - (back < 0 ? w : 0), sy + wob, w, h - 1);
     }
+    if(G.dress > 0 && Math.floor(G.frames/3) % 2 === 0){
+      ctx.save();
+      ctx.globalAlpha = 0.5;
+      ctx.drawImage(spr, px - 2, py - 2, spr.width + 4, spr.height + 4);
+      ctx.restore();
+    }
     ctx.drawImage(spr, px, py);
+  }
+
+  /* ——— куртки на асфальте ——— */
+  function drawItems(){
+    for(const it of L.items){
+      if(it.got) continue;
+      const px = it.x - cam;
+      if(px < -60 || px > W + 60) continue;
+      const bob = it.out > 0 ? 0 : Math.sin(it.t*0.12)*1.5;
+      shadow(it.x + it.w/2, it.y + it.h, it.w);
+      ctx.drawImage(it.kind === 'cp' ? SPR.itemCP : SPR.itemSI, px, it.y + bob);
+      if(!G.lite){
+        ctx.save();
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.drawImage(TEX_LAMP, px - 22, it.y - 22, 72, 60);
+        ctx.restore();
+      }
+    }
   }
 
   /* ——— флаг и чекпоинт ——— */
@@ -2080,6 +2360,7 @@
     drawFlag();
     drawMovers(c);
     drawCoins();
+    drawItems();
     for(const f of L.foes) drawFoe(f);
     drawPlayer();
     drawBits();
@@ -2157,6 +2438,7 @@
               'Никита сел на скамейку у турникета и пересчитал билеты. Ничего, следующий выезд через неделю.',
               'Очки: ' + G.score + '   ·   Рекорд: ' + G.best, 'Начать сначала', null);
           } else {
+            G.gear = 0;
             spawn(true);
             G.mode = 'play';
           }
@@ -2366,7 +2648,7 @@
     }
     syncCards(); hud();
     show('Чёрно-белый сектор', 'Никита за Торпедо',
-      'Стрелки или A/D — бежать, пробел — прыжок (держать дольше — выше). На телефоне — кнопки снизу, значок ⛶ разворачивает на весь экран. Сверху на болельщика Локомотива — он теряет кепку. Сбоку — теряешь шарф.',
+      'Стрелки или A/D — бежать, пробел — прыжок (держать дольше — выше). Сверху на болельщика Локомотива — он теряет кепку, сбоку — теряешь шарф. Ящики с вопросом бей снизу головой: оттуда падают билеты и куртки, а куртка принимает удар на себя.',
       'Рекорд: ' + G.best, 'Поехали', null);
     requestAnimationFrame(loop);
   }
