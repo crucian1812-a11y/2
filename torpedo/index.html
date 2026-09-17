@@ -593,7 +593,9 @@
     <p><b>Соперники у каждого города свои.</b> В Москве, Казани и Екатеринбурге навстречу идут
       красно-зелёные, на Неве — сине-бело-голубые. В Сочи по маршруту сперва пусто: гости
       приезжают автобусами, и после четверти пути из двух автобусов по очереди выходят
-      красно-синие. Всего приедет шестнадцать, больше пяти разом на улице не бывает.</p>
+      красно-синие.</p>
+    <p><b>Финиш в Москве — парк у «Автозаводской».</b> Там же стоят две машины, из которых
+      под занавес подтягиваются бело-голубые. Разом на улице их не больше четырёх.</p>
     <p><b>Ящики с вопросом</b> бьются снизу головой, как кирпичи в Марио. Внутри либо билет,
       либо куртка: олива с нашивкой на рукаве — Stone Island, песочная с линзами на капюшоне —
       C.P. Company. Подобрал — Никита переоделся, и это видно на экране.</p>
@@ -627,7 +629,7 @@
   const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   const CITIES = [
-    { name:'Москва',           place:'Восточная улица, ЗИЛ',       skyline:'msk', foe:'loko',
+    { name:'Москва',           place:'Восточная улица, ЗИЛ',       skyline:'msk', foe:'loko', park:true, endCars:true,
       sky:['#141C24','#3B4A54'], far:'#151C21', near:'#1F2A30', road:'#48525A', kerb:'#606C73',
       win:'#FFD98A', neon:'#00A651', glow:'#FFC46B', fog:'#1E2A32', weather:'snow' },
     { name:'Санкт-Петербург',  place:'Набережная, разводной мост', skyline:'spb', foe:'zenit',
@@ -665,9 +667,10 @@
     const set = (x,y,v) => { if(x>=0 && x<COLS && y>=0 && y<ROWS) grid[y*COLS + x] = v; };
     const fillCol = (x, top) => { for(let y=top; y<ROWS; y++) set(x,y,SOLID); };
     const coin = (tx, ty) => coins.push({ x:tx*TILE + TILE/2, y:ty*TILE + TILE/2, got:false, ph:rng()*6.28 });
+    const homeClub = CITIES[idx].foe;
     const foe  = (tx, ty, a, b) => byBus ? null : foes.push({
       x:tx*TILE + 6, y:ty*TILE - 36, w:28, h:36, vx:(rng()<.5?-1:1)*1.15,
-      min:a*TILE, max:b*TILE - 28, dead:0, t:rng()*6.28
+      min:a*TILE, max:b*TILE - 28, dead:0, t:rng()*6.28, club:homeClub
     });
 
     let floorY = ROWS - 3;   // верхний ряд асфальта
@@ -740,6 +743,10 @@
     }
 
     const finish = flat(COLS - x, true);
+    // в конце Москвы у парка стоят две машины — оттуда подтягиваются бело-голубые
+    if(CITIES[idx].endCars)
+      for(const cx of [COLS - 33, COLS - 21])
+        buses.push({ x:cx*TILE, y:floorY*TILE, kind:'car', club:'dynamo', from:0.72, open:0, t:0 });
     const flagX = (COLS - 9) * TILE;
     const flagY = floorY * TILE;
 
@@ -762,7 +769,8 @@
           if(r.b - r.a < 7) continue;
           if(!best || r.b - r.a > best.b - best.a) best = r;
         }
-        if(best) buses.push({ x:(best.a + 2)*TILE, y:best.y*TILE, open:0, t:0 });
+        if(best) buses.push({ x:(best.a + 2)*TILE, y:best.y*TILE,
+                              kind:'bus', club:CITIES[idx].foe, from:0.25, open:0, t:0 });
       }
     }
 
@@ -847,6 +855,18 @@
         y: topRow[x]*TILE,
         snow: c.weather === 'snow'
       });
+    }
+    // Москва под занавес: парк у «Автозаводской» — вестибюль, аллея, лавки
+    if(c.park){
+      const to = COLS - 13;
+      let from = COLS - 50;
+      while(from < to - 12 && !freeAt(from, 4)) from++;
+      props.push({ type:'metro', x:from*TILE, y:topRow[from]*TILE });
+      for(let px = from + 7; px < to; px += 3){
+        if(!freeAt(px, 2)) continue;
+        const kind = (px - from) % 9 === 0 ? 'bench' : (px - from) % 6 === 0 ? 'lamp' : 'tree';
+        props.push({ type:kind, x:px*TILE + 4, y:topRow[px]*TILE, snow:c.weather === 'snow', park:true });
+      }
     }
     return props;
   }
@@ -1001,7 +1021,8 @@
     L.props = decorate(L, i);
     if(!keepScore){ /* очки копятся весь выезд */ }
     G.coins = 0;
-    G.busT = 0; G.busIdx = 0; G.busLeft = 16;
+    G.busT = 0; G.busIdx = 0;
+    G.busLeft = CITIES[i].foeSpawn === 'bus' ? 16 : CITIES[i].endCars ? 9 : 0;
     G.time = LEVEL_TIME;
     G.timer = 0;
     cam = 0;
@@ -1022,6 +1043,9 @@
 
   /* Ящик вскрывается ударом снизу — как в Марио. Внутри либо билет, либо
      куртка: она выезжает наружу и дальше живёт своей физикой. */
+  const CLUB_PAL = { loko:null, zenit:null, cska:null, dynamo:null };   // заполняется ниже
+  const CLUB_COLOR = { loko:'#C8102E', zenit:'#1A5DAB', cska:'#C8102E', dynamo:'#1B62AE' };
+
   const GEAR = [
     null,
     { id:'si', name:'Stone Island', short:'Stone Island' },
@@ -1072,12 +1096,13 @@
     L.foes.push({
       x:b.x + 14, y:b.y - 36, w:28, h:36,
       vx:(P.x > b.x ? 1 : -1) * 1.2,
-      min:a*TILE, max:c*TILE - 28, dead:0, t:Math.random()*6.28
+      min:a*TILE, max:c*TILE - 28, dead:0, t:Math.random()*6.28,
+      club:b.club
     });
     b.open = 34;
     G.busLeft--;
     beep(210, .14, 'sawtooth', .05);
-    spawnBits(b.x + 20, b.y - 12, 6, '#123C8C', 3, 1.6);
+    spawnBits(b.x + 20, b.y - 12, 6, CLUB_COLOR[b.club] || '#123C8C', 3, 1.6);
   }
 
   /* ====================== шаг физики ====================== */
@@ -1180,9 +1205,9 @@
                         feet <= f.y + 15;
       if(fromAbove){
         f.dead = 1; P.vy = -9.6; G.score += 200; G.shake = reduceMotion ? 0 : 6; buzz(18);
-        poofs.push({ x:f.x + f.w/2, y:f.y, t:0 });
-        spawnBits(f.x + f.w/2, f.y + 10, 12,
-                  CITIES[G.level].foe === 'zenit' ? '#1A5DAB' : '#C8102E', 5.5, 2.6);
+        const club = f.club || CITIES[G.level].foe;
+        poofs.push({ x:f.x + f.w/2, y:f.y, t:0, club });
+        spawnBits(f.x + f.w/2, f.y + 10, 12, CLUB_COLOR[club] || '#C8102E', 5.5, 2.6);
         sparks.push({ x:f.x + f.w/2, y:f.y - 6, t:30, txt:'+200' });
         sfx.stomp();
       } else hurt();
@@ -1241,13 +1266,17 @@
     // автобусы: дверь открылась — вышел ещё один
     if(L.buses.length){
       for(const b of L.buses) if(b.open > 0){ b.open--; b.t++; }
-      if(P.x > L.flagX * 0.25 && G.busLeft > 0){
-        G.busT++;
-        const alive = L.foes.reduce((n, f) => n + (f.dead ? 0 : 1), 0);
-        if(G.busT > 140 && alive < 5){
-          G.busT = 0;
-          busSpawn(L.buses[G.busIdx % L.buses.length]);
-          G.busIdx++;
+      if(G.busLeft > 0){
+        const ready = L.buses.filter(b => P.x > L.flagX * b.from);
+        if(ready.length){
+          G.busT++;
+          const club = ready[G.busIdx % ready.length].club;
+          const alive = L.foes.reduce((n, f) => n + (!f.dead && f.club === club ? 1 : 0), 0);
+          if(G.busT > 140 && alive < 4){
+            G.busT = 0;
+            busSpawn(ready[G.busIdx % ready.length]);
+            G.busIdx++;
+          }
         }
       }
     }
@@ -1457,6 +1486,9 @@
          j:'#2C3540', r:'#1E2126', k:'#12151A' },
     // ЦСКА: красно-синие
     fc:{ R:'#C8102E', D:'#8E0A20', G:'#123C8C', s:'#D8A882', S:'#B0805C',
+         j:'#2C3540', r:'#1E2126', k:'#12151A' },
+    // Динамо: бело-голубые
+    fd:{ R:'#E4EAF0', D:'#AFBAC4', G:'#1B62AE', s:'#D8A882', S:'#B0805C',
          j:'#2C3540', r:'#1E2126', k:'#12151A' }
   };
 
@@ -1625,7 +1657,9 @@
       zenit: { walk:['a','b'].map(k => makeSprite(F_TOP.concat(F_LEGS[k]), PAL.fz, 2, '#0C0F12')),
                sad: makeSprite(F_SAD, PAL.fz, 2, '#0C0F12') },
       cska:  { walk:['a','b'].map(k => makeSprite(F_TOP.concat(F_LEGS[k]), PAL.fc, 2, '#0C0F12')),
-               sad: makeSprite(F_SAD, PAL.fc, 2, '#0C0F12') }
+               sad: makeSprite(F_SAD, PAL.fc, 2, '#0C0F12') },
+      dynamo:{ walk:['a','b'].map(k => makeSprite(F_TOP.concat(F_LEGS[k]), PAL.fd, 2, '#0C0F12')),
+               sad: makeSprite(F_SAD, PAL.fd, 2, '#0C0F12') }
     },
     itemSI: makeSprite(ITEM_SI, PAL.n, 2, '#0C0F12'),
     itemCP: makeSprite(ITEM_CP, PAL.n, 2, '#0C0F12')
@@ -1647,6 +1681,7 @@
     k.fallL = flipped(k.fall);
   }
   for(const k in SPR.foes) SPR.foes[k].walkL = SPR.foes[k].walk.map(flipped);
+  CLUB_PAL.loko = PAL.f; CLUB_PAL.zenit = PAL.fz; CLUB_PAL.cska = PAL.fc; CLUB_PAL.dynamo = PAL.fd;
 
   /* ====================== рисование ====================== */
 
@@ -2293,7 +2328,7 @@
             }
           } else {
             ctx.fillStyle = '#5C4732'; ctx.fillRect(px + 12, y - 46, 8, 46);
-            ctx.fillStyle = p.snow ? 'rgba(200,214,220,.85)' : '#3E6B48';
+            ctx.fillStyle = p.snow ? 'rgba(200,214,220,.85)' : (p.park ? '#3E6B48' : '#3E6B48');
             const sw = reduceMotion ? 0 : Math.sin(G.frames*0.02 + p.x)*2;
             ctx.beginPath(); ctx.arc(px + 16 + sw, y - 58, 20, 0, 6.284); ctx.fill();
             ctx.beginPath(); ctx.arc(px + 4 + sw, y - 46, 13, 0, 6.284); ctx.fill();
@@ -2367,6 +2402,41 @@
           blk(-14, 52, 11, 18);                      // нога в стремени
           break;
         }
+        case 'metro': {
+          const w = 128, h = 92, top = y - h;
+          ctx.fillStyle = '#6A737C';                          // объём вестибюля
+          ctx.fillRect(px, top, w, h);
+          ctx.fillStyle = '#7C8792';
+          ctx.fillRect(px - 8, top - 12, w + 16, 14);          // карниз
+          ctx.fillStyle = '#5A636C';
+          for(let k = 0; k < 5; k++) ctx.fillRect(px + 8 + k*26, top + 14, 12, h - 28);  // колонны
+          ctx.fillStyle = 'rgba(255,217,138,.45)';             // свет из дверей
+          ctx.fillRect(px + 26, y - 46, 22, 46);
+          ctx.fillRect(px + 78, y - 46, 22, 46);
+          ctx.fillStyle = '#39424A';
+          ctx.fillRect(px + 48, y - 46, 30, 46);
+          ctx.fillStyle = '#C8102E';                           // буква М над входом
+          ctx.beginPath(); ctx.arc(px + w/2, top - 26, 17, 0, 6.284); ctx.fill();
+          ctx.fillStyle = '#EFEDE5';
+          ctx.font = '700 22px Oswald, "Arial Narrow", sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText('М', px + w/2, top - 18);
+          ctx.fillStyle = 'rgba(10,13,15,.75)';                // вывеска
+          ctx.fillRect(px + 4, top + 2, w - 8, 14);
+          ctx.fillStyle = '#EFEDE5';
+          ctx.font = '400 9px "PT Mono", monospace';
+          ctx.fillText('АВТОЗАВОДСКАЯ', px + w/2, top + 13);
+          ctx.textAlign = 'left';
+          ctx.fillStyle = '#4C565E';                           // ступени
+          ctx.fillRect(px - 6, y - 6, w + 12, 6);
+          if(!G.lite){
+            ctx.save();
+            ctx.globalCompositeOperation = 'lighter';
+            ctx.drawImage(TEX_LAMP, px + w/2 - 70, top - 80, 140, 140);
+            ctx.restore();
+          }
+          break;
+        }
         case 'box':
           ctx.fillStyle = '#5F6A74'; ctx.fillRect(px, y - 30, 30, 30);
           ctx.fillStyle = '#E8B910'; ctx.fillRect(px + 10, y - 22, 10, 10);
@@ -2382,6 +2452,36 @@
     for(const b of L.buses){
       const px = b.x - cam;
       if(px < -200 || px > W + 200) continue;
+
+      if(b.kind === 'car'){                            // легковая у парка
+        const cw = 104, ch = 30, top = b.y - ch;
+        ctx.fillStyle = '#E4EAF0';                     // бело-голубая
+        ctx.fillRect(px, top, cw, ch);
+        ctx.fillRect(px + 24, top - 20, 54, 20);
+        ctx.fillStyle = '#1B62AE';
+        ctx.fillRect(px, top + ch - 11, cw, 6);
+        ctx.fillStyle = 'rgba(126,150,170,.5)';        // стёкла
+        ctx.fillRect(px + 28, top - 16, 22, 14);
+        ctx.fillStyle = b.open > 0 ? 'rgba(255,214,150,.7)' : 'rgba(126,150,170,.5)';
+        ctx.fillRect(px + 54, top - 16, 20, 14);
+        ctx.fillStyle = '#AFBAC4';
+        ctx.fillRect(px + 50, top + 4, 3, 16);         // стойка двери
+        ctx.fillStyle = '#E8B910';
+        ctx.fillRect(px + cw - 5, top + 9, 5, 6);      // фары
+        ctx.fillStyle = '#C8102E';
+        ctx.fillRect(px, top + 9, 4, 6);
+        ctx.fillStyle = '#15191D';
+        ctx.beginPath(); ctx.arc(px + 22, b.y, 9, Math.PI, 0); ctx.fill();
+        ctx.beginPath(); ctx.arc(px + cw - 22, b.y, 9, Math.PI, 0); ctx.fill();
+        if(b.open > 0 && !G.lite){
+          ctx.save();
+          ctx.globalCompositeOperation = 'lighter';
+          ctx.drawImage(TEX_LAMP, px + 18, b.y - 60, 64, 62);
+          ctx.restore();
+        }
+        continue;
+      }
+
       const bw = 132, bh = 54, top = b.y - bh;
       ctx.fillStyle = '#B3122E';                       // корпус
       ctx.fillRect(px, top, bw, bh);
@@ -2494,7 +2594,7 @@
   function drawFoe(f){
     const px = Math.round(f.x - cam), py = Math.round(f.y);
     if(px < -80 || px > W + 80) return;
-    const kit = SPR.foes[CITIES[G.level].foe] || SPR.foes.loko;
+    const kit = SPR.foes[f.club || CITIES[G.level].foe] || SPR.foes.loko;
     if(f.dead){
       const t = f.dead;
       ctx.save();
@@ -2683,7 +2783,7 @@
       ctx.globalAlpha = Math.max(0, 1 - p.t/45);
       ctx.translate(p.x - cam, p.y - p.t*1.7);
       ctx.rotate(p.t*0.14);
-      const fp = CITIES[G.level].foe === 'zenit' ? PAL.fz : CITIES[G.level].foe === 'cska' ? PAL.fc : PAL.f;
+      const fp = CLUB_PAL[p.club] || CLUB_PAL[CITIES[G.level].foe] || PAL.f;
       ctx.fillStyle = fp.R; ctx.fillRect(-11, -4, 22, 7);
       ctx.fillStyle = fp.D; ctx.fillRect(2, -4, 9, 3);
       ctx.restore();
